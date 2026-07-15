@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat en vivo</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; }
+    #status { font-size: 0.85rem; margin-bottom: 0.5rem; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 0.3rem; }
+    .green { background: #22c55e; }
+    .red { background: #ef4444; }
+    .yellow { background: #eab308; }
+    #messages { border:1px solid #ccc; height:400px; overflow-y:auto; padding:0.5rem; background:#f9f9f9; margin-bottom:1rem; }
+    .msg { margin-bottom:0.5rem; }
+    .msg strong { color:#2563eb; }
+    .msg span { color:#666; font-size:0.8rem; margin-left:0.5rem; }
+    form { display:flex; gap:0.5rem; }
+    input[type="text"] { flex:1; padding:0.5rem; }
+    button { padding:0.5rem 1rem; }
+  </style>
+</head>
+<body>
+  <h2>💬 Chat en vivo</h2>
+  <div id="status">
+    <span id="statusDot" class="dot red"></span>
+    <span id="statusText">Conectando...</span>
+  </div>
+  <div id="messages"></div>
+  <form id="form">
+    <input type="text" id="username" placeholder="Tu nombre" maxlength="20" value="Anónimo">
+    <input type="text" id="content" placeholder="Escribe un mensaje..." required>
+    <button type="submit">Enviar</button>
+  </form>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // URL BASE (sin /rest/v1)
+    const SUPABASE_URL = "https://tehenogkhbaltekcicrp.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaGVub2draGJhbHRla2NpY3JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwOTgzNTYsImV4cCI6MjA5OTY3NDM1Nn0.cxMu0cBzFXpQ9dGagZrkntpmrHJaJrnQQvOWVTULzp0";
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const messagesDiv = document.getElementById("messages");
+    const form = document.getElementById("form");
+    const usernameInput = document.getElementById("username");
+    const contentInput = document.getElementById("content");
+    const displayedIds = new Set();
+
+    function addMessage({ id, username, content, created_at }) {
+      if (displayedIds.has(id)) return;
+      displayedIds.add(id);
+      const div = document.createElement("div");
+      div.className = "msg";
+      const hora = new Date(created_at).toLocaleTimeString();
+      div.innerHTML = `<strong>${username.replace(/</g,"&lt;")}</strong>: ${content.replace(/</g,"&lt;")} <span>${hora}</span>`;
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    async function cargarHistorial() {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (error) return;
+      messagesDiv.innerHTML = "";
+      displayedIds.clear();
+      data.forEach(addMessage);
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = usernameInput.value.trim() || "Anónimo";
+      const content = contentInput.value.trim();
+      if (!content) return;
+
+      const { data, error } = await supabase
+        .from("messages")
+        .insert([{ username, content }])
+        .select()
+        .single();
+
+      if (error) {
+        alert("Error: " + error.message);
+      } else {
+        addMessage(data);
+        contentInput.value = "";
+      }
+    });
+
+    // Canal Realtime
+    supabase
+      .channel("public:messages")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        addMessage(payload.new);
+      })
+      .subscribe((status, err) => {
+        if (status === "SUBSCRIBED") {
+          statusDot.className = "dot green";
+          statusText.textContent = "Conectado – chat en vivo";
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          statusDot.className = "dot red";
+          statusText.textContent = "Desconectado";
+        } else if (status === "RECONNECTING") {
+          statusDot.className = "dot yellow";
+          statusText.textContent = "Reconectando...";
+        }
+      });
+
+    cargarHistorial();
+  </script>
+</body>
+</html>
