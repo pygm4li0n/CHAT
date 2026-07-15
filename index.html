@@ -1,425 +1,2922 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Chat – Supabase</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: #f0f2f5;
-    }
-    .chat-container {
-      width: 100%;
-      max-width: 500px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      display: flex;
-      flex-direction: column;
-      height: 80vh;
-      margin: 20px;
-    }
-    .chat-header {
-      padding: 16px;
-      background: #7c3aed;
-      color: white;
-      border-radius: 12px 12px 0 0;
-      font-weight: 600;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .user-badge {
-      font-size: 0.85rem;
-      font-weight: 400;
-      background: rgba(255,255,255,0.2);
-      padding: 4px 12px;
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .user-badge button {
-      background: none;
-      border: none;
-      color: white;
-      cursor: pointer;
-      font-size: 0.9rem;
-      line-height: 1;
-      padding: 0 2px;
-      opacity: 0.8;
-    }
-    .user-badge button:hover { opacity: 1; }
-    .status {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.8rem;
-      font-weight: 400;
-      background: rgba(255,255,255,0.2);
-      padding: 4px 10px;
-      border-radius: 20px;
-    }
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #ffc107;
-    }
-    .status-dot.connected { background: #4ade80; }
-    .status-dot.disconnected { background: #ef4444; }
-    .error-banner {
-      background: #fee2e2;
-      color: #b91c1c;
-      padding: 8px 16px;
-      font-size: 0.8rem;
-      display: none;
-    }
-    .error-banner.visible { display: block; }
-    .messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .message {
-      background: #f1f0ff;
-      padding: 10px 14px;
-      border-radius: 12px;
-      max-width: 80%;
-      align-self: flex-start;
-    }
-    .message .user {
-      font-weight: bold;
-      color: #7c3aed;
-      margin-bottom: 4px;
-      font-size: 0.85rem;
-    }
-    .message .text {
-      font-size: 0.95rem;
-      color: #1a1a2e;
-    }
-    .empty-messages {
-      text-align: center;
-      color: #9ca3af;
-      margin-top: 40px;
-      font-style: italic;
-    }
-    .input-area {
-      display: flex;
-      gap: 8px;
-      padding: 12px;
-      border-top: 1px solid #e0e0e0;
-      align-items: center;
-    }
-    #messageInput {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 0.95rem;
-    }
-    button.send-btn {
-      background: #7c3aed;
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    button.send-btn:hover { background: #6d28d9; }
-    button.send-btn:disabled { background: #b9a5e7; cursor: not-allowed; }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+    <title>🍎🐱 APPLE CAT · Epic Hub</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
 
-    /* Name entry overlay */
-    .overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.6);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 100;
-    }
-    .overlay-box {
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 320px;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    .overlay-box h3 { margin-bottom: 16px; color: #7c3aed; }
-    .overlay-box input {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 1rem;
-      margin-bottom: 16px;
-    }
-    .overlay-box button {
-      background: #7c3aed;
-      color: white;
-      border: none;
-      padding: 12px 0;
-      width: 100%;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 1rem;
-    }
-    .overlay-box button:hover { background: #6d28d9; }
-    .hidden { display: none !important; }
-  </style>
+        :root {
+            --bg-deep: #0b0406;
+            --card-bg: rgba(18, 8, 11, 0.88);
+            --apple-red: #c73a46;
+            --apple-red-soft: #e0555f;
+            --apple-red-muted: #b8303c;
+            --leaf-green: #5a9e44;
+            --leaf-green-soft: #74b85a;
+            --gold-accent: #c49a5c;
+            --text-primary: #ffffff;
+            --text-secondary: #d6c6be;
+            --text-muted: #a8958c;
+            --border-subtle: rgba(199, 58, 70, 0.28);
+            --border-glow: rgba(255, 255, 255, 0.45);
+            --shadow-front: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 80px rgba(200, 58, 70, 0.3);
+            --radius-xl: 28px;
+            --transition-bounce: 0.5s cubic-bezier(0.34, 1.3, 0.64, 1);
+            --grid-max-w: min(520px, 86vmin);
+            --chat-radius: 18px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Fredoka One', 'Segoe UI', 'Helvetica Neue', cursive, sans-serif;
+            background: var(--bg-deep);
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .bg-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .bg-base {
+            background: radial-gradient(ellipse at 30% 20%, rgba(199, 58, 70, 0.2) 0%, transparent 55%),
+                radial-gradient(ellipse at 70% 70%, rgba(90, 158, 68, 0.1) 0%, transparent 50%),
+                linear-gradient(180deg, #0a0305 0%, #14070b 50%, #0c0407 100%);
+        }
+        .bg-texture {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+            opacity: 0.5;
+            mix-blend-mode: overlay;
+        }
+        .bg-vignette {
+            background: radial-gradient(ellipse at center, transparent 25%, rgba(0, 0, 0, 0.8) 100%);
+            opacity: 0.9;
+        }
+        .ambient-orbs {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(100px);
+        }
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            transition: all 0.6s ease;
+        }
+        .orb-red {
+            width: 50vw;
+            height: 50vw;
+            max-width: 600px;
+            max-height: 600px;
+            background: var(--apple-red);
+            top: -8%;
+            left: -5%;
+            opacity: 0.25;
+        }
+        .orb-green {
+            width: 45vw;
+            height: 45vw;
+            max-width: 500px;
+            max-height: 500px;
+            background: var(--leaf-green);
+            bottom: -8%;
+            right: -5%;
+            opacity: 0.2;
+        }
+        .orb-gold {
+            width: 40vw;
+            height: 40vw;
+            max-width: 450px;
+            max-height: 450px;
+            background: var(--gold-accent);
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.15;
+        }
+        #petalCanvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+            overflow: hidden;
+            padding: 0;
+        }
+        .screen.active {
+            display: flex;
+        }
+
+        .global-logo {
+            position: fixed;
+            top: 12px;
+            left: 16px;
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+            filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.6));
+            z-index: 50;
+            cursor: pointer;
+            transition: opacity 0.35s ease, transform 0.3s ease, filter 0.3s ease;
+            background: none;
+            border: none;
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .global-logo.logo-hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.8);
+        }
+        .global-logo:hover:not(.logo-hidden) {
+            transform: scale(1.06);
+            filter: drop-shadow(0 10px 24px rgba(199, 58, 70, 0.55));
+        }
+
+        .hub-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+            width: 100%;
+            max-width: 1350px;
+            flex: 1;
+            justify-content: center;
+            padding: 0.5rem 0.5rem 1rem 0.5rem;
+            position: relative;
+            min-height: 0;
+        }
+        .title-container {
+            width: 100%;
+            max-width: 1350px;
+            text-align: center;
+            z-index: 5;
+            padding: 0 0.5rem;
+            margin-bottom: 0.2rem;
+            margin-top: 0.2rem;
+            flex-shrink: 0;
+        }
+        .hub-title {
+            font-size: clamp(2rem, 5.5vw, 3.6rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #fff;
+            text-shadow: 0 4px 28px rgba(199, 58, 70, 0.45);
+            margin-bottom: 0.1rem;
+        }
+        .hub-title .red-accent {
+            color: var(--apple-red-soft);
+        }
+        .hub-title .green-accent {
+            color: var(--leaf-green-soft);
+        }
+
+        .ca-line {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Fredoka One', monospace;
+            font-size: 1rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.07);
+            padding: 0.35rem 1.2rem;
+            border-radius: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            max-width: 100%;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .ca-line:hover {
+            background: rgba(255, 255, 255, 0.13);
+            border-color: rgba(255, 255, 255, 0.45);
+        }
+        .ca-line .ca-prefix {
+            font-size: 1.1rem;
+        }
+        .ca-line .ca-text {
+            word-break: break-all;
+            font-size: 0.85rem;
+        }
+        .ca-line .copy-icon {
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+        .ca-line .copy-feedback {
+            font-size: 1rem;
+            display: none;
+        }
+
+        /* ─── CARDS STAGE ─── */
+        .cards-stage {
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            justify-content: center;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 1350px;
+            flex: 1;
+            min-height: 0;
+            padding: 0 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .card-link {
+            text-decoration: none;
+            color: inherit;
+            flex: 1;
+            min-width: 200px;
+            max-width: 400px;
+            display: flex;
+            cursor: pointer;
+            transition: all var(--transition-bounce);
+        }
+        .card-link:hover {
+            transform: translateY(-6px);
+        }
+        .card-link:active {
+            transform: scale(0.97);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-xl);
+            padding: 1.2rem 1rem 1.4rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 4px 28px rgba(0, 0, 0, 0.55);
+            border: 1.5px solid var(--border-subtle);
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-bounce);
+            flex: 1;
+        }
+        .card:hover {
+            box-shadow: var(--shadow-front);
+            border-color: var(--border-glow);
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 5%;
+            left: 10%;
+            width: 80%;
+            height: 50%;
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.04) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+            border-radius: 50%;
+        }
+        .card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 20%;
+            right: 20%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), var(--apple-red-soft),
+                    rgba(255, 255, 255, 0.4), transparent);
+            border-radius: 0 0 50% 50%;
+            z-index: 4;
+            opacity: 0.6;
+            transition: 0.5s;
+        }
+        .card:hover::after {
+            opacity: 1;
+            height: 4px;
+        }
+
+        .card-graphic-wrap {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            margin-bottom: 0.6rem;
+            border-radius: 18px;
+            background: rgba(0, 0, 0, 0.32);
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-bounce);
+            flex-shrink: 0;
+        }
+        .card-graphic-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 16px;
+            transition: transform 0.5s;
+            filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.4));
+        }
+        .card-link:hover .card-graphic-wrap img {
+            transform: scale(1.03);
+        }
+        .card-graphic-leaf {
+            position: absolute;
+            pointer-events: none;
+            background: var(--leaf-green);
+            border-radius: 0 70% 0 70%;
+            opacity: 0.4;
+            transition: all var(--transition-bounce);
+        }
+        .cg1 {
+            top: -4px;
+            right: -6px;
+            width: 16px;
+            height: 9px;
+            transform: rotate(20deg);
+        }
+        .cg2 {
+            bottom: -4px;
+            left: -6px;
+            width: 13px;
+            height: 7px;
+            background: var(--leaf-green-soft);
+            transform: rotate(-30deg);
+        }
+        .card-link:hover .cg1 {
+            opacity: 0.7;
+            transform: rotate(30deg) scale(1.2);
+        }
+        .card-link:hover .cg2 {
+            opacity: 0.65;
+            transform: rotate(-40deg) scale(1.2);
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.1rem;
+            z-index: 1;
+            position: relative;
+        }
+        .card-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.3;
+            margin-bottom: 0.6rem;
+            flex-grow: 1;
+            z-index: 1;
+            position: relative;
+        }
+
+        .card-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.6rem 1.4rem;
+            border-radius: 36px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 0.02em;
+            transition: 0.3s;
+            border: none;
+            cursor: pointer;
+            z-index: 2;
+            position: relative;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            text-decoration: none;
+        }
+        .play-btn {
+            background: var(--apple-red-muted);
+            color: #fff;
+            box-shadow: 0 6px 22px rgba(184, 48, 60, 0.45);
+        }
+        .play-btn:hover {
+            background: var(--apple-red-soft);
+            transform: translateY(-2px);
+        }
+        .download-btn {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+        }
+        .download-btn:hover {
+            background: rgba(255, 255, 255, 0.14);
+        }
+        .chart-btn {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+        }
+        .chart-btn:hover {
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        /* ─── STATS CARD ─── */
+        #statsCard .card {
+            justify-content: flex-start;
+        }
+        #statsCard .card-title {
+            font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+            margin-bottom: 0.6rem;
+            text-shadow: 0 0 18px rgba(196, 154, 92, 0.4);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.6rem;
+            width: 100%;
+            margin-bottom: 0.6rem;
+            flex-grow: 1;
+            z-index: 1;
+            position: relative;
+        }
+        .stat-row {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 0.6rem 0.8rem;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 4px solid var(--stat-accent, rgba(255, 255, 255, 0.25));
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            min-height: 60px;
+        }
+        .card-link:hover .stat-row {
+            transform: translateX(2px);
+        }
+        .stat-row.accent-apple {
+            --stat-accent: var(--apple-red-soft);
+        }
+        .stat-row.accent-leaf {
+            --stat-accent: var(--leaf-green-soft);
+        }
+        .stat-row.accent-gold {
+            --stat-accent: var(--gold-accent);
+        }
+        .stat-row.accent-white {
+            --stat-accent: rgba(255, 255, 255, 0.55);
+        }
+        .stat-label-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            margin-bottom: 0.15rem;
+        }
+        .stat-icon {
+            font-size: 1.1rem;
+            filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.4));
+            flex-shrink: 0;
+        }
+        .stat-row .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 600;
+        }
+        .stat-row .stat-value {
+            font-size: clamp(1.1rem, 2.2vw, 1.6rem);
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+        }
+        .stat-change {
+            font-weight: 700;
+            font-size: clamp(1.1rem, 2.2vw, 1.6rem);
+        }
+        .stat-change.positive {
+            color: #6fd158;
+            text-shadow: 0 0 14px rgba(111, 209, 88, 0.55);
+        }
+        .stat-change.negative {
+            color: #ff5872;
+            text-shadow: 0 0 14px rgba(255, 88, 114, 0.55);
+        }
+
+        .mcap-bar-wrap {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 0.5rem 0.8rem 0.6rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            margin-bottom: 0.6rem;
+            z-index: 1;
+            position: relative;
+        }
+        .mcap-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .mcap-bar-label span:last-child {
+            font-size: 0.9rem;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(196, 154, 92, 0.5);
+        }
+        .mcap-bar {
+            width: 100%;
+            height: 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .mcap-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--apple-red-soft), var(--gold-accent));
+            border-radius: 20px;
+            transition: width 0.6s ease;
+            box-shadow: 0 0 16px var(--apple-red-soft);
+            min-width: 2%;
+        }
+
+        /* ─── CHAT CARD (now a regular card) ─── */
+        .chat-card-link .card {
+            padding: 0.8rem 0.8rem 0.6rem;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            text-align: left;
+        }
+
+        .chat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 0.2rem 0.4rem 0.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            flex-shrink: 0;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+        .chat-card-header .chat-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .chat-card-header .chat-title .emoji {
+            font-size: 1.1rem;
+        }
+        .chat-user-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.06);
+            padding: 0.15rem 0.7rem 0.15rem 0.5rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            flex-shrink: 0;
+        }
+        .chat-user-badge .uname {
+            font-weight: 600;
+            color: #fff;
+            max-width: 70px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .chat-user-badge .change-name-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            font-size: 0.7rem;
+            padding: 0 2px;
+            transition: 0.2s;
+        }
+        .chat-user-badge .change-name-btn:hover {
+            color: #fff;
+        }
+        .chat-status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 0.1rem 0.5rem 0.1rem 0.35rem;
+            border-radius: 14px;
+            flex-shrink: 0;
+        }
+        .chat-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ffc107;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .chat-status-dot.connected {
+            background: #4ade80;
+        }
+        .chat-status-dot.disconnected {
+            background: #ef4444;
+        }
+
+        .chat-messages-wrap {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.3rem 0.2rem 0.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            min-height: 0;
+            max-height: 220px;
+            scroll-behavior: smooth;
+        }
+        .chat-messages-wrap::-webkit-scrollbar {
+            width: 3px;
+        }
+        .chat-messages-wrap::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+        }
+        .chat-messages-wrap::-webkit-scrollbar-thumb {
+            background: var(--apple-red-muted);
+            border-radius: 10px;
+        }
+
+        .chat-msg {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.25rem 0.6rem 0.25rem 0.5rem;
+            border-radius: 10px;
+            max-width: 92%;
+            align-self: flex-start;
+            border-left: 2px solid var(--apple-red-soft);
+            animation: msgFade 0.25s ease;
+            flex-shrink: 0;
+        }
+        .chat-msg .msg-user {
+            font-weight: 700;
+            color: var(--apple-red-soft);
+            font-size: 0.65rem;
+            letter-spacing: 0.02em;
+        }
+        .chat-msg .msg-text {
+            font-size: 0.8rem;
+            color: #f0e8e4;
+            word-break: break-word;
+            line-height: 1.25;
+        }
+        .chat-msg.self {
+            align-self: flex-end;
+            border-left-color: var(--leaf-green-soft);
+            background: rgba(90, 158, 68, 0.12);
+        }
+        .chat-msg.self .msg-user {
+            color: var(--leaf-green-soft);
+        }
+        .chat-empty {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            padding: 0.8rem 0;
+            font-style: italic;
+            opacity: 0.6;
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 0.4rem;
+            padding: 0.4rem 0 0.1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
+            align-items: center;
+        }
+        .chat-input-row input {
+            flex: 1;
+            padding: 0.4rem 0.7rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.75rem;
+            outline: none;
+            transition: 0.3s;
+            min-width: 0;
+        }
+        .chat-input-row input::placeholder {
+            color: rgba(255, 255, 255, 0.25);
+        }
+        .chat-input-row input:focus {
+            border-color: var(--apple-red-soft);
+            box-shadow: 0 0 14px rgba(199, 58, 70, 0.2);
+        }
+        .chat-input-row .chat-send-btn {
+            background: var(--apple-red-muted);
+            color: #fff;
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: 'Fredoka One', cursive;
+            flex-shrink: 0;
+            letter-spacing: 0.03em;
+        }
+        .chat-input-row .chat-send-btn:hover {
+            background: var(--apple-red-soft);
+            transform: scale(1.03);
+        }
+        .chat-input-row .chat-send-btn:disabled {
+            background: rgba(255, 255, 255, 0.12);
+            cursor: not-allowed;
+            transform: none;
+        }
+        .chat-error-banner {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            padding: 0.15rem 0.6rem;
+            border-radius: 8px;
+            font-size: 0.6rem;
+            display: none;
+            margin-top: 0.1rem;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            flex-shrink: 0;
+        }
+        .chat-error-banner.visible {
+            display: block;
+        }
+
+        /* ─── CHAT NAME OVERLAY ─── */
+        .chat-name-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 70;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+            backdrop-filter: blur(6px);
+        }
+        .chat-name-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .chat-name-box {
+            background: rgba(18, 8, 11, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 1.5rem 1.2rem;
+            border: 2px solid var(--apple-red-soft);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 60px rgba(199, 58, 70, 0.35);
+            text-align: center;
+            width: 90%;
+            max-width: 340px;
+        }
+        .chat-name-box h3 {
+            font-size: 1.1rem;
+            color: #fff;
+            margin-bottom: 0.2rem;
+            text-shadow: 0 0 18px rgba(255, 255, 255, 0.4);
+        }
+        .chat-name-box .sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.8rem;
+            font-weight: 400;
+        }
+        .chat-name-box input {
+            width: 100%;
+            padding: 0.6rem 1rem;
+            border-radius: 28px;
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.9rem;
+            text-align: center;
+            outline: none;
+            margin-bottom: 0.8rem;
+            transition: 0.3s;
+        }
+        .chat-name-box input:focus {
+            border-color: var(--apple-red-soft);
+            box-shadow: 0 0 20px rgba(199, 58, 70, 0.3);
+        }
+        .chat-name-box input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+        .chat-name-box .name-btn {
+            font-family: 'Fredoka One', cursive;
+            padding: 0.5rem 1.6rem;
+            border-radius: 28px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: none;
+            transition: 0.3s;
+            background: var(--apple-red-muted);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(184, 48, 60, 0.4);
+            width: 100%;
+        }
+        .chat-name-box .name-btn:hover {
+            background: var(--apple-red-soft);
+            transform: translateY(-2px);
+        }
+
+        /* ─── GAME SCREEN (unchanged) ─── */
+        #gameScreen {
+            justify-content: flex-start;
+            align-items: center;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        #gameScreen.active {
+            display: flex;
+        }
+        .game-wrapper {
+            width: 100%;
+            max-width: 620px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: clamp(3px, 0.8vh, 8px);
+            padding: clamp(6px, 1.2vh, 12px) 1rem clamp(16px, 3vh, 24px) 1rem;
+            flex: 0 0 auto;
+            min-height: auto;
+            overflow: visible;
+        }
+        .game-header {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            flex-shrink: 0;
+        }
+        .game-banner-img {
+            width: 100%;
+            max-width: 560px;
+            height: auto;
+            max-height: 20vh;
+            border-radius: 12px;
+            object-fit: contain;
+            filter: drop-shadow(0 6px 22px rgba(0, 0, 0, 0.55));
+            flex-shrink: 0;
+            display: block;
+            background: transparent;
+        }
+        .match-instruction {
+            font-size: clamp(0.85rem, 2.8vw, 1.3rem);
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.08em;
+            text-align: center;
+            width: 100%;
+            text-shadow: 0 0 22px rgba(255, 90, 101, 0.85);
+            line-height: 1.2;
+            padding: 1px 0;
+            flex-shrink: 0;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 560px;
+            gap: 6px;
+            margin: 1px 0;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+        .info-item {
+            background: rgba(22, 10, 14, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 4px 14px;
+            border-radius: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            font-family: 'Fredoka One', cursive;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .info-item .emoji-big {
+            font-size: 1rem;
+        }
+        .info-item .value {
+            font-weight: 700;
+            color: #fff;
+        }
+        .info-item.top-scorer-highlight {
+            border-color: var(--gold-accent);
+            box-shadow: 0 0 16px rgba(196, 154, 92, 0.5);
+            background: rgba(30, 15, 10, 0.7);
+        }
+
+        .grid-frame {
+            background: rgba(22, 10, 14, 0.5);
+            backdrop-filter: blur(16px);
+            border-radius: 20px;
+            padding: clamp(4px, 1.2vw, 10px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
+            width: 100%;
+            max-width: var(--grid-max-w);
+            aspect-ratio: 1 / 1;
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 0;
+            position: relative;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: clamp(3px, 1.5vw, 8px);
+            width: 100%;
+            height: 100%;
+            align-content: center;
+            justify-content: center;
+        }
+        .round-tracker {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: var(--grid-max-w);
+            margin: 2px auto 0;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .tracker-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.07);
+            border: 2px solid rgba(255, 255, 255, 0.18);
+            transition: 0.3s;
+            flex-shrink: 0;
+        }
+        .tracker-dot.active-red {
+            background: #c73a46;
+            border-color: #fff;
+            box-shadow: 0 0 12px #c73a46;
+        }
+        .tracker-dot.active-green {
+            background: #5a9e44;
+            border-color: #fff;
+            box-shadow: 0 0 12px #5a9e44;
+        }
+        .tracker-dot.active-gold {
+            background: #c49a5c;
+            border-color: #fff;
+            box-shadow: 0 0 12px #c49a5c;
+        }
+        .tracker-dot.neutral {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #fff;
+        }
+        .tracker-dot.current {
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 18px rgba(255, 255, 255, 0.45);
+            animation: dotPulse 1.2s infinite;
+        }
+        @keyframes dotPulse {
+            0%,
+            100% {
+                transform: scale(1.05);
+            }
+            50% {
+                transform: scale(1.18);
+            }
+        }
+        .match-card {
+            aspect-ratio: 1 / 1;
+            perspective: 800px;
+            cursor: pointer;
+            min-height: 0;
+            min-width: 0;
+            place-self: center;
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: 0.5s cubic-bezier(0.34, 1.3, 0.64, 1);
+            transform-style: preserve-3d;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+        }
+        .match-card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        .card-front,
+        .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .card-back {
+            background: rgba(22, 10, 14, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+        }
+        .card-back::after {
+            content: '🍎';
+            font-size: clamp(1.4rem, 5vw, 2.4rem);
+            text-shadow: 0 0 22px rgba(199, 58, 70, 0.75);
+        }
+        .card-front {
+            background: rgba(0, 0, 0, 0.8);
+            transform: rotateY(180deg);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 4px;
+        }
+        .match-card.red .card-front {
+            border-color: #c73a46;
+            box-shadow: 0 0 14px rgba(199, 58, 70, 0.4);
+        }
+        .match-card.green .card-front {
+            border-color: #5a9e44;
+            box-shadow: 0 0 14px rgba(90, 158, 68, 0.4);
+        }
+        .match-card.gold .card-front {
+            border-color: #c49a5c;
+            box-shadow: 0 0 14px rgba(196, 154, 92, 0.4);
+        }
+        .card-front img {
+            max-width: 80%;
+            max-height: 80%;
+            object-fit: contain;
+        }
+        .win-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: clamp(1.4rem, 4vw, 2.4rem);
+            font-weight: 700;
+            color: #fff;
+            pointer-events: none;
+            z-index: 30;
+            opacity: 0;
+            text-shadow: 0 0 35px rgba(0, 0, 0, 0.85);
+        }
+        .win-message.show {
+            animation: popIn 0.7s cubic-bezier(0.34, 1.3, 0.64, 1) forwards;
+        }
+        @keyframes popIn {
+            0% {
+                transform: translate(-50%, -50%) scale(0) rotate(-10deg);
+                opacity: 0;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1) rotate(0);
+                opacity: 1;
+            }
+        }
+
+        .top10-toggle-btn {
+            font-family: 'Fredoka One', cursive;
+            padding: 6px 16px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: 28px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            background: rgba(199, 58, 70, 0.25);
+            border: 1.5px solid var(--apple-red-soft);
+            color: #fff;
+            flex-shrink: 0;
+            transition: 0.3s;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+            letter-spacing: 0.05em;
+        }
+        .top10-toggle-btn:hover {
+            background: rgba(199, 58, 70, 0.45);
+            box-shadow: 0 0 20px rgba(199, 58, 70, 0.5);
+        }
+        .top10-toggle-btn.active-leader {
+            background: var(--apple-red-muted);
+            box-shadow: 0 0 24px rgba(199, 58, 70, 0.6);
+        }
+
+        .leaderboard-panel {
+            width: 100%;
+            max-width: var(--grid-max-w);
+            background: rgba(18, 8, 11, 0.92);
+            backdrop-filter: blur(14px);
+            border-radius: 18px;
+            border: 1.5px solid rgba(199, 58, 70, 0.4);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6), 0 0 40px rgba(199, 58, 70, 0.25);
+            overflow: hidden;
+            flex-shrink: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.3, 0.64, 1);
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+            pointer-events: none;
+        }
+        .leaderboard-panel.open {
+            max-height: 500px;
+            opacity: 1;
+            margin-top: 4px;
+            pointer-events: auto;
+        }
+        .leaderboard-header {
+            padding: 0.6rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(199, 58, 70, 0.35);
+            background: linear-gradient(180deg, rgba(199, 58, 70, 0.2), transparent);
+        }
+        .leaderboard-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.06em;
+            text-shadow: 0 0 14px rgba(255, 255, 255, 0.4);
+        }
+        .leaderboard-list {
+            list-style: none;
+            padding: 0.4rem 0.6rem;
+            max-height: 280px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .leaderboard-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.45rem 0.6rem;
+            border-radius: 12px;
+            margin-bottom: 3px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: 0.3s;
+            font-size: 0.8rem;
+            color: #fff;
+        }
+        .leaderboard-list li.top-1 {
+            background: rgba(196, 154, 92, 0.2);
+            border-color: rgba(196, 154, 92, 0.6);
+            box-shadow: 0 0 14px rgba(196, 154, 92, 0.3);
+        }
+        .leaderboard-list li.top-2 {
+            background: rgba(180, 180, 190, 0.16);
+            border-color: rgba(180, 180, 190, 0.45);
+        }
+        .leaderboard-list li.top-3 {
+            background: rgba(160, 100, 60, 0.16);
+            border-color: rgba(160, 100, 60, 0.45);
+        }
+        .leader-rank {
+            font-weight: 700;
+            font-size: 0.9rem;
+            min-width: 28px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .leader-rank.r1 {
+            color: #f5c842;
+            font-size: 1.1rem;
+        }
+        .leader-rank.r2 {
+            color: #c0c0c0;
+            font-size: 1rem;
+        }
+        .leader-rank.r3 {
+            color: #cd7f32;
+            font-size: 0.95rem;
+        }
+        .leader-name {
+            flex: 1;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+        }
+        .leader-score {
+            font-weight: 700;
+            color: var(--apple-red-soft);
+            text-shadow: 0 0 8px rgba(199, 58, 70, 0.5);
+            flex-shrink: 0;
+        }
+        .leaderboard-empty,
+        .leaderboard-error {
+            text-align: center;
+            padding: 1.2rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .name-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 60;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+        .name-modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .name-modal {
+            background: rgba(22, 10, 14, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 1.5rem 1.2rem;
+            border: 2px solid var(--apple-red-soft);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 60px rgba(199, 58, 70, 0.4);
+            text-align: center;
+            width: 90%;
+            max-width: 380px;
+            z-index: 61;
+        }
+        .name-modal h3 {
+            font-size: 1.2rem;
+            color: #fff;
+            margin-bottom: 0.3rem;
+            text-shadow: 0 0 18px rgba(255, 255, 255, 0.5);
+        }
+        .name-modal .final-score {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gold-accent);
+            text-shadow: 0 0 20px rgba(196, 154, 92, 0.6);
+            margin-bottom: 0.8rem;
+        }
+        .name-modal input {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            border-radius: 28px;
+            border: 1.5px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            text-align: center;
+            outline: none;
+            margin-bottom: 0.8rem;
+            transition: 0.3s;
+        }
+        .name-modal input:focus {
+            border-color: var(--apple-red-soft);
+            box-shadow: 0 0 20px rgba(199, 58, 70, 0.4);
+        }
+        .name-modal input::placeholder {
+            color: rgba(255, 255, 255, 0.35);
+        }
+        .name-modal .modal-btn-row {
+            display: flex;
+            gap: 0.6rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .name-modal .modal-btn {
+            font-family: 'Fredoka One', cursive;
+            padding: 0.5rem 1.4rem;
+            border-radius: 28px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: none;
+            transition: 0.3s;
+            letter-spacing: 0.03em;
+        }
+        .modal-btn.save-btn {
+            background: var(--apple-red-muted);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(184, 48, 60, 0.5);
+        }
+        .modal-btn.save-btn:hover {
+            background: var(--apple-red-soft);
+        }
+        .modal-btn.skip-btn {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .modal-btn.skip-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-back {
+            font-family: 'Fredoka One', cursive;
+            padding: 6px 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            border-radius: 28px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: rgba(255, 255, 255, 0.75);
+            margin-top: 2px;
+            flex-shrink: 0;
+            transition: 0.3s;
+        }
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 900px) {
+            #hubScreen {
+                overflow-y: auto;
+                overflow-x: hidden;
+                justify-content: flex-start;
+                -webkit-overflow-scrolling: touch;
+            }
+            #gameScreen {
+                overflow-y: auto;
+                overflow-x: hidden;
+                -webkit-overflow-scrolling: touch;
+                justify-content: flex-start;
+                align-items: center;
+            }
+            .hub-wrapper {
+                justify-content: flex-start;
+                flex: none;
+                min-height: auto;
+                gap: 0.6rem;
+                padding: 0.6rem 0.5rem 2rem 0.5rem;
+            }
+            .cards-stage {
+                flex-direction: column;
+                gap: 0.8rem;
+                flex: none;
+                height: auto;
+                min-height: auto;
+            }
+            .card-link {
+                max-width: 100%;
+                min-width: unset;
+                flex: none;
+            }
+            /* Chat card large on mobile */
+            .chat-card-link {
+                flex: none;
+                width: 100%;
+                max-width: 100%;
+                height: 55vh;               /* large, fills most of screen */
+                min-height: 320px;
+            }
+            .chat-card-link .card {
+                height: 100%;
+                min-height: 0;
+                max-height: none;
+                padding: 0.6rem 0.7rem 0.5rem;
+            }
+            .chat-messages-wrap {
+                flex: 1;
+                max-height: none;           /* fill remaining height */
+            }
+            /* Game card centered with 1:1 image */
+            .card-link#gameCard {
+                width: 80vw;
+                max-width: 420px;
+                align-self: center;
+                margin: 1.5rem 0;
+            }
+            .card-link#gameCard .card {
+                flex: 0 0 auto;
+            }
+            .card-link#gameCard .card-graphic-wrap {
+                aspect-ratio: 1/1;
+            }
+            .global-logo {
+                width: 56px;
+                height: 56px;
+                top: 8px;
+                left: 10px;
+            }
+            .hub-title {
+                font-size: 1.8rem;
+            }
+            :root {
+                --grid-max-w: min(440px, 82vmin);
+            }
+            .grid-frame {
+                padding: 6px;
+                border-radius: 18px;
+            }
+            .card-grid {
+                gap: 5px;
+            }
+            .card-back::after {
+                font-size: clamp(1.3rem, 4.5vw, 1.8rem);
+            }
+            .info-item {
+                padding: 3px 10px;
+                font-size: 0.7rem;
+            }
+            .info-item .emoji-big {
+                font-size: 0.85rem;
+            }
+            .game-banner-img {
+                max-height: 14vh;
+            }
+            .game-wrapper {
+                gap: clamp(2px, 0.6vh, 6px);
+                padding: clamp(4px, 1vh, 8px) 0.8rem clamp(16px, 3vh, 20px) 0.8rem;
+                flex: 0 0 auto;
+                height: auto;
+                justify-content: flex-start;
+            }
+            .win-message {
+                font-size: clamp(1.2rem, 3.8vw, 1.8rem);
+            }
+            .leaderboard-panel.open {
+                max-height: 400px;
+            }
+            .leaderboard-list {
+                max-height: 200px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #hubScreen {
+                overflow-y: auto;
+                overflow-x: hidden;
+                justify-content: flex-start;
+                -webkit-overflow-scrolling: touch;
+            }
+            #gameScreen {
+                overflow-y: auto;
+                overflow-x: hidden;
+                -webkit-overflow-scrolling: touch;
+                justify-content: flex-start;
+                align-items: center;
+            }
+            .global-logo {
+                width: 44px;
+                height: 44px;
+                top: 6px;
+                left: 8px;
+            }
+            .hub-wrapper {
+                justify-content: flex-start;
+                flex: none;
+                min-height: auto;
+                gap: 0.5rem;
+                padding: 0.5rem 0.4rem 2.2rem 0.4rem;
+            }
+            .cards-stage {
+                flex-direction: column;
+                gap: 0.7rem;
+                flex: none;
+                height: auto;
+                min-height: auto;
+                padding: 0 0.3rem;
+            }
+            .card-link {
+                max-width: 100%;
+                min-width: unset;
+                flex: none;
+            }
+            .chat-card-link {
+                height: 52vh;
+                min-height: 280px;
+            }
+            .chat-card-link .card {
+                padding: 0.5rem 0.5rem 0.4rem;
+            }
+            .chat-messages-wrap {
+                max-height: none;
+            }
+            .chat-msg .msg-text {
+                font-size: 0.7rem;
+            }
+            .chat-msg .msg-user {
+                font-size: 0.55rem;
+            }
+            .chat-input-row input {
+                font-size: 0.65rem;
+                padding: 0.3rem 0.5rem;
+            }
+            .chat-input-row .chat-send-btn {
+                font-size: 0.6rem;
+                padding: 0.3rem 0.7rem;
+            }
+            .chat-card-header .chat-title {
+                font-size: 0.8rem;
+            }
+            .chat-user-badge {
+                font-size: 0.6rem;
+                padding: 0.1rem 0.5rem 0.1rem 0.35rem;
+            }
+            .chat-user-badge .uname {
+                max-width: 50px;
+            }
+            .hub-title {
+                font-size: 1.4rem;
+            }
+            .ca-line {
+                font-size: 0.7rem;
+                padding: 0.25rem 0.8rem;
+            }
+            .ca-line .ca-text {
+                font-size: 0.65rem;
+            }
+            .card-title {
+                font-size: 1.1rem;
+            }
+            .card-desc {
+                font-size: 0.7rem;
+            }
+            .card-btn {
+                padding: 0.4rem 1rem;
+                font-size: 0.75rem;
+            }
+            :root {
+                --grid-max-w: min(340px, 80vmin);
+            }
+            .grid-frame {
+                padding: 4px;
+                border-radius: 16px;
+            }
+            .card-grid {
+                gap: 3px;
+            }
+            .card-back::after {
+                font-size: clamp(1rem, 4vw, 1.4rem);
+            }
+            .info-item {
+                padding: 2px 8px;
+                font-size: 0.6rem;
+            }
+            .info-item .emoji-big {
+                font-size: 0.7rem;
+            }
+            .game-banner-img {
+                max-height: 10vh;
+            }
+            .match-instruction {
+                font-size: 0.7rem;
+            }
+            .tracker-dot {
+                width: 12px;
+                height: 12px;
+            }
+            .btn-back {
+                padding: 4px 14px;
+                font-size: 0.65rem;
+            }
+            .stats-grid {
+                gap: 0.4rem;
+            }
+            .stat-row {
+                padding: 0.4rem 0.6rem;
+                min-height: 50px;
+            }
+            .stat-row .stat-label {
+                font-size: 0.6rem;
+            }
+            .stat-row .stat-value {
+                font-size: 0.9rem;
+            }
+            .mcap-bar-wrap {
+                padding: 0.3rem 0.5rem 0.4rem;
+            }
+            .mcap-bar-label {
+                font-size: 0.6rem;
+            }
+            .mcap-bar {
+                height: 10px;
+            }
+            .game-wrapper {
+                gap: clamp(2px, 0.5vh, 4px);
+                padding: clamp(3px, 0.7vh, 5px) 0.5rem clamp(14px, 2.5vh, 18px) 0.5rem;
+                flex: 0 0 auto;
+                height: auto;
+                justify-content: flex-start;
+                max-width: 100%;
+            }
+            .win-message {
+                font-size: clamp(1rem, 3.5vw, 1.6rem);
+            }
+            .info-row {
+                max-width: 100%;
+                gap: 4px;
+            }
+            .info-item {
+                padding: 2px 7px;
+                font-size: 0.55rem;
+            }
+            .info-item .emoji-big {
+                font-size: 0.65rem;
+            }
+            .top10-toggle-btn {
+                padding: 4px 12px;
+                font-size: 0.65rem;
+            }
+            .leaderboard-panel.open {
+                max-height: 340px;
+            }
+            .leaderboard-list {
+                max-height: 170px;
+            }
+            .leaderboard-header h3 {
+                font-size: 0.85rem;
+            }
+            .leaderboard-list li {
+                font-size: 0.7rem;
+                padding: 0.35rem 0.5rem;
+            }
+            .name-modal {
+                padding: 1.2rem 0.9rem;
+            }
+            .name-modal h3 {
+                font-size: 1rem;
+            }
+            .name-modal .final-score {
+                font-size: 1.5rem;
+            }
+            .name-modal input {
+                font-size: 0.85rem;
+                padding: 0.5rem 0.8rem;
+            }
+        }
+
+        @media (max-height: 700px) {
+            #gameScreen {
+                justify-content: flex-start;
+                align-items: center;
+                overflow-y: auto;
+            }
+            .game-wrapper {
+                gap: clamp(1px, 0.5vh, 4px);
+                padding: clamp(2px, 0.6vh, 5px) 0.8rem clamp(10px, 2vh, 14px) 0.8rem;
+                flex: 0 0 auto;
+                height: auto;
+                justify-content: flex-start;
+            }
+            .game-banner-img {
+                max-height: 9vh;
+            }
+            .match-instruction {
+                font-size: clamp(0.65rem, 2vw, 0.95rem);
+            }
+            .info-item {
+                padding: 2px 10px;
+                font-size: 0.65rem;
+            }
+            :root {
+                --grid-max-w: min(420px, 72vmin);
+            }
+            .grid-frame {
+                padding: 4px;
+                border-radius: 16px;
+            }
+            .card-grid {
+                gap: 3px;
+            }
+            .btn-back {
+                padding: 3px 14px;
+                font-size: 0.65rem;
+                margin-top: 1px;
+            }
+            .tracker-dot {
+                width: 12px;
+                height: 12px;
+            }
+            .card-back::after {
+                font-size: clamp(1rem, 3.5vw, 1.5rem);
+            }
+            .leaderboard-panel.open {
+                max-height: 300px;
+            }
+            .leaderboard-list {
+                max-height: 140px;
+            }
+            /* mobile chat for short screens */
+            .chat-card-link {
+                height: 50vh;
+                min-height: 200px;
+            }
+            .chat-messages-wrap {
+                max-height: none;
+            }
+        }
+
+        @media (max-height: 500px) {
+            #gameScreen {
+                justify-content: flex-start;
+                align-items: center;
+                overflow-y: auto;
+            }
+            .game-banner-img {
+                max-height: 7vh;
+            }
+            :root {
+                --grid-max-w: min(300px, 60vmin);
+            }
+            .grid-frame {
+                padding: 3px;
+                border-radius: 14px;
+            }
+            .card-grid {
+                gap: 2px;
+            }
+            .info-item {
+                padding: 1px 8px;
+                font-size: 0.5rem;
+            }
+            .info-item .emoji-big {
+                font-size: 0.55rem;
+            }
+            .match-instruction {
+                font-size: 0.55rem;
+            }
+            .tracker-dot {
+                width: 9px;
+                height: 9px;
+                border-width: 1.5px;
+            }
+            .btn-back {
+                padding: 2px 10px;
+                font-size: 0.5rem;
+            }
+            .card-back::after {
+                font-size: clamp(0.8rem, 3vw, 1.1rem);
+            }
+            .global-logo {
+                width: 36px;
+                height: 36px;
+                top: 4px;
+                left: 6px;
+            }
+            .game-wrapper {
+                gap: clamp(1px, 0.4vh, 2px);
+                padding: clamp(1px, 0.5vh, 3px) 0.5rem clamp(8px, 1.5vh, 10px) 0.5rem;
+                flex: 0 0 auto;
+                height: auto;
+                justify-content: flex-start;
+            }
+            .win-message {
+                font-size: clamp(0.8rem, 3vw, 1.2rem);
+            }
+            .leaderboard-panel.open {
+                max-height: 220px;
+            }
+            .leaderboard-list {
+                max-height: 100px;
+            }
+            .leaderboard-header h3 {
+                font-size: 0.7rem;
+                padding: 0.3rem;
+            }
+            .top10-toggle-btn {
+                padding: 3px 10px;
+                font-size: 0.55rem;
+            }
+            .chat-card-link {
+                height: 45vh;
+                min-height: 160px;
+            }
+            .chat-card-link .card {
+                padding: 0.3rem 0.4rem 0.3rem;
+            }
+            .chat-messages-wrap {
+                max-height: none;
+            }
+            .chat-msg {
+                padding: 0.15rem 0.4rem;
+            }
+            .chat-msg .msg-text {
+                font-size: 0.6rem;
+            }
+            .chat-msg .msg-user {
+                font-size: 0.5rem;
+            }
+            .chat-input-row input {
+                font-size: 0.55rem;
+                padding: 0.2rem 0.4rem;
+            }
+            .chat-input-row .chat-send-btn {
+                font-size: 0.5rem;
+                padding: 0.2rem 0.5rem;
+            }
+            .chat-card-header .chat-title {
+                font-size: 0.65rem;
+            }
+            .chat-user-badge {
+                font-size: 0.5rem;
+                padding: 0.05rem 0.35rem;
+            }
+            .chat-user-badge .uname {
+                max-width: 40px;
+            }
+        }
+
+        /* ─── DESKTOP: Three equal columns (chat, game, stats) ─── */
+        @media (min-width: 901px) {
+            .cards-stage {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.5rem;
+                align-items: stretch;
+                flex: 1;
+                min-height: 0;
+                padding: 0 0.5rem;
+            }
+            .card-link {
+                max-width: 100%;
+                min-width: unset;
+                flex: none;
+            }
+            /* Chat stretches full height */
+            .chat-card-link .card {
+                min-height: 0;
+                max-height: none;
+                height: 100%;
+            }
+            .chat-messages-wrap {
+                flex: 1;
+                max-height: none;
+            }
+        }
+
+        @media (min-width: 901px) and (max-height: 700px) {
+            .chat-card-link .card {
+                min-height: 0;
+                max-height: none;
+                height: 100%;
+            }
+            .chat-messages-wrap {
+                max-height: none;
+                flex: 1;
+            }
+        }
+
+        @media (min-width: 901px) and (max-height: 500px) {
+            .chat-card-link .card {
+                min-height: 0;
+                max-height: none;
+                height: 100%;
+                padding: 0.4rem 0.6rem 0.3rem;
+            }
+            .chat-messages-wrap {
+                max-height: none;
+                flex: 1;
+            }
+            .chat-msg .msg-text {
+                font-size: 0.7rem;
+            }
+            .chat-msg .msg-user {
+                font-size: 0.55rem;
+            }
+            .chat-input-row input {
+                font-size: 0.6rem;
+                padding: 0.2rem 0.5rem;
+            }
+            .chat-input-row .chat-send-btn {
+                font-size: 0.55rem;
+                padding: 0.2rem 0.6rem;
+            }
+        }
+
+        @keyframes msgFade {
+            0% {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .glow {
+            animation: glowPulse 0.6s ease 2;
+        }
+        @keyframes glowPulse {
+            0%,
+            100% {
+                box-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
+            }
+            50% {
+                box-shadow: 0 0 28px rgba(199, 58, 70, 0.7), 0 0 60px rgba(199, 58, 70, 0.3);
+            }
+        }
+        .glow.gold {
+            animation-name: glowGold;
+        }
+        @keyframes glowGold {
+            0%,
+            100% {
+                box-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
+            }
+            50% {
+                box-shadow: 0 0 28px rgba(196, 154, 92, 0.8), 0 0 60px rgba(196, 154, 92, 0.4);
+            }
+        }
+        .glow.green {
+            animation-name: glowGreen;
+        }
+        @keyframes glowGreen {
+            0%,
+            100% {
+                box-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
+            }
+            50% {
+                box-shadow: 0 0 28px rgba(90, 158, 68, 0.8), 0 0 60px rgba(90, 158, 68, 0.4);
+            }
+        }
+
+        /* ─── SPLIT STATS: Top stats, bottom empty ─── */
+        .stats-top {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            flex: 0 0 auto;
+        }
+        .stats-bottom-empty {
+            flex: 1;
+            width: 100%;
+            margin-top: 0.6rem;
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            background: rgba(0, 0, 0, 0.1);
+            min-height: 80px;
+        }
+    </style>
 </head>
 <body>
-
-  <!-- Name entry screen (shown only when no username saved) -->
-  <div class="overlay" id="nameOverlay">
-    <div class="overlay-box">
-      <h3>👋 Welcome to Live Chat</h3>
-      <input type="text" id="nameInput" placeholder="Enter your name" maxlength="30" autocomplete="off">
-      <button id="nameSubmitBtn">Join Chat</button>
+    <div class="bg-layer bg-base"></div>
+    <div class="bg-layer bg-texture"></div>
+    <div class="bg-layer bg-vignette"></div>
+    <div class="ambient-orbs">
+        <div class="orb orb-red"></div>
+        <div class="orb orb-green"></div>
+        <div class="orb orb-gold"></div>
     </div>
-  </div>
+    <canvas id="petalCanvas"></canvas>
 
-  <div class="chat-container">
-    <div class="chat-header">
-      <span>💬 Live Chat</span>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <div class="user-badge" id="userBadge" style="display:none;">
-          <span id="displayName"></span>
-          <button id="changeNameBtn" title="Change name">✎</button>
+    <img class="global-logo" src="https://i.postimg.cc/3xByZMxY/gato1.png" alt="Logo" loading="eager" fetchpriority="high" id="globalLogo" />
+
+    <!-- NAME INPUT MODAL (for game high score) -->
+    <div class="name-modal-overlay" id="nameModalOverlay">
+        <div class="name-modal">
+            <h3>🏆 New High Score! 🏆</h3>
+            <div class="final-score" id="finalScoreDisplay">0</div>
+            <input type="text" id="playerNameInput" placeholder="Enter your name..." maxlength="16" autocomplete="off" />
+            <div class="modal-btn-row">
+                <button class="modal-btn save-btn" id="saveScoreBtn">💾 Save Score</button>
+                <button class="modal-btn skip-btn" id="skipScoreBtn">Skip</button>
+            </div>
         </div>
-        <div class="status" id="status">
-          <span class="status-dot" id="statusDot"></span>
-          <span id="statusText">Connecting…</span>
+    </div>
+
+    <!-- CHAT NAME OVERLAY -->
+    <div class="chat-name-overlay" id="chatNameOverlay">
+        <div class="chat-name-box">
+            <h3>💬 Join the Chat</h3>
+            <p class="sub">Enter a name to start talking</p>
+            <input type="text" id="chatNameInput" placeholder="Your name..." maxlength="24" autocomplete="off" />
+            <button class="name-btn" id="chatNameBtn">Join 💬</button>
         </div>
-      </div>
     </div>
-    <div class="error-banner" id="errorBanner"></div>
-    <div class="messages" id="messages">
-      <div class="empty-messages" id="emptyHint">No messages yet. Be the first to say hi 👋</div>
+
+    <!-- HUB SCREEN -->
+    <div id="hubScreen" class="screen active">
+        <div class="hub-wrapper">
+            <div class="title-container">
+                <h2 class="hub-title">🍎🐱 <span class="red-accent">APPLE</span> <span class="green-accent">CAT</span></h2>
+                <div class="ca-line" id="caLine" title="Click to copy CA">
+                    <span class="ca-prefix">CA:</span>
+                    <span class="ca-text">66R44YgXe6ZbxRmDiBqkQ5t6yHu72isuE8BbS6u684fu</span>
+                    <span class="copy-icon" id="copyIcon">📋</span>
+                    <span class="copy-feedback" id="copyFeedback">✅ Copied!</span>
+                </div>
+            </div>
+            <div class="cards-stage">
+                <!-- CHAT CARD (first) -->
+                <div class="card-link chat-card-link" id="chatCard">
+                    <div class="card">
+                        <div class="chat-card-header">
+                            <span class="chat-title"><span class="emoji">💬</span> Live Chat</span>
+                            <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;">
+                                <div class="chat-user-badge" id="chatUserBadge" style="display:none;">
+                                    <span class="uname" id="chatDisplayName"></span>
+                                    <button class="change-name-btn" id="chatChangeNameBtn" title="Change name">✎</button>
+                                </div>
+                                <div class="chat-status-badge">
+                                    <span class="chat-status-dot" id="chatStatusDot"></span>
+                                    <span id="chatStatusText">Connecting…</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chat-messages-wrap" id="chatMessages">
+                            <div class="chat-empty" id="chatEmptyHint">No messages yet. Say hi 👋</div>
+                        </div>
+                        <div class="chat-error-banner" id="chatErrorBanner"></div>
+                        <div class="chat-input-row" id="chatInputArea" style="display:none;">
+                            <input type="text" id="chatMessageInput" placeholder="Type a message..." maxlength="500" autocomplete="off" />
+                            <button class="chat-send-btn" id="chatSendBtn">Send</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Game Card (second) -->
+                <div class="card-link" id="gameCard">
+                    <div class="card">
+                        <div class="card-graphic-wrap">
+                            <img src="https://i.postimg.cc/wxbsSk6q/Chat-GPT-Image-13-jul-2026-06-38-35-p-m-(1).png" alt="Game" loading="lazy" />
+                            <div class="card-graphic-leaf cg1"></div>
+                            <div class="card-graphic-leaf cg2"></div>
+                        </div>
+                        <h3 class="card-title">APPLE CAT RAID</h3>
+                        <p class="card-desc">MATCH 3 OF THE SAME</p>
+                        <button class="card-btn play-btn" id="playBtn">▶ Play Now</button>
+                    </div>
+                </div>
+                <!-- Stats Card (third, split top/bottom) -->
+                <div class="card-link" id="statsCard">
+                    <div class="card">
+                        <div class="stats-top">
+                            <h3 class="card-title">🍏 TOKEN STATS</h3>
+                            <div class="stats-grid">
+                                <div class="stat-row accent-white">
+                                    <span class="stat-label-wrap"><span class="stat-icon">🍎</span><span class="stat-label">Price</span></span>
+                                    <span class="stat-value" id="priceVal">$--</span>
+                                </div>
+                                <div class="stat-row accent-leaf">
+                                    <span class="stat-label-wrap"><span class="stat-icon">⚡</span><span class="stat-label">24h Change</span></span>
+                                    <span class="stat-value stat-change" id="changeVal">--</span>
+                                </div>
+                                <div class="stat-row accent-gold">
+                                    <span class="stat-label-wrap"><span class="stat-icon">🔥</span><span class="stat-label">Volume 24h</span></span>
+                                    <span class="stat-value" id="volumeVal">--</span>
+                                </div>
+                                <div class="stat-row accent-apple">
+                                    <span class="stat-label-wrap"><span class="stat-icon">💧</span><span class="stat-label">Liquidity</span></span>
+                                    <span class="stat-value" id="liquidityVal">--</span>
+                                </div>
+                            </div>
+                            <div class="mcap-bar-wrap">
+                                <div class="mcap-bar-label"><span>👑 MCAP</span><span id="mcapText">$0</span></div>
+                                <div class="mcap-bar"><div class="mcap-fill" id="mcapFill" style="width:0%"></div></div>
+                                <div class="mcap-bar-label" style="justify-content:flex-end;font-size:0.65rem;margin-top:0.25rem;margin-bottom:0;opacity:0.75;"><span>Goal: $100k</span></div>
+                            </div>
+                            <a class="card-btn chart-btn" href="https://dexscreener.com/solana/5ahH4QUNr3d6YmqoKnuJYqKbATAHDBaYRSk8Fa5f8sdY" target="_blank" rel="noopener">📈 DexScreener</a>
+                        </div>
+                        <div class="stats-bottom-empty"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="input-area" id="inputArea" style="display:none;">
-      <input type="text" id="messageInput" placeholder="Type a message..." maxlength="500" autocomplete="off">
-      <button class="send-btn" id="sendBtn">Send</button>
+
+    <!-- GAME SCREEN -->
+    <div id="gameScreen" class="screen">
+        <div class="game-wrapper">
+            <div class="game-header">
+                <img class="game-banner-img" src="https://i.postimg.cc/RCJx1cZ4/Chat-GPT-Image-13-jul-2026-19-03-13-(1).png" alt="Banner" loading="eager" />
+                <p class="match-instruction">MATCH 3 OF THE SAME</p>
+            </div>
+            <div class="info-row">
+                <div class="info-item"><span class="emoji-big">🍎</span><span class="value" id="roundDisplay">1 / 10</span></div>
+                <div class="info-item top-scorer-highlight" id="topScorerInfo">
+                    <span class="emoji-big">👑</span><span class="value" id="topScorerDisplay">---</span>
+                </div>
+                <div class="info-item"><span class="emoji-big">⭐</span><span class="value" id="scoreDisplay">0</span></div>
+            </div>
+            <div class="grid-frame">
+                <div class="card-grid" id="cardGrid"></div>
+                <div class="win-message" id="winMessage"></div>
+            </div>
+            <div class="round-tracker" id="roundTracker"></div>
+            <button class="top10-toggle-btn" id="top10ToggleBtn">TOP 10 🏆</button>
+            <div class="leaderboard-panel" id="leaderboardPanel">
+                <div class="leaderboard-header">
+                    <h3>🏆 TOP 10 · APPLE CAT RAIDERS</h3>
+                </div>
+                <ul class="leaderboard-list" id="leaderboardList">
+                    <li class="leaderboard-empty">Loading scores …</li>
+                </ul>
+            </div>
+            <button class="btn-back" id="backToHubBtn">← Back to Hub</button>
+        </div>
     </div>
-  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    (function() {
-      // ---------- YOUR SUPABASE PROJECT ----------
-      const SUPABASE_URL = 'https://uixcwhznmoaqabhmrdhu.supabase.co';
-      const SUPABASE_ANON_KEY = 'sb_publishable_c1LTwDYysAf8pWP-gkiPmQ_uIZivJD_';
+    <!-- SUPABASE & SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
+    <script>
+        (function() {
+            // ─── SUPABASE CONFIG ─────────────────────────────────────────
+            // Game / Leaderboard Supabase
+            const GAME_SUPABASE_URL = 'https://faoziaawqxettcazbryq.supabase.co';
+            const GAME_SUPABASE_ANON = 'sb_publishable_kmZm7clazKO4SRyMC9oD6g_Zaz1AlDi';
+            // Chat Supabase (separate project)
+            const CHAT_SUPABASE_URL = 'https://uixcwhznmoaqabhmrdhu.supabase.co';
+            const CHAT_SUPABASE_ANON = 'sb_publishable_c1LTwDYysAf8pWP-gkiPmQ_uIZivJD_';
 
-      const STORAGE_KEY = 'chat_username';
-      let username = localStorage.getItem(STORAGE_KEY) || '';
+            const supabaseGame = window.supabase.createClient(GAME_SUPABASE_URL, GAME_SUPABASE_ANON);
+            const supabaseChat = window.supabase.createClient(CHAT_SUPABASE_URL, CHAT_SUPABASE_ANON);
 
-      const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            // ─── PETALS (unchanged) ──────────────────────────────────────
+            const petalCanvas = document.getElementById('petalCanvas');
+            const pCtx = petalCanvas.getContext('2d');
+            let pW, pH, petals = [];
 
-      // DOM elements
-      const messagesDiv = document.getElementById('messages');
-      const messageInput = document.getElementById('messageInput');
-      const sendBtn = document.getElementById('sendBtn');
-      const statusDot = document.getElementById('statusDot');
-      const statusText = document.getElementById('statusText');
-      const errorBanner = document.getElementById('errorBanner');
-      const inputArea = document.getElementById('inputArea');
-      const userBadge = document.getElementById('userBadge');
-      const displayName = document.getElementById('displayName');
-      const changeNameBtn = document.getElementById('changeNameBtn');
-      const nameOverlay = document.getElementById('nameOverlay');
-      const nameInput = document.getElementById('nameInput');
-      const nameSubmitBtn = document.getElementById('nameSubmitBtn');
-
-      // ---- Status helpers ----
-      function setStatus(state, text) {
-        statusDot.className = 'status-dot ' + (state || '');
-        statusText.textContent = text;
-      }
-      function showError(msg) {
-        errorBanner.textContent = '⚠️ ' + msg;
-        errorBanner.classList.add('visible');
-      }
-      function clearError() {
-        errorBanner.classList.remove('visible');
-      }
-
-      function escapeHtml(text) {
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-        return String(text).replace(/[&<>"']/g, m => map[m]);
-      }
-
-      function addMessage({ username: msgUser, message }) {
-        const emptyHint = document.getElementById('emptyHint');
-        if (emptyHint) emptyHint.style.display = 'none';
-        const div = document.createElement('div');
-        div.className = 'message';
-        div.innerHTML = `<div class="user">${escapeHtml(msgUser)}</div>
-                         <div class="text">${escapeHtml(message)}</div>`;
-        messagesDiv.appendChild(div);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      }
-
-      // ---- Set up UI after username is confirmed ----
-      function applyUsername(name) {
-        username = name;
-        localStorage.setItem(STORAGE_KEY, name);
-        displayName.textContent = name;
-        userBadge.style.display = 'flex';
-        inputArea.style.display = 'flex';
-        nameOverlay.classList.add('hidden');
-      }
-
-      // ---- Load messages (REST) ----
-      async function loadMessages() {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        try {
-          setStatus('', 'Connecting…');
-          clearError();
-          const response = await fetch(
-            `${SUPABASE_URL}/rest/v1/messages?select=*&order=created_at.asc&limit=50`,
-            {
-              headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-              },
-              signal: controller.signal
+            function resizePetal() {
+                pW = petalCanvas.width = innerWidth;
+                pH = petalCanvas.height = innerHeight;
             }
-          );
-          clearTimeout(timeoutId);
-          if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-          const data = await response.json();
-          messagesDiv.innerHTML = '';
-          if (data.length === 0) {
-            messagesDiv.innerHTML = '<div class="empty-messages" id="emptyHint">No messages yet. Be the first to say hi 👋</div>';
-          } else {
-            data.forEach(msg => addMessage(msg));
-          }
-          setStatus('connected', 'Live');
-          return true;
-        } catch (err) {
-          clearTimeout(timeoutId);
-          showError(err.name === 'AbortError' ? 'Request timed out.' : 'Failed to load: ' + err.message);
-          setStatus('disconnected', 'Error');
-          return false;
-        }
-      }
 
-      // ---- Send message ----
-      async function sendMessage() {
-        const message = messageInput.value.trim();
-        if (!message || !username) return;
-        sendBtn.disabled = true;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        try {
-          const response = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
-            method: 'POST',
-            headers: {
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({ username, message }),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-          if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-          messageInput.value = '';
-          clearError();
-        } catch (err) {
-          showError(err.name === 'AbortError' ? 'Send timed out.' : 'Send failed: ' + err.message);
-          setStatus('disconnected', 'Error');
-        } finally {
-          sendBtn.disabled = false;
-          messageInput.focus();
-        }
-      }
-
-      // ---- Realtime subscription ----
-      function subscribeToRealtime() {
-        supabase
-          .channel('public:messages')
-          .on(
-            'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'messages' },
-            (payload) => {
-              addMessage(payload.new);
-              setStatus('connected', 'Live');
-              clearError();
+            function initPetals() {
+                petals = [];
+                for (let i = 0; i < 55; i++)
+                    petals.push({
+                        x: Math.random() * pW,
+                        y: Math.random() * pH,
+                        r: Math.random() * 2 + 0.6,
+                        speed: Math.random() * 0.9 + 0.3,
+                        wind: (Math.random() - 0.5) * 1.3,
+                        windSpeed: Math.random() * 0.008 + 0.002,
+                        windPhase: Math.random() * Math.PI * 2,
+                        opacity: Math.random() * 0.35 + 0.25,
+                        hue: Math.random() < 0.5 ? 'rgba(199,58,70,' : 'rgba(250,246,242,',
+                    });
             }
-          )
-          .subscribe((status) => {
-            if (status === 'SUBSCRIBED') setStatus('connected', 'Live');
-            else if (status === 'CHANNEL_ERROR') {
-              showError('Realtime connection failed. Is the table in the publication?');
-              setStatus('disconnected', 'Realtime error');
-            } else if (status === 'CLOSED') setStatus('disconnected', 'Disconnected');
-          });
-      }
 
-      // ---- Event handlers ----
-      sendBtn.addEventListener('click', sendMessage);
-      messageInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
-      });
+            function drawPetals() {
+                pCtx.clearRect(0, 0, pW, pH);
+                petals.forEach(p => {
+                    p.y += p.speed;
+                    p.windPhase += p.windSpeed;
+                    p.x += Math.sin(p.windPhase) * p.wind * 4;
+                    if (p.y > pH + 12 || p.x < -12 || p.x > pW + 12) {
+                        p.y = -12;
+                        p.x = Math.random() * pW;
+                    }
+                    pCtx.globalAlpha = p.opacity;
+                    pCtx.beginPath();
+                    pCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    pCtx.fillStyle = p.hue + (p.opacity + 0.25) + ')';
+                    pCtx.shadowColor = 'rgba(255,255,255,0.25)';
+                    pCtx.shadowBlur = 3;
+                    pCtx.fill();
+                });
+                pCtx.globalAlpha = 1;
+                pCtx.shadowBlur = 0;
+                requestAnimationFrame(drawPetals);
+            }
+            window.addEventListener('resize', () => {
+                resizePetal();
+                initPetals();
+            });
+            resizePetal();
+            initPetals();
+            drawPetals();
 
-      // Handle name submission
-      nameSubmitBtn.addEventListener('click', () => {
-        const newName = nameInput.value.trim();
-        if (!newName) return;
-        applyUsername(newName);
-        // If messages haven't loaded yet, load them now
-        if (!window._messagesLoaded) {
-          loadMessages().then(() => { window._messagesLoaded = true; });
-          subscribeToRealtime();
-        }
-      });
-      nameInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') nameSubmitBtn.click();
-      });
+            // ─── DOM REFS ──────────────────────────────────────────────────
+            const globalLogo = document.getElementById('globalLogo');
+            const hubScreen = document.getElementById('hubScreen');
+            const gameScreen = document.getElementById('gameScreen');
+            const caLine = document.getElementById('caLine');
+            const copyIcon = document.getElementById('copyIcon');
+            const copyFeedback = document.getElementById('copyFeedback');
+            const caText = '66R44YgXe6ZbxRmDiBqkQ5t6yHu72isuE8BbS6u684fu';
 
-      // Change name button
-      changeNameBtn.addEventListener('click', () => {
-        // Clear stored name and show overlay again
-        localStorage.removeItem(STORAGE_KEY);
-        username = '';
-        userBadge.style.display = 'none';
-        inputArea.style.display = 'none';
-        nameOverlay.classList.remove('hidden');
-        nameInput.value = '';
-        nameInput.focus();
-      });
+            globalLogo.addEventListener('click', () => {
+                if (gameScreen.classList.contains('active')) {
+                    gameScreen.classList.remove('active');
+                    hubScreen.classList.add('active');
+                    globalLogo.classList.remove('logo-hidden');
+                    hubScreen.scrollTop = 0;
+                    gameScreen.scrollTop = 0;
+                    closeLeaderboard();
+                }
+            });
 
-      // ---- Initialisation ----
-      if (username) {
-        // Already have a name – skip overlay
-        applyUsername(username);
-        loadMessages().then(() => { window._messagesLoaded = true; });
-        subscribeToRealtime();
-      } else {
-        // Show name entry overlay
-        nameOverlay.classList.remove('hidden');
-        nameInput.focus();
-        // Optionally try to load messages in background (but user can't send until name set)
-        // We'll just leave the connecting status
-      }
-    })();
-  </script>
+            caLine.addEventListener('click', () => {
+                navigator.clipboard.writeText(caText).then(() => {
+                    copyIcon.style.display = 'none';
+                    copyFeedback.style.display = 'inline';
+                    setTimeout(() => {
+                        copyIcon.style.display = 'inline';
+                        copyFeedback.style.display = 'none';
+                    }, 1500);
+                });
+            });
+
+            // ─── TOKEN STATS ──────────────────────────────────────────────
+            const PAIR_ID = '5ahH4QUNr3d6YmqoKnuJYqKbATAHDBaYRSk8Fa5f8sdY';
+            const API_URL = `https://api.dexscreener.com/latest/dex/pairs/solana/${PAIR_ID}`;
+            const MCAP_GOAL = 100000;
+
+            async function fetchStats() {
+                try {
+                    const res = await fetch(API_URL);
+                    const data = await res.json();
+                    const pair = (data && Array.isArray(data.pairs) && data.pairs[0]) ? data.pairs[0] :
+                        (data && data.pair ? data.pair : null);
+                    if (!pair) { console.log('No pair data'); return; }
+                    const price = parseFloat(pair.priceUsd) || 0;
+                    const change = parseFloat(pair.priceChange && pair.priceChange.h24) || 0;
+                    const volume = parseFloat(pair.volume && pair.volume.h24) || 0;
+                    const liquidity = parseFloat(pair.liquidity && pair.liquidity.usd) || 0;
+                    const mcap = parseFloat(pair.marketCap || pair.fdv) || 0;
+
+                    document.getElementById('priceVal').textContent = '$' + price.toFixed(price < 0.01 ? 6 : 4);
+                    const changeEl = document.getElementById('changeVal');
+                    changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+                    changeEl.className = 'stat-value stat-change ' + (change >= 0 ? 'positive' : 'negative');
+                    document.getElementById('volumeVal').textContent = '$' + formatNumber(volume);
+                    document.getElementById('liquidityVal').textContent = '$' + formatNumber(liquidity);
+                    document.getElementById('mcapText').textContent = '$' + formatNumber(mcap);
+                    const percent = Math.min((mcap / MCAP_GOAL) * 100, 100);
+                    document.getElementById('mcapFill').style.width = Math.max(percent, 1) + '%';
+                } catch (e) { console.log('Stats refresh failed', e); }
+            }
+
+            function formatNumber(num) {
+                if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+                if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+                return num.toFixed(2);
+            }
+            fetchStats();
+            setInterval(fetchStats, 8000);
+
+            // ─── SCREEN SWITCHING ──────────────────────────────────────────
+            document.getElementById('playBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                hubScreen.classList.remove('active');
+                gameScreen.classList.add('active');
+                globalLogo.classList.add('logo-hidden');
+                closeLeaderboard();
+                initGame();
+                hubScreen.scrollTop = 0;
+                gameScreen.scrollTop = 0;
+            });
+
+            document.getElementById('backToHubBtn').addEventListener('click', () => {
+                gameScreen.classList.remove('active');
+                hubScreen.classList.add('active');
+                globalLogo.classList.remove('logo-hidden');
+                closeLeaderboard();
+                hubScreen.scrollTop = 0;
+                gameScreen.scrollTop = 0;
+            });
+
+            // ─── LEADERBOARD (Game) ──────────────────────────────────────
+            const leaderboardPanel = document.getElementById('leaderboardPanel');
+            const leaderboardList = document.getElementById('leaderboardList');
+            const top10ToggleBtn = document.getElementById('top10ToggleBtn');
+            const topScorerDisplay = document.getElementById('topScorerDisplay');
+            const topScorerInfo = document.getElementById('topScorerInfo');
+            const nameModalOverlay = document.getElementById('nameModalOverlay');
+            const playerNameInput = document.getElementById('playerNameInput');
+            const finalScoreDisplay = document.getElementById('finalScoreDisplay');
+            const saveScoreBtn = document.getElementById('saveScoreBtn');
+            const skipScoreBtn = document.getElementById('skipScoreBtn');
+
+            let leaderboardOpen = false;
+            let cachedTopScores = [];
+            let pendingSaveScore = 0;
+
+            async function fetchTopScores(limit = 10) {
+                const { data, error } = await supabaseGame
+                    .from('scores')
+                    .select('*')
+                    .order('score', { ascending: false })
+                    .limit(limit);
+                if (error) throw error;
+                return data || [];
+            }
+
+            async function insertScore(name, score) {
+                const { error } = await supabaseGame
+                    .from('scores')
+                    .insert([{ name: name.trim().slice(0, 60) || 'Anonymous 🐱', score: Math.round(score) }]);
+                if (error) throw error;
+            }
+
+            function renderLeaderboard(scores) {
+                leaderboardList.innerHTML = '';
+                if (!scores || scores.length === 0) {
+                    const li = document.createElement('li');
+                    li.className = 'leaderboard-empty';
+                    li.textContent = 'No scores yet — be the first! 🍎';
+                    leaderboardList.appendChild(li);
+                } else {
+                    scores.forEach((entry, i) => {
+                        const li = document.createElement('li');
+                        if (i === 0) li.classList.add('top-1');
+                        if (i === 1) li.classList.add('top-2');
+                        if (i === 2) li.classList.add('top-3');
+                        const rankSpan = document.createElement('span');
+                        rankSpan.className = 'leader-rank';
+                        if (i === 0) rankSpan.classList.add('r1');
+                        if (i === 1) rankSpan.classList.add('r2');
+                        if (i === 2) rankSpan.classList.add('r3');
+                        rankSpan.textContent = `#${i + 1}`;
+                        const nameSpan = document.createElement('span');
+                        nameSpan.className = 'leader-name';
+                        nameSpan.textContent = entry.name || 'Anonymous';
+                        const scoreSpan = document.createElement('span');
+                        scoreSpan.className = 'leader-score';
+                        scoreSpan.textContent = Number(entry.score).toLocaleString();
+                        li.appendChild(rankSpan);
+                        li.appendChild(nameSpan);
+                        li.appendChild(scoreSpan);
+                        leaderboardList.appendChild(li);
+                    });
+                }
+                updateTopScorerDisplay(scores);
+            }
+
+            function renderLoading() {
+                leaderboardList.innerHTML = '<li class="leaderboard-empty">⏳ Loading scores …</li>';
+            }
+
+            function renderError(msg) {
+                leaderboardList.innerHTML = `<li class="leaderboard-error">⚠️ ${msg}</li>`;
+            }
+
+            async function refreshLeaderboard() {
+                renderLoading();
+                try {
+                    const scores = await fetchTopScores();
+                    cachedTopScores = scores;
+                    renderLeaderboard(scores);
+                } catch (err) {
+                    console.error('Leaderboard fetch error:', err);
+                    renderError('Could not load scores. Check connection.');
+                }
+            }
+
+            function updateTopScorerDisplay(scores) {
+                if (scores && scores.length > 0) {
+                    const top = scores[0];
+                    topScorerDisplay.textContent = `${top.name} (${Number(top.score).toLocaleString()})`;
+                    topScorerInfo.classList.add('top-scorer-highlight');
+                } else {
+                    topScorerDisplay.textContent = '---';
+                    topScorerInfo.classList.remove('top-scorer-highlight');
+                }
+            }
+
+            function openLeaderboard() {
+                leaderboardOpen = true;
+                leaderboardPanel.classList.add('open');
+                top10ToggleBtn.classList.add('active-leader');
+                top10ToggleBtn.textContent = 'TOP 10 ▲';
+                refreshLeaderboard();
+            }
+
+            function closeLeaderboard() {
+                leaderboardOpen = false;
+                leaderboardPanel.classList.remove('open');
+                top10ToggleBtn.classList.remove('active-leader');
+                top10ToggleBtn.textContent = 'TOP 10 🏆';
+            }
+
+            function toggleLeaderboard() {
+                if (leaderboardOpen) {
+                    closeLeaderboard();
+                } else {
+                    openLeaderboard();
+                }
+            }
+            top10ToggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleLeaderboard();
+            });
+
+            // ─── NAME MODAL (Game) ──────────────────────────────────────
+            function showNameModal(score) {
+                pendingSaveScore = score;
+                finalScoreDisplay.textContent = score.toLocaleString() + ' pts';
+                playerNameInput.value = '';
+                nameModalOverlay.classList.add('active');
+                setTimeout(() => playerNameInput.focus(), 300);
+            }
+
+            function hideNameModal() {
+                nameModalOverlay.classList.remove('active');
+                pendingSaveScore = 0;
+            }
+
+            async function handleSaveScore() {
+                const name = playerNameInput.value.trim() || 'Anonymous 🐱';
+                if (pendingSaveScore > 0) {
+                    try {
+                        saveScoreBtn.disabled = true;
+                        saveScoreBtn.innerHTML = '⏳ Saving…';
+                        await insertScore(name, pendingSaveScore);
+                        hideNameModal();
+                        await refreshLeaderboard();
+                        if (!leaderboardOpen) openLeaderboard();
+                    } catch (err) {
+                        alert('Failed to save score: ' + err.message);
+                    } finally {
+                        saveScoreBtn.disabled = false;
+                        saveScoreBtn.innerHTML = '💾 Save Score';
+                    }
+                } else {
+                    hideNameModal();
+                }
+                resetGameAfterSave();
+            }
+
+            function handleSkipScore() {
+                hideNameModal();
+                resetGameAfterSave();
+            }
+
+            function resetGameAfterSave() {
+                round = 1;
+                totalScore = 0;
+                goldStreak = 0;
+                roundResults = [];
+                gameOver = false;
+                initGrid();
+                renderGrid();
+                updateHUD();
+                updateTracker();
+                gameScreen.scrollTop = 0;
+            }
+
+            saveScoreBtn.addEventListener('click', handleSaveScore);
+            skipScoreBtn.addEventListener('click', handleSkipScore);
+            playerNameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handleSaveScore();
+            });
+            nameModalOverlay.addEventListener('click', (e) => {
+                if (e.target === nameModalOverlay) handleSkipScore();
+            });
+
+            // Real-time subscription for leaderboard
+            supabaseGame
+                .channel('scores_channel')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'scores' }, () => {
+                    refreshLeaderboard();
+                })
+                .subscribe();
+
+            // ─── GAME LOGIC ──────────────────────────────────────────────
+            const IMAGES = {
+                gold: 'https://i.postimg.cc/crXr135V/golden3.png',
+                green: 'https://i.postimg.cc/dLqhK64s/good1.png',
+                red: 'https://i.postimg.cc/mtbPGj8b/rotten2.png'
+            };
+            const POINTS = { gold: 1250, green: 750, red: 450 },
+                TYPE_COLOR = { gold: 'gold', green: 'green', red: 'red' },
+                TOTAL_ROUNDS = 10;
+            let grid, round, totalScore, roundActive, gameOver, roundResults, revealedCount, isProcessing, goldStreak;
+            const cardGrid = document.getElementById('cardGrid'),
+                roundDisplay = document.getElementById('roundDisplay'),
+                scoreDisplay = document.getElementById('scoreDisplay'),
+                roundTracker = document.getElementById('roundTracker'),
+                winMessage = document.getElementById('winMessage');
+
+            function initGrid() {
+                let t = [];
+                for (let i = 0; i < 4; i++) t.push('gold', 'green', 'red');
+                for (let i = t.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [t[i], t[j]] = [t[j], t[i]];
+                }
+                grid = t.map(ty => ({ type: ty, revealed: false }));
+                revealedCount = { gold: 0, green: 0, red: 0 };
+                roundActive = true;
+                isProcessing = false;
+            }
+
+            function renderGrid() {
+                cardGrid.innerHTML = '';
+                grid.forEach((it, idx) => {
+                    const c = document.createElement('div');
+                    c.className = 'match-card';
+                    c.dataset.index = idx;
+                    c.dataset.type = it.type;
+                    const inner = document.createElement('div');
+                    inner.className = 'card-inner';
+                    const front = document.createElement('div');
+                    front.className = 'card-front';
+                    const img = document.createElement('img');
+                    img.src = IMAGES[it.type];
+                    img.alt = it.type;
+                    front.appendChild(img);
+                    const back = document.createElement('div');
+                    back.className = 'card-back';
+                    inner.appendChild(front);
+                    inner.appendChild(back);
+                    c.appendChild(inner);
+                    if (it.revealed) {
+                        c.classList.add('flipped');
+                        c.classList.add(TYPE_COLOR[it.type]);
+                    }
+                    c.addEventListener('click', () => handleCardClick(idx));
+                    cardGrid.appendChild(c);
+                });
+            }
+
+            function handleCardClick(idx) {
+                if (gameOver || !roundActive || isProcessing) return;
+                const it = grid[idx];
+                if (it.revealed) return;
+                it.revealed = true;
+                revealedCount[it.type]++;
+                const el = cardGrid.children[idx];
+                el.classList.add('flipped');
+                el.classList.add(TYPE_COLOR[it.type]);
+                if (revealedCount[it.type] === 3) {
+                    isProcessing = true;
+                    roundActive = false;
+                    let pts = POINTS[it.type],
+                        bonus = 0;
+                    if (it.type === 'gold') {
+                        goldStreak++;
+                        if (goldStreak >= 2) {
+                            bonus = (goldStreak - 1) * 250;
+                            pts += bonus;
+                        }
+                    } else goldStreak = 0;
+                    totalScore += pts;
+                    updateHUD();
+                    roundResults[round - 1] = it.type;
+                    updateTracker();
+                    grid.forEach((g, i) => {
+                        if (g.type === it.type && g.revealed) {
+                            const e = cardGrid.children[i];
+                            e.classList.add('glow');
+                            e.classList.add(TYPE_COLOR[it.type]);
+                        }
+                    });
+                    winMessage.textContent = `+${pts}${bonus > 0 ? ' 🔥+' + bonus : ''}`;
+                    winMessage.className = `win-message show ${TYPE_COLOR[it.type]}`;
+                    setTimeout(() => {
+                        winMessage.classList.remove('show', 'red', 'green', 'gold');
+                        document.querySelectorAll('.match-card.glow').forEach(e => e.classList.remove('glow', 'red',
+                            'green', 'gold'));
+                        nextRound();
+                    }, 1400);
+                } else if (grid.every(g => g.revealed)) {
+                    isProcessing = true;
+                    roundActive = false;
+                    goldStreak = 0;
+                    roundResults[round - 1] = null;
+                    updateTracker();
+                    winMessage.textContent = '🍃 No match';
+                    winMessage.className = 'win-message show green';
+                    setTimeout(() => {
+                        winMessage.classList.remove('show', 'green');
+                        nextRound();
+                    }, 850);
+                }
+                updateHUD();
+            }
+
+            function nextRound() {
+                round++;
+                if (round > TOTAL_ROUNDS) { endGame(); return; }
+                initGrid();
+                renderGrid();
+                updateHUD();
+                updateTracker();
+                isProcessing = false;
+            }
+
+            function endGame() {
+                gameOver = true;
+                roundActive = false;
+                const finalScore = totalScore;
+                winMessage.textContent = `🏆 ${finalScore.toLocaleString()} pts!`;
+                winMessage.className = 'win-message show gold';
+                setTimeout(async () => {
+                    winMessage.classList.remove('show', 'gold');
+                    if (finalScore <= 0) {
+                        resetGameAfterSave();
+                        return;
+                    }
+                    try {
+                        const topScores = await fetchTopScores();
+                        cachedTopScores = topScores;
+                        const isHigh = topScores.length < 10 ||
+                            finalScore > (topScores[topScores.length - 1]?.score || 0);
+                        if (isHigh) {
+                            showNameModal(finalScore);
+                        } else {
+                            resetGameAfterSave();
+                        }
+                    } catch (err) {
+                        console.error('Error checking high score:', err);
+                        resetGameAfterSave();
+                    }
+                }, 1600);
+            }
+
+            function updateHUD() {
+                roundDisplay.textContent = `${Math.min(round,TOTAL_ROUNDS)} / ${TOTAL_ROUNDS}`;
+                scoreDisplay.textContent = totalScore;
+            }
+
+            function updateTracker() {
+                roundTracker.innerHTML = '';
+                for (let i = 0; i < TOTAL_ROUNDS; i++) {
+                    const d = document.createElement('span');
+                    d.className = 'tracker-dot';
+                    if (i < roundResults.length) {
+                        const r = roundResults[i];
+                        if (r === 'gold') d.classList.add('active-gold');
+                        else if (r === 'green') d.classList.add('active-green');
+                        else if (r === 'red') d.classList.add('active-red');
+                        else d.classList.add('neutral');
+                    }
+                    if (i === round - 1 && !gameOver) d.classList.add('current');
+                    roundTracker.appendChild(d);
+                }
+            }
+
+            function initGame() {
+                round = 1;
+                totalScore = 0;
+                gameOver = false;
+                goldStreak = 0;
+                roundResults = [];
+                initGrid();
+                renderGrid();
+                updateHUD();
+                updateTracker();
+                gameScreen.scrollTop = 0;
+                hideNameModal();
+                refreshLeaderboard();
+            }
+
+            // ─── CHAT SYSTEM ──────────────────────────────────────────────
+            const CHAT_STORAGE_KEY = 'chat_username_applecat';
+            let chatUsername = localStorage.getItem(CHAT_STORAGE_KEY) || '';
+
+            const chatMessages = document.getElementById('chatMessages');
+            const chatMessageInput = document.getElementById('chatMessageInput');
+            const chatSendBtn = document.getElementById('chatSendBtn');
+            const chatStatusDot = document.getElementById('chatStatusDot');
+            const chatStatusText = document.getElementById('chatStatusText');
+            const chatErrorBanner = document.getElementById('chatErrorBanner');
+            const chatInputArea = document.getElementById('chatInputArea');
+            const chatUserBadge = document.getElementById('chatUserBadge');
+            const chatDisplayName = document.getElementById('chatDisplayName');
+            const chatChangeNameBtn = document.getElementById('chatChangeNameBtn');
+            const chatNameOverlay = document.getElementById('chatNameOverlay');
+            const chatNameInput = document.getElementById('chatNameInput');
+            const chatNameBtn = document.getElementById('chatNameBtn');
+            const chatEmptyHint = document.getElementById('chatEmptyHint');
+
+            let chatChannel = null;
+
+            function chatSetStatus(state, text) {
+                chatStatusDot.className = 'chat-status-dot ' + (state || '');
+                chatStatusText.textContent = text;
+            }
+
+            function chatShowError(msg) {
+                chatErrorBanner.textContent = '⚠️ ' + msg;
+                chatErrorBanner.classList.add('visible');
+            }
+
+            function chatClearError() {
+                chatErrorBanner.classList.remove('visible');
+            }
+
+            function escapeHtml(text) {
+                const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+                return String(text).replace(/[&<>"']/g, m => map[m]);
+            }
+
+            function chatAddMessage({ username: msgUser, message }) {
+                if (chatEmptyHint) chatEmptyHint.style.display = 'none';
+                const div = document.createElement('div');
+                div.className = 'chat-msg';
+                if (msgUser === chatUsername) div.classList.add('self');
+                div.innerHTML =
+                    `<div class="msg-user">${escapeHtml(msgUser)}</div><div class="msg-text">${escapeHtml(message)}</div>`;
+                chatMessages.appendChild(div);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                while (chatMessages.children.length > 100) {
+                    chatMessages.removeChild(chatMessages.firstChild);
+                }
+            }
+
+            function chatApplyUsername(name) {
+                chatUsername = name;
+                localStorage.setItem(CHAT_STORAGE_KEY, name);
+                chatDisplayName.textContent = name;
+                chatUserBadge.style.display = 'flex';
+                chatInputArea.style.display = 'flex';
+                chatNameOverlay.classList.remove('active');
+            }
+
+            async function chatLoadMessages() {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                try {
+                    chatSetStatus('', 'Connecting…');
+                    chatClearError();
+                    const response = await fetch(
+                        `${CHAT_SUPABASE_URL}/rest/v1/messages?select=*&order=created_at.asc&limit=50`, {
+                            headers: {
+                                'apikey': CHAT_SUPABASE_ANON,
+                                'Authorization': `Bearer ${CHAT_SUPABASE_ANON}`
+                            },
+                            signal: controller.signal
+                        }
+                    );
+                    clearTimeout(timeoutId);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                    const data = await response.json();
+                    while (chatMessages.firstChild) chatMessages.removeChild(chatMessages.firstChild);
+                    if (data.length === 0) {
+                        const hint = document.createElement('div');
+                        hint.className = 'chat-empty';
+                        hint.id = 'chatEmptyHint';
+                        hint.textContent = 'No messages yet. Say hi 👋';
+                        chatMessages.appendChild(hint);
+                    } else {
+                        data.forEach(msg => chatAddMessage(msg));
+                    }
+                    chatSetStatus('connected', 'Live');
+                    return true;
+                } catch (err) {
+                    clearTimeout(timeoutId);
+                    chatShowError(err.name === 'AbortError' ? 'Request timed out.' : 'Failed to load: ' + err.message);
+                    chatSetStatus('disconnected', 'Error');
+                    return false;
+                }
+            }
+
+            async function chatSendMessage() {
+                const message = chatMessageInput.value.trim();
+                if (!message || !chatUsername) return;
+                chatSendBtn.disabled = true;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                try {
+                    const response = await fetch(`${CHAT_SUPABASE_URL}/rest/v1/messages`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': CHAT_SUPABASE_ANON,
+                            'Authorization': `Bearer ${CHAT_SUPABASE_ANON}`,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=minimal'
+                        },
+                        body: JSON.stringify({ username: chatUsername, message }),
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                    chatMessageInput.value = '';
+                    chatClearError();
+                } catch (err) {
+                    chatShowError(err.name === 'AbortError' ? 'Send timed out.' : 'Send failed: ' + err.message);
+                    chatSetStatus('disconnected', 'Error');
+                } finally {
+                    chatSendBtn.disabled = false;
+                    chatMessageInput.focus();
+                }
+            }
+
+            function chatSubscribe() {
+                if (chatChannel) {
+                    supabaseChat.removeChannel(chatChannel);
+                }
+                chatChannel = supabaseChat
+                    .channel('public:messages')
+                    .on(
+                        'postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
+                        (payload) => {
+                            chatAddMessage(payload.new);
+                            chatSetStatus('connected', 'Live');
+                            chatClearError();
+                        }
+                    )
+                    .subscribe((status) => {
+                        if (status === 'SUBSCRIBED') chatSetStatus('connected', 'Live');
+                        else if (status === 'CHANNEL_ERROR') {
+                            chatShowError('Realtime connection failed. Is the table in the publication?');
+                            chatSetStatus('disconnected', 'Realtime error');
+                        } else if (status === 'CLOSED') chatSetStatus('disconnected', 'Disconnected');
+                    });
+            }
+
+            chatSendBtn.addEventListener('click', chatSendMessage);
+            chatMessageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') chatSendMessage();
+            });
+
+            chatNameBtn.addEventListener('click', () => {
+                const newName = chatNameInput.value.trim();
+                if (!newName) return;
+                chatApplyUsername(newName);
+                if (!window._chatLoaded) {
+                    chatLoadMessages().then(() => { window._chatLoaded = true; });
+                    chatSubscribe();
+                }
+            });
+            chatNameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') chatNameBtn.click();
+            });
+
+            chatChangeNameBtn.addEventListener('click', () => {
+                localStorage.removeItem(CHAT_STORAGE_KEY);
+                chatUsername = '';
+                chatUserBadge.style.display = 'none';
+                chatInputArea.style.display = 'none';
+                chatNameOverlay.classList.add('active');
+                chatNameInput.value = '';
+                chatNameInput.focus();
+                while (chatMessages.firstChild) chatMessages.removeChild(chatMessages.firstChild);
+                const hint = document.createElement('div');
+                hint.className = 'chat-empty';
+                hint.id = 'chatEmptyHint';
+                hint.textContent = 'No messages yet. Say hi 👋';
+                chatMessages.appendChild(hint);
+                if (chatChannel) {
+                    supabaseChat.removeChannel(chatChannel);
+                    chatChannel = null;
+                }
+                chatSetStatus('', 'Disconnected');
+            });
+
+            if (chatUsername) {
+                chatApplyUsername(chatUsername);
+                chatLoadMessages().then(() => { window._chatLoaded = true; });
+                chatSubscribe();
+            } else {
+                chatNameOverlay.classList.add('active');
+                chatNameInput.focus();
+            }
+
+            refreshLeaderboard();
+        })();
+    </script>
 </body>
 </html>
