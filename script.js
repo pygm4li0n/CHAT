@@ -4,9 +4,9 @@
     const STORAGE_BUCKET = 'chat-images';
     const AVATAR_BUCKET = 'chat-avatars';
 
-    // State
-    const STORAGE_KEY_NAME = 'nitro_chat_username';
-    const CLIENT_ID_KEY = 'nitro_chat_client_id';
+    // State – keys updated for MSN
+    const STORAGE_KEY_NAME = 'msn_chat_username';
+    const CLIENT_ID_KEY = 'msn_chat_client_id';
     let username = localStorage.getItem(STORAGE_KEY_NAME) || '';
     let clientId = localStorage.getItem(CLIENT_ID_KEY) || '';
     if (!clientId) {
@@ -67,6 +67,10 @@
     const requestName = document.getElementById('requestName');
     const requestAcceptBtn = document.getElementById('requestAcceptBtn');
     const requestDeclineBtn = document.getElementById('requestDeclineBtn');
+    // New elements
+    const sidebarActiveUsersCount = document.getElementById('sidebarActiveUsersCount');
+    const sidebarBigAvatar = document.getElementById('sidebarBigAvatar');
+    const sidebarBigName = document.getElementById('sidebarBigName');
     let currentRequestData = null;
 
     let replyingTo = null;
@@ -86,10 +90,10 @@
     const typingUsers = new Map();
     let typingChannel = null;
 
-    let acceptedPrivateChats = new Set(JSON.parse(localStorage.getItem('nitro_accepted_chats') || '[]'));
+    let acceptedPrivateChats = new Set(JSON.parse(localStorage.getItem('msn_accepted_chats') || '[]'));
 
     function saveAcceptedChats() {
-        localStorage.setItem('nitro_accepted_chats', JSON.stringify([...acceptedPrivateChats]));
+        localStorage.setItem('msn_accepted_chats', JSON.stringify([...acceptedPrivateChats]));
     }
 
     async function loadAcceptedChatsFromDB() {
@@ -103,7 +107,7 @@
         } catch (err) {}
     }
 
-    // Particles (unchanged)
+    // Particles
     const particleCanvas = document.getElementById('particleCanvas');
     const pCtx = particleCanvas.getContext('2d');
     let particles = [];
@@ -253,7 +257,7 @@
         fileInput.value = '';
     }
 
-    // ── Reactions (public & private) ──
+    // ── Reactions ──
     async function loadReactions(table, isPrivate) {
         const { data, error } = await supabase.from(table).select('*');
         if (error) return;
@@ -329,7 +333,6 @@
         if(isPrivate) bubble.classList.add('private-msg');
 
         let innerHTML = '';
-        // reply reference
         if (msg.reply_to_username && msg.reply_to_message) {
             let imageThumb = '';
             if (msg.reply_to_image_url) imageThumb = `<img src="${escapeHtml(msg.reply_to_image_url)}" alt="replied image" class="reply-image-thumb">`;
@@ -341,7 +344,6 @@
                 </div>
             </div>`;
         }
-        // username + time + edited
         innerHTML += `<div class="msg-username"><span class="msg-avatar">${renderAvatarHTML(user)}</span> ${escapeHtml(user)}${isPrivate?' <span style="font-size:0.6rem;opacity:0.6;">🔒</span>':''} <span class="msg-time">${formatTime(msg.created_at)}</span>`;
         if (msg.edited_at) innerHTML += `<span class="msg-edited">(edited)</span>`;
         innerHTML += `</div>`;
@@ -354,7 +356,6 @@
         if (msg.image_url && !msg.is_deleted) {
             innerHTML += `<div class="msg-image-wrap" data-img-src="${escapeHtml(msg.image_url)}"><img src="${escapeHtml(msg.image_url)}" alt="shared image" loading="lazy"></div>`;
         }
-        // message actions (reply / edit / delete)
         innerHTML += `<div class="msg-actions-container">`;
         innerHTML += `<button class="msg-action-btn reply-btn" data-id="${msg.id}" data-username="${escapeHtml(user)}" data-message="${escapeHtml(msg.message||'')}" data-imageurl="${msg.image_url || ''}">↩ Reply</button>`;
         if (isOwn && !msg.is_deleted) {
@@ -369,7 +370,6 @@
         container.appendChild(wrapper);
         container.scrollTop = container.scrollHeight;
 
-        // attach listeners
         const replyBtn = bubble.querySelector('.reply-btn');
         if (replyBtn) {
             replyBtn.addEventListener('click', (e) => {
@@ -488,7 +488,7 @@
         }
     }
 
-    // ── Typing broadcast ──
+    // ── Typing ──
     function startTyping() {
         if (!username || !typingChannel) return;
         const tab = currentTab === 'private' && activePrivateChat ? 'private' : 'public';
@@ -564,7 +564,7 @@
         if (presenceChannel) return;
         if (!username) return;
         const presenceKey = `${username}::${clientId}`;
-        presenceChannel = supabase.channel('nitro-chat-presence', { config:{ presence:{ key:presenceKey } } });
+        presenceChannel = supabase.channel('msn-chat-presence', { config:{ presence:{ key:presenceKey } } });
         presenceChannel
             .on('presence', { event:'sync' }, () => {
                 const state = presenceChannel.presenceState();
@@ -703,20 +703,7 @@
         });
         sidebarUsers.innerHTML = html || '<div class="no-users-sidebar">No one else online</div>';
         onlineCountNumber.textContent = onlineUsers.size;
-
-        sidebarUsers.querySelectorAll('.sidebar-user-item').forEach(item => {
-            const userName = item.getAttribute('data-username');
-            const privateBtn = item.querySelector('.private-btn');
-            if(privateBtn && userName !== username) {
-                privateBtn.addEventListener('click', (e) => { e.stopPropagation(); handlePrivateChatClick(userName); });
-            }
-            if(userName !== username) {
-                item.addEventListener('click', () => {
-                    if(activePrivateChat === userName) switchTab('private');
-                    else handlePrivateChatClick(userName);
-                });
-            }
-        });
+        if (sidebarActiveUsersCount) sidebarActiveUsersCount.textContent = onlineUsers.size;
     }
     function buildSidebarItem(userName, isOnline, isPending, isSelf=false, isAccepted=false) {
         const avatarURL = getAvatarURL(userName);
@@ -819,7 +806,7 @@
     function subscribeToPrivateRequests() {
         if(!username) return;
         if(privateRequestsChannel) supabase.removeChannel(privateRequestsChannel);
-        privateRequestsChannel = supabase.channel('nitro-private-requests')
+        privateRequestsChannel = supabase.channel('msn-private-requests')
             .on('postgres_changes', { event:'*', schema:'public', table:'private_chat_requests' }, (payload) => {
                 const record = payload.new || payload.old;
                 if(!record) return;
@@ -950,10 +937,14 @@
                 await supabase.from('profiles').upsert({ username: name, avatar_url: url });
                 avatarCache[name] = url;
                 headerAvatar.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
+                if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
             } catch(err) { showError('Avatar upload failed: ' + err.message); }
         } else {
-            headerAvatar.innerHTML = (name[0]||'?').toUpperCase();
+            const initial = (name[0]||'?').toUpperCase();
+            headerAvatar.innerHTML = initial;
+            if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = initial;
         }
+        if (sidebarBigName) sidebarBigName.textContent = name;
 
         userPill.style.display = 'flex';
         inputAreaBar.style.display = 'flex';
@@ -1046,10 +1037,14 @@
             if(profile && profile.avatar_url) {
                 avatarCache[username] = profile.avatar_url;
                 headerAvatar.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;">`;
+                if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;">`;
             } else {
-                headerAvatar.innerHTML = (username[0]||'?').toUpperCase();
+                const initial = (username[0]||'?').toUpperCase();
+                headerAvatar.innerHTML = initial;
+                if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = initial;
             }
             displayNamePill.textContent = username;
+            if (sidebarBigName) sidebarBigName.textContent = username;
             userPill.style.display = 'flex';
             inputAreaBar.style.display = 'flex';
             nameOverlay.classList.add('hidden');
