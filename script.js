@@ -306,45 +306,14 @@
         else await supabase.from(table).insert({ message_id: messageId, username, emoji });
     }
 
-    // Improved scrollToMessage: fetches missing message and renders it
-    async function scrollToMessage(msgId) {
+    function scrollToMessage(msgId) {
         const container = currentTab === 'public' ? publicContainer : privateContainer;
-        
-        // Try to find in DOM first
-        let target = container.querySelector(`.msg-wrapper[data-msg-id="${msgId}"]`);
-        
-        if (!target) {
-            // Message not in DOM, fetch from Supabase
-            const table = currentTab === 'public' ? 'messages' : 'private_messages';
-            const { data, error } = await supabase
-                .from(table)
-                .select('*')
-                .eq('id', msgId)
-                .single();
-            
-            if (error || !data) {
-                showError('Original message could not be loaded.');
-                return;
-            }
-            
-            // Fetch avatar if needed
-            const user = currentTab === 'public' ? data.username : data.from_user;
-            if (!getAvatarURL(user)) await fetchAvatars([user]);
-            
-            // Render the message (will be appended to container)
-            await renderMessage(data, currentTab === 'private');
-            
-            // Try to find it again
-            target = container.querySelector(`.msg-wrapper[data-msg-id="${msgId}"]`);
-        }
-        
+        const target = container.querySelector(`.msg-wrapper[data-msg-id="${msgId}"]`);
         if (target) {
             target.scrollIntoView({ behavior: 'smooth', block: 'center' });
             target.classList.add('highlight-flash');
             setTimeout(() => target.classList.remove('highlight-flash'), 800);
-        } else {
-            showError('Original message not found.');
-        }
+        } else { showError('Original message not found.'); }
     }
 
     async function renderMessage(msg, isPrivate = false) {
@@ -364,21 +333,14 @@
         if(isPrivate) bubble.classList.add('private-msg');
 
         let innerHTML = '';
-        // Updated reply reference condition to include image-only replies
-        if (msg.reply_to_username && (msg.reply_to_message || msg.reply_to_image_url)) {
+        if (msg.reply_to_username && msg.reply_to_message) {
             let imageThumb = '';
-            if (msg.reply_to_image_url) {
-                imageThumb = `<img src="${escapeHtml(msg.reply_to_image_url)}" alt="replied image" class="reply-image-thumb">`;
-            }
-            // Show placeholder if there is no text, but there is an image
-            const replyText = msg.reply_to_message
-                ? `"${escapeHtml(trunc(msg.reply_to_message,55))}"`
-                : '🖼️ Image';
+            if (msg.reply_to_image_url) imageThumb = `<img src="${escapeHtml(msg.reply_to_image_url)}" alt="replied image" class="reply-image-thumb">`;
             innerHTML += `<div class="reply-ref-block" data-reply-to-id="${msg.reply_to_id || ''}">
                 ${imageThumb}
                 <div class="reply-text-content">
                     <span class="r-user">↳ ${escapeHtml(msg.reply_to_username)}</span>
-                    <span class="r-text">${replyText}</span>
+                    <span class="r-text">"${escapeHtml(trunc(msg.reply_to_message,55))}"</span>
                 </div>
             </div>`;
         }
@@ -455,38 +417,19 @@
 
     function setReplyingTo(ref) {
         replyingTo = ref;
-        const thumbEl = document.getElementById('replyPreviewThumb');
         if (ref) {
             replyIndicatorBar.classList.remove('hidden');
             replyToUserDisp.textContent = '@' + ref.username;
             let preview = trunc(ref.message, 40);
-            if (ref.imageUrl) {
-                preview = '🖼️ ' + preview;
-                thumbEl.src = ref.imageUrl;
-                thumbEl.classList.remove('hidden');
-            } else {
-                thumbEl.src = '';
-                thumbEl.classList.add('hidden');
-            }
+            if (ref.imageUrl) preview = '🖼️ ' + preview;
             replyPreviewDisp.textContent = '"' + preview + '"';
             messageInput.focus();
         } else {
             replyingTo = null;
             replyIndicatorBar.classList.add('hidden');
-            replyToUserDisp.textContent = '';
-            replyPreviewDisp.textContent = '';
-            thumbEl.src = '';
-            thumbEl.classList.add('hidden');
+            replyToUserDisp.textContent = ''; replyPreviewDisp.textContent = '';
         }
     }
-
-    // Add click listener for reply preview thumbnail (open lightbox)
-    document.getElementById('replyPreviewThumb').addEventListener('click', function() {
-        if (this.src && this.src !== '') {
-            lightboxImg.src = this.src;
-            lightboxOverlay.classList.remove('hidden');
-        }
-    });
 
     function startEditMessage(msg, isPrivate) {
         const wrapper = document.querySelector(`.msg-wrapper[data-msg-id="${msg.id}"]`);
@@ -958,7 +901,7 @@
         if (replyingTo?.id) {
             payload.reply_to_id = replyingTo.id;
             payload.reply_to_username = replyingTo.username;
-            payload.reply_to_message = replyingTo.message || null; // CHANGED: null if no text
+            payload.reply_to_message = replyingTo.message;
             if (replyingTo.imageUrl) payload.reply_to_image_url = replyingTo.imageUrl;
         }
         if (isPrivate) {
