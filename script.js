@@ -23,6 +23,10 @@
     const sendBtn = document.getElementById('sendBtn');
     const errorToast = document.getElementById('errorToast');
     const inputAreaBar = document.getElementById('inputAreaBar');
+    const userPill = document.getElementById('userPill');
+    const displayNamePill = document.getElementById('displayNamePill');
+    const headerAvatar = document.getElementById('headerAvatar');
+    const changeNameBtn = document.getElementById('changeNameBtn');
     const nameOverlay = document.getElementById('nameOverlay');
     const nameInput = document.getElementById('nameInput');
     const nameSubmitBtn = document.getElementById('nameSubmitBtn');
@@ -67,7 +71,6 @@
     const sidebarActiveUsersCount = document.getElementById('sidebarActiveUsersCount');
     const sidebarBigAvatar = document.getElementById('sidebarBigAvatar');
     const sidebarBigName = document.getElementById('sidebarBigName');
-    const sidebarEditNameBtn = document.getElementById('sidebarEditNameBtn'); // NEW
     let currentRequestData = null;
 
     let replyingTo = null;
@@ -655,13 +658,6 @@
     }
 
     // ── Tabs & private chat ──
-    function updatePrivateTabLabel() {
-        const privateTab = chatTabs.querySelector('[data-tab="private"]');
-        if (privateTab) {
-            privateTab.textContent = activePrivateChat ? `🔒 ${activePrivateChat}` : '🔒 Private';
-        }
-    }
-
     function switchTab(tabName) {
         currentTab = tabName;
         const tabs = chatTabs.querySelectorAll('.chat-tab');
@@ -701,7 +697,6 @@
 
     function setActivePrivateChat(partnerUsername) {
         activePrivateChat = partnerUsername;
-        updatePrivateTabLabel();  // update the tab label
         if(partnerUsername) {
             privateIndicatorBar.classList.remove('hidden');
             privateChatUserDisp.textContent = partnerUsername;
@@ -1023,20 +1018,24 @@
     async function applyUsername(name) {
         username = name;
         localStorage.setItem(STORAGE_KEY_NAME, name);
+        displayNamePill.textContent = name;
 
         if(profilePicFile) {
             try {
                 const url = await uploadToStorage(profilePicFile, AVATAR_BUCKET, 300);
                 await supabase.from('profiles').upsert({ username: name, avatar_url: url });
                 avatarCache[name] = url;
+                headerAvatar.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
                 if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
             } catch(err) { showError('Avatar upload failed: ' + err.message); }
         } else {
             const initial = (name[0]||'?').toUpperCase();
+            headerAvatar.innerHTML = initial;
             if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = initial;
         }
         if (sidebarBigName) sidebarBigName.textContent = name;
 
+        userPill.style.display = 'flex';
         inputAreaBar.style.display = 'flex';
         nameOverlay.classList.add('hidden');
         setReplyingTo(null);
@@ -1044,7 +1043,6 @@
         switchTab('public');
         await updateSidebarUI();
         setupTypingChannel();
-        updatePrivateTabLabel(); // ensure tab label is reset
     }
 
     // Event listeners
@@ -1104,23 +1102,14 @@
         subscribeReactions();
     });
     nameInput.addEventListener('keypress', (e) => { if(e.key==='Enter') nameSubmitBtn.click(); });
-    
-    // New edit name button in sidebar
-    sidebarEditNameBtn.addEventListener('click', () => {
+    changeNameBtn.addEventListener('click', () => {
         localStorage.removeItem(STORAGE_KEY_NAME);
-        username = '';
-        inputAreaBar.style.display = 'none';
-        nameOverlay.classList.remove('hidden');
-        nameInput.value = '';
-        nameInput.focus();
-        setReplyingTo(null);
-        setActivePrivateChat(null);
+        username = ''; userPill.style.display = 'none'; inputAreaBar.style.display = 'none';
+        nameOverlay.classList.remove('hidden'); nameInput.value = ''; nameInput.focus();
+        setReplyingTo(null); setActivePrivateChat(null);
         if(presenceChannel) { presenceChannel.untrack(); supabase.removeChannel(presenceChannel); presenceChannel = null; }
-        onlineUsers.clear();
-        updateSidebarUI();
-        updatePrivateTabLabel();
+        onlineUsers.clear(); updateSidebarUI();
     });
-
     sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
     document.getElementById('chatPanel').addEventListener('click', (e) => {
         if(window.innerWidth<=768 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target!==sidebarToggle && !sidebarToggle.contains(e.target)) {
@@ -1136,18 +1125,21 @@
             const { data: profile } = await supabase.from('profiles').select('avatar_url').eq('username', username).single();
             if(profile && profile.avatar_url) {
                 avatarCache[username] = profile.avatar_url;
+                headerAvatar.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;">`;
                 if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;">`;
             } else {
                 const initial = (username[0]||'?').toUpperCase();
+                headerAvatar.innerHTML = initial;
                 if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = initial;
             }
+            displayNamePill.textContent = username;
             if (sidebarBigName) sidebarBigName.textContent = username;
+            userPill.style.display = 'flex';
             inputAreaBar.style.display = 'flex';
             nameOverlay.classList.add('hidden');
             setReplyingTo(null);
             setActivePrivateChat(null);
             switchTab('public');
-            updatePrivateTabLabel();
             await updateSidebarUI();
 
             await loadMessages();
@@ -1160,8 +1152,7 @@
             subscribeReactions();
             setupTypingChannel();
         } else {
-            nameOverlay.classList.remove('hidden');
-            nameInput.focus();
+            nameOverlay.classList.remove('hidden'); nameInput.focus();
             subscribeToRealtime();
         }
         document.addEventListener('visibilitychange', () => {
