@@ -4,7 +4,7 @@
     const STORAGE_BUCKET = 'chat-images';
     const AVATAR_BUCKET = 'chat-avatars';
 
-    // State – keys updated for MSN
+    // State – updated for MSN
     const STORAGE_KEY_NAME = 'msn_chat_username';
     const CLIENT_ID_KEY = 'msn_chat_client_id';
     let username = localStorage.getItem(STORAGE_KEY_NAME) || '';
@@ -67,7 +67,7 @@
     const requestName = document.getElementById('requestName');
     const requestAcceptBtn = document.getElementById('requestAcceptBtn');
     const requestDeclineBtn = document.getElementById('requestDeclineBtn');
-    // New elements
+    // New MSN sidebar elements
     const sidebarActiveUsersCount = document.getElementById('sidebarActiveUsersCount');
     const sidebarBigAvatar = document.getElementById('sidebarBigAvatar');
     const sidebarBigName = document.getElementById('sidebarBigName');
@@ -703,7 +703,22 @@
         });
         sidebarUsers.innerHTML = html || '<div class="no-users-sidebar">No one else online</div>';
         onlineCountNumber.textContent = onlineUsers.size;
+        // Update new sidebar elements
         if (sidebarActiveUsersCount) sidebarActiveUsersCount.textContent = onlineUsers.size;
+
+        sidebarUsers.querySelectorAll('.sidebar-user-item').forEach(item => {
+            const userName = item.getAttribute('data-username');
+            const privateBtn = item.querySelector('.private-btn');
+            if(privateBtn && userName !== username) {
+                privateBtn.addEventListener('click', (e) => { e.stopPropagation(); handlePrivateChatClick(userName); });
+            }
+            if(userName !== username) {
+                item.addEventListener('click', () => {
+                    if(activePrivateChat === userName) switchTab('private');
+                    else handlePrivateChatClick(userName);
+                });
+            }
+        });
     }
     function buildSidebarItem(userName, isOnline, isPending, isSelf=false, isAccepted=false) {
         const avatarURL = getAvatarURL(userName);
@@ -761,6 +776,18 @@
         await sendPrivateRequest(targetUser);
     }
     async function sendPrivateRequest(toUser) {
+        // Prevent duplicate pending requests
+        const { data: existing } = await supabase
+            .from('private_chat_requests')
+            .select('id')
+            .eq('from_user', username)
+            .eq('to_user', toUser)
+            .eq('status', 'pending')
+            .maybeSingle();
+        if (existing) {
+            showError('📩 Request already sent');
+            return;
+        }
         try {
             const { error } = await supabase.from('private_chat_requests').insert({
                 from_user: username,
@@ -781,7 +808,9 @@
             pendingPrivateRequests.delete(fromUser);
             acceptedPrivateChats.add(fromUser);
             saveAcceptedChats();
-            setActivePrivateChat(fromUser);
+            if (activePrivateChat !== fromUser) {
+                setActivePrivateChat(fromUser);
+            }
             updateSidebarUI();
             showError('✅ Chat with ' + fromUser + ' active!');
         } catch(err) { showError('Accept error: '+err.message); }
@@ -814,12 +843,15 @@
                     pendingPrivateRequests.set(record.from_user, {status:'pending', id:record.id, from_user:record.from_user});
                     updateSidebarUI();
                     fetchAvatars([record.from_user]).then(() => showRequestOverlay(record.from_user, record.id));
+                    return;
                 }
                 if(record.status === 'accepted') {
                     const partner = record.from_user === username ? record.to_user : record.from_user;
-                    acceptedPrivateChats.add(partner);
-                    saveAcceptedChats();
-                    if (activePrivateChat !== partner) setActivePrivateChat(partner);
+                    if (activePrivateChat !== partner) {
+                        acceptedPrivateChats.add(partner);
+                        saveAcceptedChats();
+                        setActivePrivateChat(partner);
+                    }
                 }
             }).subscribe();
     }
