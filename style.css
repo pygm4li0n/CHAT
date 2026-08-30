@@ -64,7 +64,6 @@ body {
     box-shadow: 4px 0 30px rgba(0,0,0,0.4);
     transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
 }
-/* Big user profile */
 .sidebar-user-profile-big {
     padding: 20px 16px 16px;
     display: flex;
