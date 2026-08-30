@@ -306,14 +306,45 @@
         else await supabase.from(table).insert({ message_id: messageId, username, emoji });
     }
 
-    function scrollToMessage(msgId) {
+    // Improved scrollToMessage: fetches missing message and renders it
+    async function scrollToMessage(msgId) {
         const container = currentTab === 'public' ? publicContainer : privateContainer;
-        const target = container.querySelector(`.msg-wrapper[data-msg-id="${msgId}"]`);
+        
+        // Try to find in DOM first
+        let target = container.querySelector(`.msg-wrapper[data-msg-id="${msgId}"]`);
+        
+        if (!target) {
+            // Message not in DOM, fetch from Supabase
+            const table = currentTab === 'public' ? 'messages' : 'private_messages';
+            const { data, error } = await supabase
+                .from(table)
+                .select('*')
+                .eq('id', msgId)
+                .single();
+            
+            if (error || !data) {
+                showError('Original message could not be loaded.');
+                return;
+            }
+            
+            // Fetch avatar if needed
+            const user = currentTab === 'public' ? data.username : data.from_user;
+            if (!getAvatarURL(user)) await fetchAvatars([user]);
+            
+            // Render the message (will be appended to container)
+            await renderMessage(data, currentTab === 'private');
+            
+            // Try to find it again
+            target = container.querySelector(`.msg-wrapper[data-msg-id="${msgId}"]`);
+        }
+        
         if (target) {
             target.scrollIntoView({ behavior: 'smooth', block: 'center' });
             target.classList.add('highlight-flash');
             setTimeout(() => target.classList.remove('highlight-flash'), 800);
-        } else { showError('Original message not found.'); }
+        } else {
+            showError('Original message not found.');
+        }
     }
 
     async function renderMessage(msg, isPrivate = false) {
@@ -441,6 +472,14 @@
             thumbEl.classList.add('hidden');
         }
     }
+
+    // Add click listener for reply preview thumbnail (open lightbox)
+    document.getElementById('replyPreviewThumb').addEventListener('click', function() {
+        if (this.src && this.src !== '') {
+            lightboxImg.src = this.src;
+            lightboxOverlay.classList.remove('hidden');
+        }
+    });
 
     function startEditMessage(msg, isPrivate) {
         const wrapper = document.querySelector(`.msg-wrapper[data-msg-id="${msg.id}"]`);
