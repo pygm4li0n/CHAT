@@ -417,17 +417,28 @@
 
     function setReplyingTo(ref) {
         replyingTo = ref;
+        const thumbEl = document.getElementById('replyPreviewThumb');
         if (ref) {
             replyIndicatorBar.classList.remove('hidden');
             replyToUserDisp.textContent = '@' + ref.username;
             let preview = trunc(ref.message, 40);
-            if (ref.imageUrl) preview = '🖼️ ' + preview;
+            if (ref.imageUrl) {
+                preview = '🖼️ ' + preview;
+                thumbEl.src = ref.imageUrl;
+                thumbEl.classList.remove('hidden');
+            } else {
+                thumbEl.src = '';
+                thumbEl.classList.add('hidden');
+            }
             replyPreviewDisp.textContent = '"' + preview + '"';
             messageInput.focus();
         } else {
             replyingTo = null;
             replyIndicatorBar.classList.add('hidden');
-            replyToUserDisp.textContent = ''; replyPreviewDisp.textContent = '';
+            replyToUserDisp.textContent = '';
+            replyPreviewDisp.textContent = '';
+            thumbEl.src = '';
+            thumbEl.classList.add('hidden');
         }
     }
 
