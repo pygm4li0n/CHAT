@@ -364,14 +364,21 @@
         if(isPrivate) bubble.classList.add('private-msg');
 
         let innerHTML = '';
-        if (msg.reply_to_username && msg.reply_to_message) {
+        // Updated reply reference condition to include image-only replies
+        if (msg.reply_to_username && (msg.reply_to_message || msg.reply_to_image_url)) {
             let imageThumb = '';
-            if (msg.reply_to_image_url) imageThumb = `<img src="${escapeHtml(msg.reply_to_image_url)}" alt="replied image" class="reply-image-thumb">`;
+            if (msg.reply_to_image_url) {
+                imageThumb = `<img src="${escapeHtml(msg.reply_to_image_url)}" alt="replied image" class="reply-image-thumb">`;
+            }
+            // Show placeholder if there is no text, but there is an image
+            const replyText = msg.reply_to_message
+                ? `"${escapeHtml(trunc(msg.reply_to_message,55))}"`
+                : '🖼️ Image';
             innerHTML += `<div class="reply-ref-block" data-reply-to-id="${msg.reply_to_id || ''}">
                 ${imageThumb}
                 <div class="reply-text-content">
                     <span class="r-user">↳ ${escapeHtml(msg.reply_to_username)}</span>
-                    <span class="r-text">"${escapeHtml(trunc(msg.reply_to_message,55))}"</span>
+                    <span class="r-text">${replyText}</span>
                 </div>
             </div>`;
         }
@@ -951,7 +958,7 @@
         if (replyingTo?.id) {
             payload.reply_to_id = replyingTo.id;
             payload.reply_to_username = replyingTo.username;
-            payload.reply_to_message = replyingTo.message;
+            payload.reply_to_message = replyingTo.message || null; // CHANGED: null if no text
             if (replyingTo.imageUrl) payload.reply_to_image_url = replyingTo.imageUrl;
         }
         if (isPrivate) {
