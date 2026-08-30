@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NITRO CHAT // EPIC</title>
+    <title>Meme Social Network // MSN</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,16 +12,16 @@
     <!-- Name Entry Overlay -->
     <div class="overlay-full" id="nameOverlay">
         <div class="overlay-card">
-            <h3>⚡ CREATE YOUR IDENTITY</h3>
+            <h3>CREATE YOUR IDENTITY</h3>
             <input type="text" id="nameInput" placeholder="Your signature..." maxlength="30" autocomplete="off">
             <div class="profile-pic-upload">
                 <div class="profile-pic-preview" id="profilePicPreview" title="Click to upload picture">
                     <span style="font-size:2rem;">📷</span>
                 </div>
                 <input type="file" id="profilePicInput" accept="image/*" style="display:none;">
-                <span style="font-size:0.7rem; color:#7a7a9a;">Profile picture (optional)</span>
+                <span style="font-size:0.7rem; color:#7a8699;">Profile picture (optional)</span>
             </div>
-            <button id="nameSubmitBtn">JOIN THE SCENE</button>
+            <button id="nameSubmitBtn">JOIN MEME SOCIAL NETWORK</button>
         </div>
     </div>
 
@@ -41,11 +41,17 @@
 
     <div class="app-shell" id="appShell">
         <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <span class="s-icon">⚡</span>
-                <span class="s-title">Online Scene</span>
+            <!-- Big user profile -->
+            <div class="sidebar-user-profile-big" id="sidebarUserProfileBig">
+                <div class="big-avatar" id="sidebarBigAvatar">?</div>
+                <div class="big-info">
+                    <div class="big-name" id="sidebarBigName">You</div>
+                    <div class="big-status"><span class="status-dot"></span> Online</div>
+                </div>
             </div>
-            <div class="sidebar-section-label">🔵 Active Users</div>
+            <div class="sidebar-section-label">
+                🔵 ACTIVE USERS <span class="active-users-count" id="sidebarActiveUsersCount">0</span>
+            </div>
             <div class="sidebar-users" id="sidebarUsers">
                 <div class="no-users-sidebar">No one else online</div>
             </div>
@@ -58,8 +64,8 @@
         <main class="chat-panel" id="chatPanel">
             <div class="chat-header-bar">
                 <div class="header-left">
-                    <span class="header-icon">⚡</span>
-                    <span class="header-title">NITRO CHAT</span>
+                    <span class="header-icon">💬</span>
+                    <span class="header-title">Meme Social Network</span>
                 </div>
                 <div class="header-right">
                     <span class="badge-pill" id="connectionPill">
@@ -72,7 +78,7 @@
                     </span>
                     <button class="btn-icon" id="refreshBtn" title="Reconnect"><span class="spin-icon">↻</span></button>
                     <span class="badge-pill" id="userPill" style="display:none;cursor:pointer;" title="You">
-                        <span id="headerAvatar" style="width:20px;height:20px;border-radius:50%;background:#3a3a60;display:flex;align-items:center;justify-content:center;font-size:0.6rem;overflow:hidden;"></span>
+                        <span id="headerAvatar" style="width:20px;height:20px;border-radius:50%;background:#1e2a3a;display:flex;align-items:center;justify-content:center;font-size:0.6rem;overflow:hidden;"></span>
                         <span id="displayNamePill" class="user-pill-name"></span>
                         <span style="cursor:pointer;margin-left:2px;opacity:0.6;" id="changeNameBtn" title="Change name">✎</span>
                     </span>
@@ -85,7 +91,7 @@
             <div class="error-toast" id="errorToast"></div>
             <div class="typing-indicator" id="typingIndicator"></div>
             <div class="messages-container" id="publicMessagesContainer">
-                <div class="empty-chat-hint" id="publicEmptyHint">No messages yet. Spark the conversation ⚡</div>
+                <div class="empty-chat-hint" id="publicEmptyHint">No messages yet. Spark the conversation 💬</div>
             </div>
             <div class="messages-container hidden" id="privateMessagesContainer">
                 <div class="empty-chat-hint" id="privateEmptyHint">No private messages with this user.</div>
@@ -99,7 +105,7 @@
                 </div>
                 <div class="private-indicator-bar hidden" id="privateIndicatorBar">
                     🔒 Private chat with <strong id="privateChatUserDisp"></strong>
-                    <button class="cancel-btn" id="cancelPrivateBtn" style="color:#f0a500;">✕ End</button>
+                    <button class="cancel-btn" id="cancelPrivateBtn" style="color:#fbbf24;">✕ End</button>
                 </div>
                 <div class="image-preview-row hidden" id="imagePreviewRow">
                     <img class="image-preview-thumb" id="imagePreviewThumb" src="" alt="preview">
@@ -120,9 +126,7 @@
         <img id="lightboxImg" src="" alt="Enlarged image">
     </div>
 
-    <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Main application script -->
     <script src="script.js"></script>
 </body>
 </html>
