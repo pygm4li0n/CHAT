@@ -192,7 +192,22 @@
     }
     function formatTime(iso) {
         if (!iso) return '';
-        return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const date = new Date(iso);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        
+        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        if (msgDate.getTime() === today.getTime()) {
+            return `Today ${timeStr}`;
+        } else if (msgDate.getTime() === yesterday.getTime()) {
+            return `Yesterday ${timeStr}`;
+        } else {
+            return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${timeStr}`;
+        }
     }
 
     async function fetchAvatars(usernames) {
@@ -723,15 +738,21 @@
             .from('private_messages')
             .select('*')
             .or(`and(from_user.eq.${username},to_user.eq.${partner}),and(from_user.eq.${partner},to_user.eq.${username})`)
-            .order('created_at', { ascending: true });
+            .order('sort_order', { ascending: true });
         if (error) { showError('Failed to load private messages'); return; }
+
+        // Safety sort by sort_order ascending
+        data.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
         privateContainer.innerHTML = '';
         if (data.length === 0) {
             privateContainer.innerHTML = '<div class="empty-chat-hint">No private messages with this user.</div>';
         } else {
             const users = [...new Set(data.flatMap(m => [m.from_user, m.to_user]))];
             await fetchAvatars(users);
-            data.forEach(msg => renderMessage(msg, true));
+            for (const msg of data) {
+                await renderMessage(msg, true);
+            }
         }
         loadReactions('private_message_reactions', true);
     }
@@ -919,9 +940,13 @@
             const { data, error } = await supabase
                 .from('messages')
                 .select('*')
-                .order('created_at', { ascending: true })
+                .order('sort_order', { ascending: false })   // newest first
                 .limit(80);
             if (error) throw error;
+
+            // Safety sort by sort_order ascending
+            data.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
             publicContainer.innerHTML = '';
             knownMessageIds.clear();
             if (data.length === 0) {
@@ -929,7 +954,9 @@
             } else {
                 const users = [...new Set(data.map(m => m.username))];
                 await fetchAvatars(users);
-                data.forEach(msg => renderMessage(msg, false));
+                for (const msg of data) {
+                    await renderMessage(msg, false);
+                }
             }
             setConnection('connected');
         } catch (err) {
@@ -954,11 +981,12 @@
         let payload = {
             message: text || null,
             image_url: pendingImageUrl || null,
+            created_at: new Date().toISOString()   // keep for backward compatibility
         };
         if (replyingTo?.id) {
             payload.reply_to_id = replyingTo.id;
             payload.reply_to_username = replyingTo.username;
-            payload.reply_to_message = replyingTo.message || null; // CHANGED: null if no text
+            payload.reply_to_message = replyingTo.message || null;
             if (replyingTo.imageUrl) payload.reply_to_image_url = replyingTo.imageUrl;
         }
         if (isPrivate) {
