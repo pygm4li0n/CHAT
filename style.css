@@ -284,7 +284,7 @@ body {
 
 /* ── Scroll‑to‑bottom button ── */
 .scroll-bottom-btn {
-    position: absolute; bottom: 22px; right: 22px;
+    position: absolute; bottom: 85px; right: 22px;
     width: 44px; height: 44px; border-radius: 50%;
     background: rgba(20,28,43,0.9); border: 1px solid var(--border-glow);
     color: #fff; cursor: pointer; display: none; align-items: center; justify-content: center;
