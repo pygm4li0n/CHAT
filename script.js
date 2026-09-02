@@ -81,7 +81,7 @@
 
     // Token gating configuration
     const TOKEN_MINT_ADDRESS = 'HJ5trLqpexXA4WoCHVeUGCpH9Je9x9Sfi2BEz4jHpump';
-    const REQUIRED_BALANCE = 100000; // 100K tokens
+    const REQUIRED_BALANCE = 50000; // 50K tokens
     const SOLANA_RPC_ENDPOINT = 'https://api.mainnet-beta.solana.com';
 
     const solanaConnection = new solanaWeb3.Connection(SOLANA_RPC_ENDPOINT);
