@@ -108,6 +108,7 @@
         updateChatAccessibility();
     }
 
+    // Create a container in the sidebar to display tokens
     function createTokenListContainer() {
         if (tokenListContainer) return tokenListContainer;
         const sidebarFooter = document.querySelector('.sidebar-footer');
@@ -115,7 +116,7 @@
         tokenListContainer = document.createElement('div');
         tokenListContainer.id = 'walletTokenList';
         tokenListContainer.style.cssText = `
-            max-height: 150px; overflow-y: auto; margin-top: 6px;
+            max-height: 160px; overflow-y: auto; margin-top: 6px;
             font-size: 0.7rem; color: #b0c0d8; padding: 4px;
             border-top: 1px solid rgba(255,255,255,0.1);
         `;
@@ -123,6 +124,7 @@
         return tokenListContainer;
     }
 
+    // Display all token balances, highlighting the target token and showing verification status
     function displayTokenBalances(tokenAccounts) {
         const container = createTokenListContainer();
         if (!container) return;
@@ -136,17 +138,26 @@
         tokenAccounts.forEach(acc => {
             const info = acc.account.data.parsed.info;
             const mint = info.mint;
-            const amount = info.tokenAmount.uiAmountString;
+            const amount = parseFloat(info.tokenAmount.uiAmountString);
             const shortMint = mint.slice(0,4) + '...' + mint.slice(-4);
-            html += `<div style="display:flex; justify-content:space-between; gap:4px;">
-                <span title="${mint}">${shortMint}</span>
-                <span>${parseFloat(amount).toLocaleString()}</span>
+            const isTarget = mint === TOKEN_MINT_ADDRESS;
+            let statusHtml = '';
+            if (isTarget) {
+                if (amount > REQUIRED_BALANCE) {
+                    statusHtml = ' <span style="color:#4ade80;">✅ Verified</span>';
+                } else {
+                    statusHtml = ' <span style="color:#ef4444;">❌ Not Verified</span>';
+                }
+            }
+            html += `<div style="display:flex; justify-content:space-between; gap:4px; align-items:center;">
+                <span title="${mint}">${shortMint}${statusHtml}</span>
+                <span>${amount.toLocaleString()}</span>
             </div>`;
         });
         container.innerHTML = html;
     }
 
-    // Fetch all tokens and also check eligibility for target token
+    // Fetch all tokens and check eligibility for target token
     async function fetchAndDisplayAllTokens() {
         if (!phantomWalletPublicKey) return;
 
@@ -156,10 +167,10 @@
                 { programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') }
             );
 
-            // Display all tokens
+            // Display all tokens with verification status
             displayTokenBalances(tokenAccounts.value);
 
-            // Check target token balance
+            // Check target token balance and set access
             let targetBalance = 0;
             for (const acc of tokenAccounts.value) {
                 const info = acc.account.data.parsed.info;
@@ -169,7 +180,6 @@
             }
 
             console.log(`🎯 Target token balance: ${targetBalance}`);
-
             if (targetBalance > REQUIRED_BALANCE) {
                 hasTokenAccess = true;
                 showError(`✅ You hold ${targetBalance} tokens – access granted!`);
@@ -177,7 +187,6 @@
                 hasTokenAccess = false;
                 showError(`❌ You need more than ${REQUIRED_BALANCE} tokens (you have ${targetBalance}).`);
             }
-
             updateChatAccessibility();
         } catch (err) {
             console.error('❌ Error fetching token balances:', err);
@@ -191,7 +200,7 @@
         }
     }
 
-    // Enable/disable chat based on Phantom + token access
+    // Enable/disable chat based on username + Phantom + token access
     function updateChatAccessibility() {
         const canChat = username && phantomConnected && hasTokenAccess;
         messageInput.disabled = !canChat;
