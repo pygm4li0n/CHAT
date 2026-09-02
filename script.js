@@ -77,17 +77,14 @@
     const walletAddressSpan = document.getElementById('walletAddress');
     let phantomWalletPublicKey = null;
     let phantomConnected = false;
-    let hasTokenAccess = false; // whether the wallet has sufficient token balance
 
-    // Token gating configuration
-    const TOKEN_MINT_ADDRESS = 'HJ5trLqpexXA4WoCHVeUGCpH9Je9x9Sfi2BEz4jHpump';
-    const REQUIRED_BALANCE = 50000; // 50K tokens
-    // Using Helius RPC for reliability
+    // RPC endpoint (using Helius for reliability)
     const SOLANA_RPC_ENDPOINT = 'https://mainnet.helius-rpc.com/?api-key=fa7e6515-19de-45de-a7d1-35a64a0d9a1a';
-
     const solanaConnection = new solanaWeb3.Connection(SOLANA_RPC_ENDPOINT);
 
-    // --- Phantom provider detection ---
+    // Container for token balances (created dynamically)
+    let tokenListContainer = null;
+
     function getPhantomProvider() {
         if ('phantom' in window) {
             const provider = window.phantom?.solana;
@@ -97,7 +94,6 @@
         return null;
     }
 
-    // --- Update wallet UI and chat access ---
     function updatePhantomUI() {
         if (phantomConnected && phantomWalletPublicKey) {
             const addr = phantomWalletPublicKey.toBase58();
@@ -107,91 +103,67 @@
             walletAddressSpan.textContent = '';
             phantomConnectBtn.title = 'Connect Phantom Wallet';
         }
-        updateChatAccessibility();
     }
 
-    // --- Check token balance by listing all token accounts ---
-    async function checkTokenBalance() {
-        if (!phantomWalletPublicKey) {
-            console.warn('No wallet connected');
-            hasTokenAccess = false;
-            updateChatAccessibility();
-            return 0;
+    // Create a container in the sidebar to display tokens
+    function createTokenListContainer() {
+        if (tokenListContainer) return tokenListContainer;
+        const sidebarFooter = document.querySelector('.sidebar-footer');
+        if (!sidebarFooter) return null;
+        tokenListContainer = document.createElement('div');
+        tokenListContainer.id = 'walletTokenList';
+        tokenListContainer.style.cssText = `
+            max-height: 150px; overflow-y: auto; margin-top: 6px;
+            font-size: 0.7rem; color: #b0c0d8; padding: 4px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        `;
+        sidebarFooter.parentNode.insertBefore(tokenListContainer, sidebarFooter);
+        return tokenListContainer;
+    }
+
+    // Display all token balances in the container
+    function displayTokenBalances(tokenAccounts) {
+        const container = createTokenListContainer();
+        if (!container) return;
+
+        if (!tokenAccounts || tokenAccounts.length === 0) {
+            container.innerHTML = '<div style="opacity:0.6;">No SPL tokens found</div>';
+            return;
         }
 
+        let html = '<div style="font-weight:bold; margin-bottom:4px;">Token Balances:</div>';
+        tokenAccounts.forEach(acc => {
+            const info = acc.account.data.parsed.info;
+            const mint = info.mint;
+            const amount = info.tokenAmount.uiAmountString;
+            const decimals = info.tokenAmount.decimals;
+            const shortMint = mint.slice(0,4) + '...' + mint.slice(-4);
+            html += `<div style="display:flex; justify-content:space-between; gap:4px;">
+                <span title="${mint}">${shortMint}</span>
+                <span>${parseFloat(amount).toLocaleString()}</span>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    async function fetchAndDisplayAllTokens() {
+        if (!phantomWalletPublicKey) return;
+
         try {
-            // Fetch ALL SPL token accounts owned by the wallet
             const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(
                 phantomWalletPublicKey,
                 { programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') }
             );
-
-            console.log(`📦 Found ${tokenAccounts.value.length} token account(s):`);
-
-            let totalBalance = 0;
-            let foundTarget = false;
-
-            for (const acc of tokenAccounts.value) {
-                const info = acc.account.data.parsed.info;
-                const mint = info.mint;
-                const amount = parseFloat(info.tokenAmount.uiAmountString);
-                const decimals = info.tokenAmount.decimals;
-
-                // Log all tokens for debugging
-                console.log(`   Mint: ${mint} | Balance: ${amount} (${decimals} decimals)`);
-
-                if (mint === TOKEN_MINT_ADDRESS) {
-                    foundTarget = true;
-                    totalBalance += amount;
-                }
-            }
-
-            if (!foundTarget) {
-                console.warn(`⚠️ Target token (${TOKEN_MINT_ADDRESS}) not found in wallet.`);
-            }
-
-            console.log(`🎯 Target token balance: ${totalBalance}`);
-
-            if (totalBalance > REQUIRED_BALANCE) {
-                hasTokenAccess = true;
-                showError(`✅ You hold ${totalBalance} tokens – access granted!`);
-            } else {
-                hasTokenAccess = false;
-                showError(`❌ You need more than ${REQUIRED_BALANCE} tokens (you have ${totalBalance}).`);
-            }
-            updateChatAccessibility();
-            return totalBalance;
+            displayTokenBalances(tokenAccounts.value);
         } catch (err) {
-            console.error('❌ Error fetching token balances:', err);
-            showError(`RPC error: ${err.message}. Please try again or check your connection.`);
-            hasTokenAccess = false;
-            updateChatAccessibility();
-            return 0;
-        }
-    }
-
-    // --- Enable/disable chat based on Phantom + token access ---
-    function updateChatAccessibility() {
-        const canChat = phantomConnected && hasTokenAccess && username;
-        messageInput.disabled = !canChat;
-        sendBtn.disabled = !canChat;
-        document.querySelectorAll('.private-btn').forEach(btn => {
-            btn.disabled = !canChat;
-        });
-        if (canChat) {
-            messageInput.placeholder = 'Type a message...';
-        } else {
-            if (!phantomConnected) {
-                messageInput.placeholder = `Connect Phantom & hold ${REQUIRED_BALANCE} tokens to chat`;
-            } else if (!hasTokenAccess) {
-                messageInput.placeholder = `Insufficient tokens – need ${REQUIRED_BALANCE}`;
-            } else {
-                messageInput.placeholder = 'Type a message...';
+            console.error('Failed to fetch tokens:', err);
+            const container = createTokenListContainer();
+            if (container) {
+                container.innerHTML = '<div style="color:#ff6b6b;">Failed to load tokens</div>';
             }
         }
     }
 
-    // --- Connect to Phantom ---
     async function connectPhantom() {
         const provider = getPhantomProvider();
         if (!provider) {
@@ -205,14 +177,13 @@
             phantomConnected = true;
             updatePhantomUI();
             showError('✅ Phantom connected: ' + phantomWalletPublicKey.toBase58());
-            await checkTokenBalance();
+            await fetchAndDisplayAllTokens();
         } catch (err) {
             console.error('Phantom connection error:', err);
             showError('Could not connect Phantom: ' + err.message);
         }
     }
 
-    // --- Disconnect from Phantom ---
     function disconnectPhantom() {
         const provider = getPhantomProvider();
         if (provider && phantomConnected) {
@@ -220,11 +191,11 @@
         }
         phantomWalletPublicKey = null;
         phantomConnected = false;
-        hasTokenAccess = false;
         updatePhantomUI();
+        const container = document.getElementById('walletTokenList');
+        if (container) container.innerHTML = '';
     }
 
-    // Event listener for Phantom button
     phantomConnectBtn.addEventListener('click', () => {
         if (phantomConnected) {
             disconnectPhantom();
@@ -233,17 +204,18 @@
         }
     });
 
-    // Auto-connect if Phantom already trusted
     function initPhantomAutoConnect() {
         const provider = getPhantomProvider();
         if (provider && provider.isConnected && provider.publicKey) {
             phantomWalletPublicKey = provider.publicKey;
             phantomConnected = true;
             updatePhantomUI();
-            checkTokenBalance();
+            fetchAndDisplayAllTokens();
         }
     }
     // ===== End Phantom Integration =====
+
+    // Removed all token gating logic; chat is now always available after username setup.
 
     let replyingTo = null;
     let activePrivateChat = null;
@@ -265,7 +237,7 @@
     let acceptedPrivateChats = new Set(JSON.parse(localStorage.getItem('msn_accepted_chats') || '[]'));
 
     // ============================================================
-    // Token Tracker (DexScreener) – displays token price/logo
+    // Token Tracker (DexScreener) – displays token price/logo (unchanged)
     // ============================================================
     const TOKEN_ADDRESS = '6mYcNBqiior9gYj4S4x2jDnd3JjggmGvax4wYhUphga';
 
@@ -312,23 +284,17 @@
     setInterval(updateTokenInfo, 60000);
 
     // ============================================================
-    // Scroll to bottom helpers
+    // Scroll to bottom helpers (unchanged)
     // ============================================================
     function scrollContainerToBottom(container) {
-        if (container) {
-            container.scrollTop = container.scrollHeight;
-        }
+        if (container) container.scrollTop = container.scrollHeight;
     }
 
     function updateScrollButtonVisibility(container) {
         if (!scrollBottomBtn) return;
         const threshold = 80;
         const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
-        if (isNearBottom) {
-            scrollBottomBtn.classList.remove('visible');
-        } else {
-            scrollBottomBtn.classList.add('visible');
-        }
+        scrollBottomBtn.classList.toggle('visible', !isNearBottom);
     }
 
     [publicContainer, privateContainer].forEach(container => {
@@ -363,7 +329,7 @@
     }
 
     // ============================================================
-    // Particle animation
+    // Particle animation (unchanged)
     // ============================================================
     const particleCanvas = document.getElementById('particleCanvas');
     const pCtx = particleCanvas.getContext('2d');
@@ -422,7 +388,7 @@
     requestAnimationFrame(animateParticles);
 
     // ============================================================
-    // Helper functions
+    // Helper functions (unchanged)
     // ============================================================
     function escapeHtml(t) { const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}; return String(t).replace(/[&<>"']/g, m=>map[m]); }
     function trunc(t, l=45) { return t && t.length>l ? t.substring(0,l)+'…' : t||''; }
@@ -465,7 +431,7 @@
     }
 
     // ============================================================
-    // Avatar handling
+    // Avatar handling (unchanged)
     // ============================================================
     async function fetchAvatars(usernames) {
         const unique = [...new Set(usernames.filter(u => u && !avatarCache[u]))];
@@ -482,7 +448,7 @@
     }
 
     // ============================================================
-    // Image handling
+    // Image handling (unchanged)
     // ============================================================
     function resizeImage(file, maxDim=750) {
         return new Promise((resolve, reject) => {
@@ -533,7 +499,7 @@
     }
 
     // ============================================================
-    // Reactions
+    // Reactions (unchanged)
     // ============================================================
     async function loadReactions(table, isPrivate) {
         const { data, error } = await supabase.from(table).select('*');
@@ -584,7 +550,7 @@
     }
 
     // ============================================================
-    // Message rendering & actions
+    // Message rendering & actions (unchanged)
     // ============================================================
     async function scrollToMessage(msgId) {
         const container = currentTab === 'public' ? publicContainer : privateContainer;
@@ -793,7 +759,7 @@
     }
 
     // ============================================================
-    // Typing indicators
+    // Typing indicators (unchanged)
     // ============================================================
     function startTyping() {
         if (!username || !typingChannel) return;
@@ -850,7 +816,7 @@
     }
 
     // ============================================================
-    // Presence
+    // Presence (unchanged)
     // ============================================================
     function setupPresence() {
         if (presenceChannel) return;
@@ -893,7 +859,7 @@
     }
 
     // ============================================================
-    // Tabs & Private Chat
+    // Tabs & Private Chat (unchanged)
     // ============================================================
     function switchTab(tabName) {
         currentTab = tabName;
@@ -978,7 +944,7 @@
     }
 
     // ============================================================
-    // Sidebar UI
+    // Sidebar UI (unchanged except no more gating)
     // ============================================================
     async function updateSidebarUI() {
         const usersToFetch = [];
@@ -1019,7 +985,7 @@
                 });
             }
         });
-        updateChatAccessibility(); // Re-apply disabled state to newly rendered private buttons
+        // No updateChatAccessibility() anymore – chat is always open.
     }
     function buildSidebarItem(userName, isOnline, isPending, isSelf=false, isAccepted=false) {
         const avatarURL = getAvatarURL(userName);
@@ -1037,7 +1003,7 @@
     }
 
     // ============================================================
-    // Private chat requests
+    // Private chat requests (unchanged)
     // ============================================================
     function showRequestOverlay(fromUser, requestId) {
         currentRequestData = { from_user: fromUser, id: requestId };
@@ -1159,7 +1125,7 @@
     }
 
     // ============================================================
-    // Load and send messages
+    // Load and send messages (no token checks)
     // ============================================================
     async function loadMessages() {
         setConnection('connecting');
@@ -1189,10 +1155,6 @@
     }
 
     async function sendMessage() {
-        if (!phantomConnected || !hasTokenAccess) {
-            showError(`Connect Phantom and hold >${REQUIRED_BALANCE} tokens to chat.`);
-            return;
-        }
         const text = messageInput.value.trim();
         if (!text && !pendingImageUrl) return;
         if (!username) return;
@@ -1302,11 +1264,11 @@
         switchTab('public');
         await updateSidebarUI();
         setupTypingChannel();
-        updateChatAccessibility();
+        // No token check; chat enabled.
     }
 
     // ============================================================
-    // Event listeners
+    // Event listeners (unchanged)
     // ============================================================
     sendBtn.addEventListener('click', sendMessage);
     messageInput.addEventListener('keypress', (e) => { if(e.key==='Enter') sendMessage(); });
@@ -1380,7 +1342,7 @@
     });
 
     // ============================================================
-    // Init
+    // Init (unchanged, but no token gating)
     // ============================================================
     async function init() {
         if(window.innerWidth<=768) sidebarToggle.classList.remove('hidden');
@@ -1416,7 +1378,6 @@
             loadReactions('private_message_reactions', true);
             subscribeReactions();
             setupTypingChannel();
-            updateChatAccessibility();
         } else {
             nameOverlay.classList.remove('hidden'); nameInput.focus();
             subscribeToRealtime();
