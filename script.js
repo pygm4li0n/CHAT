@@ -82,7 +82,8 @@
     // Token gating configuration
     const TOKEN_MINT_ADDRESS = 'HJ5trLqpexXA4WoCHVeUGCpH9Je9x9Sfi2BEz4jHpump';
     const REQUIRED_BALANCE = 50000; // 50K tokens
-    const SOLANA_RPC_ENDPOINT = 'https://api.mainnet-beta.solana.com';
+    // Using Helius RPC for reliability
+    const SOLANA_RPC_ENDPOINT = 'https://mainnet.helius-rpc.com/?api-key=fa7e6515-19de-45de-a7d1-35a64a0d9a1a';
 
     const solanaConnection = new solanaWeb3.Connection(SOLANA_RPC_ENDPOINT);
 
@@ -169,9 +170,9 @@
             messageInput.placeholder = 'Type a message...';
         } else {
             if (!phantomConnected) {
-                messageInput.placeholder = 'Connect Phantom & hold 100K tokens to chat';
+                messageInput.placeholder = `Connect Phantom & hold ${REQUIRED_BALANCE} tokens to chat`;
             } else if (!hasTokenAccess) {
-                messageInput.placeholder = 'Insufficient tokens – need 100K';
+                messageInput.placeholder = `Insufficient tokens – need ${REQUIRED_BALANCE}`;
             } else {
                 messageInput.placeholder = 'Type a message...';
             }
@@ -1177,7 +1178,7 @@
 
     async function sendMessage() {
         if (!phantomConnected || !hasTokenAccess) {
-            showError('Connect Phantom and hold >100K tokens to chat.');
+            showError(`Connect Phantom and hold >${REQUIRED_BALANCE} tokens to chat.`);
             return;
         }
         const text = messageInput.value.trim();
