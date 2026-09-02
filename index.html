@@ -65,9 +65,17 @@
             <div class="chat-header-bar">
                 <div class="header-left">
                     <span class="header-icon">💬</span>
-                    <span class="header-title">Meme Social Network</span>
+                    <img src="https://i.postimg.cc/HLTtQcTP/Proyecto-nuevo-(4).png" alt="Logo" class="header-logo">
                 </div>
                 <div class="header-right">
+                    <!-- Token tracker -->
+                    <div class="token-tracker" id="tokenTracker">
+                        <img class="token-logo" id="tokenLogo" src="" alt="logo" />
+                        <span class="token-name" id="tokenName">TOKEN</span>
+                        <span class="token-price" id="tokenPrice">--</span>
+                        <span class="token-change" id="tokenChange">--</span>
+                    </div>
+
                     <span class="badge-pill" id="connectionPill">
                         <span id="connDot" style="width:7px;height:7px;border-radius:50%;background:#ffc107;display:inline-block;"></span>
                         <span id="connText" class="conn-text-full">Connecting…</span>
@@ -76,6 +84,9 @@
                         <span class="dot"></span>
                         <span id="onlineCountNumber">0</span>
                     </span>
+                    <!-- Phantom Wallet Connect Button -->
+                    <button class="btn-icon" id="phantomConnectBtn" title="Connect Phantom Wallet">👻</button>
+                    <span id="walletAddress" style="font-size:0.7rem; margin-left:8px; color:#b8c2d0;"></span>
                     <button class="btn-icon" id="refreshBtn" title="Reconnect"><span class="spin-icon">↻</span></button>
                     <span class="badge-pill" id="userPill" style="display:none;cursor:pointer;" title="You">
                         <span id="headerAvatar" style="width:20px;height:20px;border-radius:50%;background:#1e2a3a;display:flex;align-items:center;justify-content:center;font-size:0.6rem;overflow:hidden;"></span>
@@ -100,7 +111,6 @@
             <div class="input-area-bar" id="inputAreaBar" style="display:none;">
                 <div class="reply-indicator-bar hidden" id="replyIndicatorBar">
                     <span>↳ Replying to <strong id="replyToUserDisp"></strong></span>
-                    <!-- NEW: thumbnail for image replies -->
                     <img id="replyPreviewThumb" class="reply-preview-thumb hidden" src="" alt="thumb" />
                     <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.8;font-style:italic;" id="replyPreviewDisp"></span>
                     <button class="cancel-btn" id="cancelReplyBtn">✕</button>
@@ -128,6 +138,9 @@
         <img id="lightboxImg" src="" alt="Enlarged image">
     </div>
 
+    <!-- Solana Web3 and SPL Token libraries -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
+    <script src="https://unpkg.com/@solana/spl-token@latest/lib/index.iife.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>
