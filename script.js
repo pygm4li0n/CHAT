@@ -77,12 +77,14 @@
     const walletAddressSpan = document.getElementById('walletAddress');
     let phantomWalletPublicKey = null;
     let phantomConnected = false;
+    let hasTokenAccess = false; // whether the wallet has sufficient token balance
 
-    // RPC endpoint (using Helius for reliability)
+    // Token gating configuration
+    const TOKEN_MINT_ADDRESS = 'HJ5trLqpexXA4WoCHVeUGCpH9Je9x9Sfi2BEz4jHpump';
+    const REQUIRED_BALANCE = 50000; // 50K tokens
     const SOLANA_RPC_ENDPOINT = 'https://mainnet.helius-rpc.com/?api-key=fa7e6515-19de-45de-a7d1-35a64a0d9a1a';
-    const solanaConnection = new solanaWeb3.Connection(SOLANA_RPC_ENDPOINT);
 
-    // Container for token balances (created dynamically)
+    const solanaConnection = new solanaWeb3.Connection(SOLANA_RPC_ENDPOINT);
     let tokenListContainer = null;
 
     function getPhantomProvider() {
@@ -103,9 +105,9 @@
             walletAddressSpan.textContent = '';
             phantomConnectBtn.title = 'Connect Phantom Wallet';
         }
+        updateChatAccessibility();
     }
 
-    // Create a container in the sidebar to display tokens
     function createTokenListContainer() {
         if (tokenListContainer) return tokenListContainer;
         const sidebarFooter = document.querySelector('.sidebar-footer');
@@ -121,7 +123,6 @@
         return tokenListContainer;
     }
 
-    // Display all token balances in the container
     function displayTokenBalances(tokenAccounts) {
         const container = createTokenListContainer();
         if (!container) return;
@@ -136,7 +137,6 @@
             const info = acc.account.data.parsed.info;
             const mint = info.mint;
             const amount = info.tokenAmount.uiAmountString;
-            const decimals = info.tokenAmount.decimals;
             const shortMint = mint.slice(0,4) + '...' + mint.slice(-4);
             html += `<div style="display:flex; justify-content:space-between; gap:4px;">
                 <span title="${mint}">${shortMint}</span>
@@ -146,6 +146,7 @@
         container.innerHTML = html;
     }
 
+    // Fetch all tokens and also check eligibility for target token
     async function fetchAndDisplayAllTokens() {
         if (!phantomWalletPublicKey) return;
 
@@ -154,12 +155,59 @@
                 phantomWalletPublicKey,
                 { programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') }
             );
+
+            // Display all tokens
             displayTokenBalances(tokenAccounts.value);
+
+            // Check target token balance
+            let targetBalance = 0;
+            for (const acc of tokenAccounts.value) {
+                const info = acc.account.data.parsed.info;
+                if (info.mint === TOKEN_MINT_ADDRESS) {
+                    targetBalance += parseFloat(info.tokenAmount.uiAmountString);
+                }
+            }
+
+            console.log(`🎯 Target token balance: ${targetBalance}`);
+
+            if (targetBalance > REQUIRED_BALANCE) {
+                hasTokenAccess = true;
+                showError(`✅ You hold ${targetBalance} tokens – access granted!`);
+            } else {
+                hasTokenAccess = false;
+                showError(`❌ You need more than ${REQUIRED_BALANCE} tokens (you have ${targetBalance}).`);
+            }
+
+            updateChatAccessibility();
         } catch (err) {
-            console.error('Failed to fetch tokens:', err);
+            console.error('❌ Error fetching token balances:', err);
+            showError(`RPC error: ${err.message}. Please try again or check your connection.`);
+            hasTokenAccess = false;
+            updateChatAccessibility();
             const container = createTokenListContainer();
             if (container) {
                 container.innerHTML = '<div style="color:#ff6b6b;">Failed to load tokens</div>';
+            }
+        }
+    }
+
+    // Enable/disable chat based on Phantom + token access
+    function updateChatAccessibility() {
+        const canChat = username && phantomConnected && hasTokenAccess;
+        messageInput.disabled = !canChat;
+        sendBtn.disabled = !canChat;
+        document.querySelectorAll('.private-btn').forEach(btn => {
+            btn.disabled = !canChat;
+        });
+        if (canChat) {
+            messageInput.placeholder = 'Type a message...';
+        } else {
+            if (!username) {
+                messageInput.placeholder = 'Set your username first';
+            } else if (!phantomConnected) {
+                messageInput.placeholder = `Connect Phantom & hold ${REQUIRED_BALANCE} tokens to chat`;
+            } else if (!hasTokenAccess) {
+                messageInput.placeholder = `Insufficient tokens – need ${REQUIRED_BALANCE}`;
             }
         }
     }
@@ -191,6 +239,7 @@
         }
         phantomWalletPublicKey = null;
         phantomConnected = false;
+        hasTokenAccess = false;
         updatePhantomUI();
         const container = document.getElementById('walletTokenList');
         if (container) container.innerHTML = '';
@@ -215,8 +264,6 @@
     }
     // ===== End Phantom Integration =====
 
-    // Removed all token gating logic; chat is now always available after username setup.
-
     let replyingTo = null;
     let activePrivateChat = null;
     let currentTab = 'public';
@@ -237,7 +284,7 @@
     let acceptedPrivateChats = new Set(JSON.parse(localStorage.getItem('msn_accepted_chats') || '[]'));
 
     // ============================================================
-    // Token Tracker (DexScreener) – displays token price/logo (unchanged)
+    // Token Tracker (DexScreener) – displays token price/logo
     // ============================================================
     const TOKEN_ADDRESS = '6mYcNBqiior9gYj4S4x2jDnd3JjggmGvax4wYhUphga';
 
@@ -284,7 +331,7 @@
     setInterval(updateTokenInfo, 60000);
 
     // ============================================================
-    // Scroll to bottom helpers (unchanged)
+    // Scroll to bottom helpers
     // ============================================================
     function scrollContainerToBottom(container) {
         if (container) container.scrollTop = container.scrollHeight;
@@ -329,7 +376,7 @@
     }
 
     // ============================================================
-    // Particle animation (unchanged)
+    // Particle animation
     // ============================================================
     const particleCanvas = document.getElementById('particleCanvas');
     const pCtx = particleCanvas.getContext('2d');
@@ -388,7 +435,7 @@
     requestAnimationFrame(animateParticles);
 
     // ============================================================
-    // Helper functions (unchanged)
+    // Helper functions
     // ============================================================
     function escapeHtml(t) { const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}; return String(t).replace(/[&<>"']/g, m=>map[m]); }
     function trunc(t, l=45) { return t && t.length>l ? t.substring(0,l)+'…' : t||''; }
@@ -431,7 +478,7 @@
     }
 
     // ============================================================
-    // Avatar handling (unchanged)
+    // Avatar handling
     // ============================================================
     async function fetchAvatars(usernames) {
         const unique = [...new Set(usernames.filter(u => u && !avatarCache[u]))];
@@ -448,7 +495,7 @@
     }
 
     // ============================================================
-    // Image handling (unchanged)
+    // Image handling
     // ============================================================
     function resizeImage(file, maxDim=750) {
         return new Promise((resolve, reject) => {
@@ -499,7 +546,7 @@
     }
 
     // ============================================================
-    // Reactions (unchanged)
+    // Reactions
     // ============================================================
     async function loadReactions(table, isPrivate) {
         const { data, error } = await supabase.from(table).select('*');
@@ -550,7 +597,7 @@
     }
 
     // ============================================================
-    // Message rendering & actions (unchanged)
+    // Message rendering & actions
     // ============================================================
     async function scrollToMessage(msgId) {
         const container = currentTab === 'public' ? publicContainer : privateContainer;
@@ -759,7 +806,7 @@
     }
 
     // ============================================================
-    // Typing indicators (unchanged)
+    // Typing indicators
     // ============================================================
     function startTyping() {
         if (!username || !typingChannel) return;
@@ -816,7 +863,7 @@
     }
 
     // ============================================================
-    // Presence (unchanged)
+    // Presence
     // ============================================================
     function setupPresence() {
         if (presenceChannel) return;
@@ -859,7 +906,7 @@
     }
 
     // ============================================================
-    // Tabs & Private Chat (unchanged)
+    // Tabs & Private Chat
     // ============================================================
     function switchTab(tabName) {
         currentTab = tabName;
@@ -944,7 +991,7 @@
     }
 
     // ============================================================
-    // Sidebar UI (unchanged except no more gating)
+    // Sidebar UI
     // ============================================================
     async function updateSidebarUI() {
         const usersToFetch = [];
@@ -985,7 +1032,7 @@
                 });
             }
         });
-        // No updateChatAccessibility() anymore – chat is always open.
+        updateChatAccessibility(); // apply gating to private buttons
     }
     function buildSidebarItem(userName, isOnline, isPending, isSelf=false, isAccepted=false) {
         const avatarURL = getAvatarURL(userName);
@@ -1003,7 +1050,7 @@
     }
 
     // ============================================================
-    // Private chat requests (unchanged)
+    // Private chat requests
     // ============================================================
     function showRequestOverlay(fromUser, requestId) {
         currentRequestData = { from_user: fromUser, id: requestId };
@@ -1125,7 +1172,7 @@
     }
 
     // ============================================================
-    // Load and send messages (no token checks)
+    // Load and send messages
     // ============================================================
     async function loadMessages() {
         setConnection('connecting');
@@ -1155,9 +1202,13 @@
     }
 
     async function sendMessage() {
+        // Re-check access
+        if (!username || !phantomConnected || !hasTokenAccess) {
+            showError('You need Phantom connected and more than 50K tokens to chat.');
+            return;
+        }
         const text = messageInput.value.trim();
         if (!text && !pendingImageUrl) return;
-        if (!username) return;
         sendBtn.disabled = true;
         const isPrivate = (currentTab === 'private' && activePrivateChat);
         if (isPrivate && !activePrivateChat) {
@@ -1264,11 +1315,11 @@
         switchTab('public');
         await updateSidebarUI();
         setupTypingChannel();
-        // No token check; chat enabled.
+        updateChatAccessibility(); // apply gating after username is set
     }
 
     // ============================================================
-    // Event listeners (unchanged)
+    // Event listeners
     // ============================================================
     sendBtn.addEventListener('click', sendMessage);
     messageInput.addEventListener('keypress', (e) => { if(e.key==='Enter') sendMessage(); });
@@ -1342,7 +1393,7 @@
     });
 
     // ============================================================
-    // Init (unchanged, but no token gating)
+    // Init
     // ============================================================
     async function init() {
         if(window.innerWidth<=768) sidebarToggle.classList.remove('hidden');
@@ -1378,6 +1429,7 @@
             loadReactions('private_message_reactions', true);
             subscribeReactions();
             setupTypingChannel();
+            updateChatAccessibility(); // apply gating after everything loaded
         } else {
             nameOverlay.classList.remove('hidden'); nameInput.focus();
             subscribeToRealtime();
