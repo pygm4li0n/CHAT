@@ -73,6 +73,160 @@
     const sidebarBigName = document.getElementById('sidebarBigName');
     let currentRequestData = null;
 
+    // ===== Phantom Wallet Integration =====
+    const phantomConnectBtn = document.getElementById('phantomConnectBtn');
+    const walletAddressSpan = document.getElementById('walletAddress');
+    let phantomWalletPublicKey = null;
+    let phantomConnected = false;
+
+    // Token configuration – UPDATED VALUES
+    const TOKEN_MINT_ADDRESS = 'HJ5trLqpexXA4WoCHVeUGCpH9Je9x9Sfi2BEz4jHpump';
+    const REQUIRED_BALANCE = 100000; // 100K tokens
+    const SOLANA_RPC_ENDPOINT = 'https://api.mainnet-beta.solana.com';
+
+    const solanaConnection = new solanaWeb3.Connection(SOLANA_RPC_ENDPOINT);
+
+    // NEW: flag to indicate if the user can chat
+    let hasTokenAccess = false;
+
+    function getPhantomProvider() {
+        if ('phantom' in window) {
+            const provider = window.phantom?.solana;
+            if (provider?.isPhantom) return provider;
+        }
+        if (window.solana?.isPhantom) return window.solana;
+        return null;
+    }
+
+    function updatePhantomUI() {
+        if (phantomConnected && phantomWalletPublicKey) {
+            const addr = phantomWalletPublicKey.toBase58();
+            walletAddressSpan.textContent = `👻 ${addr.slice(0,4)}...${addr.slice(-4)}`;
+            phantomConnectBtn.title = 'Disconnect Phantom';
+        } else {
+            walletAddressSpan.textContent = '';
+            phantomConnectBtn.title = 'Connect Phantom Wallet';
+        }
+        // Whenever wallet changes, update chat accessibility
+        updateChatAccessibility();
+    }
+
+    async function connectPhantom() {
+        const provider = getPhantomProvider();
+        if (!provider) {
+            showError('Phantom wallet not installed. Please install it from phantom.app');
+            return;
+        }
+
+        try {
+            const resp = await provider.connect({ onlyIfTrusted: false });
+            phantomWalletPublicKey = resp.publicKey;
+            phantomConnected = true;
+            updatePhantomUI();
+            showError('✅ Phantom connected: ' + phantomWalletPublicKey.toBase58());
+            await checkTokenBalance();
+        } catch (err) {
+            console.error('Phantom connection error:', err);
+            showError('Could not connect Phantom: ' + err.message);
+        }
+    }
+
+    function disconnectPhantom() {
+        const provider = getPhantomProvider();
+        if (provider && phantomConnected) {
+            provider.disconnect().catch(console.warn);
+        }
+        phantomWalletPublicKey = null;
+        phantomConnected = false;
+        hasTokenAccess = false;
+        updatePhantomUI();
+        updateChatAccessibility();
+    }
+
+    async function checkTokenBalance() {
+        if (!phantomWalletPublicKey) {
+            console.warn('No wallet connected');
+            hasTokenAccess = false;
+            updateChatAccessibility();
+            return 0;
+        }
+
+        try {
+            const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(
+                phantomWalletPublicKey,
+                { mint: new solanaWeb3.PublicKey(TOKEN_MINT_ADDRESS) }
+            );
+
+            let totalBalance = 0;
+            for (const accountInfo of tokenAccounts.value) {
+                const tokenAmount = accountInfo.account.data.parsed.info.tokenAmount;
+                totalBalance += parseFloat(tokenAmount.uiAmountString);
+            }
+
+            console.log(`Token balance: ${totalBalance}`);
+            if (totalBalance > REQUIRED_BALANCE) {
+                hasTokenAccess = true;
+                showError(`✅ You hold ${totalBalance} tokens – access granted!`);
+            } else {
+                hasTokenAccess = false;
+                showError(`❌ You need more than ${REQUIRED_BALANCE} tokens (you have ${totalBalance}).`);
+            }
+            updateChatAccessibility();
+            return totalBalance;
+        } catch (err) {
+            console.error('Error checking token balance:', err);
+            showError('Failed to fetch token balance.');
+            hasTokenAccess = false;
+            updateChatAccessibility();
+            return 0;
+        }
+    }
+
+    // NEW: Disable chat features if not connected or insufficient tokens
+    function updateChatAccessibility() {
+        const canChat = phantomConnected && hasTokenAccess && username;
+        // Disable message input and send button
+        messageInput.disabled = !canChat;
+        sendBtn.disabled = !canChat;
+        // Disable private request buttons in sidebar
+        document.querySelectorAll('.private-btn').forEach(btn => {
+            btn.disabled = !canChat;
+        });
+        // If not allowed, show a subtle hint in input placeholder
+        if (canChat) {
+            messageInput.placeholder = 'Type a message...';
+        } else {
+            if (!phantomConnected) {
+                messageInput.placeholder = 'Connect Phantom & hold 100K tokens to chat';
+            } else if (!hasTokenAccess) {
+                messageInput.placeholder = 'Insufficient tokens – need 100K';
+            } else {
+                messageInput.placeholder = 'Type a message...';
+            }
+        }
+    }
+
+    // Event listener for Phantom button
+    phantomConnectBtn.addEventListener('click', () => {
+        if (phantomConnected) {
+            disconnectPhantom();
+        } else {
+            connectPhantom();
+        }
+    });
+
+    // Auto-connect if Phantom is already trusted and connected
+    function initPhantomAutoConnect() {
+        const provider = getPhantomProvider();
+        if (provider && provider.isConnected && provider.publicKey) {
+            phantomWalletPublicKey = provider.publicKey;
+            phantomConnected = true;
+            updatePhantomUI();
+            checkTokenBalance();
+        }
+    }
+    // ===== End Phantom Integration =====
+
     let replyingTo = null;
     let activePrivateChat = null;
     let currentTab = 'public';
@@ -91,6 +245,54 @@
     let typingChannel = null;
 
     let acceptedPrivateChats = new Set(JSON.parse(localStorage.getItem('msn_accepted_chats') || '[]'));
+
+    // ============================================================
+    // Token Tracker (DexScreener) – using token address, shows name and logo
+    // ============================================================
+    const TOKEN_ADDRESS = '6mYcNBqiior9gYj4S4x2jDnd3JjggmGvax4wYhUphga';
+
+    async function updateTokenInfo() {
+        const logoEl = document.getElementById('tokenLogo');
+        const nameEl = document.getElementById('tokenName');
+        const priceEl = document.getElementById('tokenPrice');
+        const changeEl = document.getElementById('tokenChange');
+        if (!priceEl || !changeEl) return;
+
+        try {
+            const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${TOKEN_ADDRESS}`);
+            const data = await response.json();
+            if (data.pairs && data.pairs.length > 0) {
+                const pair = data.pairs[0];
+                const price = parseFloat(pair.priceUsd);
+                const change = parseFloat(pair.priceChange.h24);
+                const tokenName = pair.baseToken.name || pair.baseToken.symbol || 'TOKEN';
+                const logoUrl = pair.info?.imageUrl || pair.baseToken?.imageUrl || '';
+
+                if (nameEl) nameEl.textContent = tokenName;
+                if (logoEl) {
+                    logoEl.src = logoUrl;
+                    logoEl.style.display = logoUrl ? 'block' : 'none';
+                }
+                priceEl.textContent = price ? `$${price.toFixed(4)}` : '--';
+                changeEl.textContent = change ? `${change.toFixed(2)}%` : '--';
+                changeEl.className = 'token-change ' + (change >= 0 ? 'positive' : 'negative');
+            } else {
+                if (logoEl) logoEl.style.display = 'none';
+                priceEl.textContent = '--';
+                changeEl.textContent = '--';
+                changeEl.className = 'token-change';
+            }
+        } catch (err) {
+            console.warn('Token fetch failed:', err);
+            if (logoEl) logoEl.style.display = 'none';
+            priceEl.textContent = '--';
+            changeEl.textContent = '--';
+        }
+    }
+
+    // Start token updates
+    updateTokenInfo();
+    setInterval(updateTokenInfo, 60000); // update every 60 seconds
 
     // ============================================================
     // Scroll to bottom helper functions
@@ -856,6 +1058,8 @@
                 });
             }
         });
+        // After sidebar update, refresh chat accessibility (buttons are re-created)
+        updateChatAccessibility();
     }
     function buildSidebarItem(userName, isOnline, isPending, isSelf=false, isAccepted=false) {
         const avatarURL = getAvatarURL(userName);
@@ -1030,6 +1234,11 @@
     }
 
     async function sendMessage() {
+        // Check token access before sending
+        if (!phantomConnected || !hasTokenAccess) {
+            showError('Connect Phantom and hold >100K tokens to chat.');
+            return;
+        }
         const text = messageInput.value.trim();
         if (!text && !pendingImageUrl) return;
         if (!username) return;
@@ -1145,6 +1354,8 @@
         switchTab('public');
         await updateSidebarUI();
         setupTypingChannel();
+        // After username is set, check token accessibility again
+        updateChatAccessibility();
     }
 
     // Event listeners
@@ -1223,6 +1434,7 @@
     async function init() {
         if(window.innerWidth<=768) sidebarToggle.classList.remove('hidden');
         await loadAcceptedChatsFromDB();
+        initPhantomAutoConnect(); // Attempt auto-connect if Phantom already trusted
         if(username) {
             const { data: profile } = await supabase.from('profiles').select('avatar_url').eq('username', username).single();
             if(profile && profile.avatar_url) {
@@ -1253,6 +1465,7 @@
             loadReactions('private_message_reactions', true);
             subscribeReactions();
             setupTypingChannel();
+            updateChatAccessibility(); // apply token gating after everything loaded
         } else {
             nameOverlay.classList.remove('hidden'); nameInput.focus();
             subscribeToRealtime();
