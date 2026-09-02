@@ -110,7 +110,7 @@
         updateChatAccessibility();
     }
 
-    // --- Check token balance using ATA ---
+    // --- Check token balance by listing all token accounts ---
     async function checkTokenBalance() {
         if (!phantomWalletPublicKey) {
             console.warn('No wallet connected');
@@ -120,26 +120,38 @@
         }
 
         try {
-            const mintPublicKey = new solanaWeb3.PublicKey(TOKEN_MINT_ADDRESS);
-            const ataAddress = splToken.getAssociatedTokenAddressSync(
-                mintPublicKey,
-                phantomWalletPublicKey
+            // Fetch ALL SPL token accounts owned by the wallet
+            const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(
+                phantomWalletPublicKey,
+                { programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') }
             );
 
+            console.log(`📦 Found ${tokenAccounts.value.length} token account(s):`);
+
             let totalBalance = 0;
-            try {
-                const balanceInfo = await solanaConnection.getTokenAccountBalance(ataAddress);
-                if (balanceInfo?.value?.uiAmountString) {
-                    totalBalance = parseFloat(balanceInfo.value.uiAmountString);
-                } else if (balanceInfo?.value?.amount && balanceInfo?.value?.decimals) {
-                    totalBalance = Number(balanceInfo.value.amount) / Math.pow(10, balanceInfo.value.decimals);
+            let foundTarget = false;
+
+            for (const acc of tokenAccounts.value) {
+                const info = acc.account.data.parsed.info;
+                const mint = info.mint;
+                const amount = parseFloat(info.tokenAmount.uiAmountString);
+                const decimals = info.tokenAmount.decimals;
+
+                // Log all tokens for debugging
+                console.log(`   Mint: ${mint} | Balance: ${amount} (${decimals} decimals)`);
+
+                if (mint === TOKEN_MINT_ADDRESS) {
+                    foundTarget = true;
+                    totalBalance += amount;
                 }
-            } catch (ataError) {
-                // ATA not found or account doesn't exist → balance = 0
-                totalBalance = 0;
             }
 
-            console.log(`Token balance: ${totalBalance}`);
+            if (!foundTarget) {
+                console.warn(`⚠️ Target token (${TOKEN_MINT_ADDRESS}) not found in wallet.`);
+            }
+
+            console.log(`🎯 Target token balance: ${totalBalance}`);
+
             if (totalBalance > REQUIRED_BALANCE) {
                 hasTokenAccess = true;
                 showError(`✅ You hold ${totalBalance} tokens – access granted!`);
@@ -150,8 +162,8 @@
             updateChatAccessibility();
             return totalBalance;
         } catch (err) {
-            console.error('Error checking token balance:', err);
-            showError('Failed to fetch token balance.');
+            console.error('❌ Error fetching token balances:', err);
+            showError(`RPC error: ${err.message}. Please try again or check your connection.`);
             hasTokenAccess = false;
             updateChatAccessibility();
             return 0;
