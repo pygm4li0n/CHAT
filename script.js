@@ -295,7 +295,7 @@
     // ============================================================
     // Token Tracker (DexScreener) – displays token price/logo
     // ============================================================
-    const TOKEN_ADDRESS = '6mYcNBqiior9gYj4S4x2jDnd3JjggmGvax4wYhUphga';
+    const TOKEN_ADDRESS = 'HmJDgky11u77hpBss6D8sjNpYPD5B6fWgSVDj58jpump';
 
     async function updateTokenInfo() {
         const logoEl = document.getElementById('tokenLogo');
