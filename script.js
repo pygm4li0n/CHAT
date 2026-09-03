@@ -7,6 +7,7 @@
     // State – updated for MSN
     const STORAGE_KEY_NAME = 'msn_chat_username';
     const CLIENT_ID_KEY = 'msn_chat_client_id';
+    const ACTIVE_CHAT_KEY = 'msn_active_private_chat';
     let username = localStorage.getItem(STORAGE_KEY_NAME) || '';
     let clientId = localStorage.getItem(CLIENT_ID_KEY) || '';
     if (!clientId) {
@@ -70,18 +71,38 @@
     const sidebarActiveUsersCount = document.getElementById('sidebarActiveUsersCount');
     const sidebarBigAvatar = document.getElementById('sidebarBigAvatar');
     const sidebarBigName = document.getElementById('sidebarBigName');
+    const cooldownIndicator = document.getElementById('cooldownIndicator');
     let currentRequestData = null;
 
     // ===== Phantom Wallet Integration =====
     const phantomConnectBtn = document.getElementById('phantomConnectBtn');
     const walletAddressSpan = document.getElementById('walletAddress');
+    const phantomConnectBtnOverlay = document.getElementById('phantomConnectBtnOverlay');
+    const walletAddressOverlay = document.getElementById('walletAddressOverlay');
+
+    // Mod Settings elements
+    const modSettingsBtn = document.getElementById('modSettingsBtn');
+    const modSettingsOverlay = document.getElementById('modSettingsOverlay');
+    const modTokenRequirementInput = document.getElementById('modTokenRequirement');
+    const modCooldownSelect = document.getElementById('modCooldownSelect');
+    const modSaveSettingsBtn = document.getElementById('modSaveSettingsBtn');
+    const modCloseSettingsBtn = document.getElementById('modCloseSettingsBtn');
+
     let phantomWalletPublicKey = null;
     let phantomConnected = false;
     let hasTokenAccess = false; // whether the wallet has sufficient token balance
 
-    // Token gating configuration
+    // MOD wallet address
+    const MOD_WALLET = 'GKpgaSMUeUPD2AjXb9eiXsbQ1qm6YfGrYY6hHvNgqNJc';
+    let isModWallet = false;
+
+    // Token gating configuration (global, loaded from Supabase)
+    let modTokenRequirement = 50000; // default fallback
+    let modCooldownSeconds = 0;
+    let lastMessageTimestamp = 0;
+    let cooldownInterval = null;
+
     const TOKEN_MINT_ADDRESS = 'HJ5trLqpexXA4WoCHVeUGCpH9Je9x9Sfi2BEz4jHpump';
-    const REQUIRED_BALANCE = 50000; // 50K tokens
     const SOLANA_RPC_ENDPOINT = 'https://mainnet.helius-rpc.com/?api-key=fa7e6515-19de-45de-a7d1-35a64a0d9a1a';
 
     const solanaConnection = new solanaWeb3.Connection(SOLANA_RPC_ENDPOINT);
@@ -96,15 +117,36 @@
         return null;
     }
 
-    function updatePhantomUI() {
+    // Check if connected wallet is MOD
+    function checkIfModWallet() {
         if (phantomConnected && phantomWalletPublicKey) {
-            const addr = phantomWalletPublicKey.toBase58();
-            walletAddressSpan.textContent = `👻 ${addr.slice(0, 4)}...${addr.slice(-4)}`;
-            phantomConnectBtn.title = 'Disconnect Phantom';
+            isModWallet = phantomWalletPublicKey.toBase58() === MOD_WALLET;
+            if (isModWallet) {
+                modSettingsBtn.classList.remove('hidden');
+            } else {
+                modSettingsBtn.classList.add('hidden');
+            }
         } else {
-            walletAddressSpan.textContent = '';
-            phantomConnectBtn.title = 'Connect Phantom Wallet';
+            isModWallet = false;
+            modSettingsBtn.classList.add('hidden');
         }
+    }
+
+    function updatePhantomUI() {
+        const connected = phantomConnected && phantomWalletPublicKey;
+        const addr = connected ? phantomWalletPublicKey.toBase58() : '';
+        const shortAddr = connected ? `${addr.slice(0, 4)}...${addr.slice(-4)}` : '';
+
+        walletAddressSpan.textContent = connected ? `👻 ${shortAddr}` : '';
+        phantomConnectBtn.title = connected ? 'Disconnect Phantom' : 'Connect Phantom Wallet';
+
+        if (phantomConnectBtnOverlay) {
+            walletAddressOverlay.textContent = connected ? `👻 ${shortAddr}` : '';
+            phantomConnectBtnOverlay.title = connected ? 'Disconnect Phantom' : 'Connect Phantom Wallet';
+            phantomConnectBtnOverlay.innerHTML = connected ? '👻 Disconnect' : '👻 Connect Phantom';
+        }
+
+        checkIfModWallet();
         updateChatAccessibility();
     }
 
@@ -143,7 +185,7 @@
             const isTarget = mint === TOKEN_MINT_ADDRESS;
             let statusHtml = '';
             if (isTarget) {
-                if (amount > REQUIRED_BALANCE) {
+                if (modTokenRequirement <= 0 || amount > modTokenRequirement) {
                     statusHtml = ' <span style="color:#4ade80;">✅ Verified</span>';
                 } else {
                     statusHtml = ' <span style="color:#ef4444;">❌ Not Verified</span>';
@@ -167,10 +209,8 @@
                 { programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') }
             );
 
-            // Display all tokens with verification status
             displayTokenBalances(tokenAccounts.value);
 
-            // Check target token balance and set access
             let targetBalance = 0;
             for (const acc of tokenAccounts.value) {
                 const info = acc.account.data.parsed.info;
@@ -179,13 +219,14 @@
                 }
             }
 
-            console.log(`🎯 Target token balance: ${targetBalance}`);
-            if (targetBalance > REQUIRED_BALANCE) {
+            if (modTokenRequirement <= 0) {
+                hasTokenAccess = true; // no token requirement
+            } else if (targetBalance > modTokenRequirement) {
                 hasTokenAccess = true;
                 showError(`✅ You hold ${targetBalance} tokens – access granted!`);
             } else {
                 hasTokenAccess = false;
-                showError(`❌ You need more than ${REQUIRED_BALANCE} tokens (you have ${targetBalance}).`);
+                showError(`❌ You need more than ${modTokenRequirement} tokens (you have ${targetBalance}).`);
             }
             updateChatAccessibility();
         } catch (err) {
@@ -200,9 +241,16 @@
         }
     }
 
-    // Enable/disable chat based on username + Phantom + token access
+    // Enable/disable chat based on username + token access (considering 0 requirement)
     function updateChatAccessibility() {
-        const canChat = username && phantomConnected && hasTokenAccess;
+        let canChat = false;
+        if (username) {
+            if (modTokenRequirement <= 0) {
+                canChat = true; // open to all with username
+            } else {
+                canChat = phantomConnected && hasTokenAccess;
+            }
+        }
         messageInput.disabled = !canChat;
         sendBtn.disabled = !canChat;
         document.querySelectorAll('.private-btn').forEach(btn => {
@@ -213,10 +261,10 @@
         } else {
             if (!username) {
                 messageInput.placeholder = 'Set your username first';
-            } else if (!phantomConnected) {
-                messageInput.placeholder = `Connect Phantom & hold ${REQUIRED_BALANCE} tokens to chat`;
-            } else if (!hasTokenAccess) {
-                messageInput.placeholder = `Insufficient tokens – need ${REQUIRED_BALANCE}`;
+            } else if (modTokenRequirement > 0 && !phantomConnected) {
+                messageInput.placeholder = `Connect Phantom & hold ${modTokenRequirement} tokens to chat`;
+            } else if (modTokenRequirement > 0 && !hasTokenAccess) {
+                messageInput.placeholder = `Insufficient tokens – need ${modTokenRequirement}`;
             }
         }
     }
@@ -252,15 +300,25 @@
         updatePhantomUI();
         const container = document.getElementById('walletTokenList');
         if (container) container.innerHTML = '';
+        if (cooldownInterval) {
+            clearInterval(cooldownInterval);
+            cooldownInterval = null;
+        }
+        hideCooldown();
     }
 
-    phantomConnectBtn.addEventListener('click', () => {
+    function togglePhantomConnection() {
         if (phantomConnected) {
             disconnectPhantom();
         } else {
             connectPhantom();
         }
-    });
+    }
+
+    phantomConnectBtn.addEventListener('click', togglePhantomConnection);
+    if (phantomConnectBtnOverlay) {
+        phantomConnectBtnOverlay.addEventListener('click', togglePhantomConnection);
+    }
 
     function initPhantomAutoConnect() {
         const provider = getPhantomProvider();
@@ -271,6 +329,115 @@
             fetchAndDisplayAllTokens();
         }
     }
+
+    // ===== Mod Settings Logic =====
+    modSettingsBtn.addEventListener('click', () => {
+        modTokenRequirementInput.value = modTokenRequirement;
+        modCooldownSelect.value = modCooldownSeconds.toString();
+        modSettingsOverlay.classList.remove('hidden');
+    });
+
+    modCloseSettingsBtn.addEventListener('click', () => {
+        modSettingsOverlay.classList.add('hidden');
+    });
+
+    modSaveSettingsBtn.addEventListener('click', async () => {
+        const newTokenReq = parseInt(modTokenRequirementInput.value);
+        const newCooldown = parseInt(modCooldownSelect.value);
+        if (!isNaN(newTokenReq) && newTokenReq >= 0) {
+            modTokenRequirement = newTokenReq;
+        }
+        if (!isNaN(newCooldown) && [0,5,10,15].includes(newCooldown)) {
+            modCooldownSeconds = newCooldown;
+        }
+        try {
+            const { error } = await supabase
+                .from('settings')
+                .upsert({ id: 1, token_requirement: modTokenRequirement, cooldown_seconds: modCooldownSeconds });
+            if (error) throw error;
+            showError('✅ Mod settings updated globally!');
+        } catch (err) {
+            console.error('Error saving settings:', err);
+            showError('Failed to save settings: ' + err.message);
+        }
+        modSettingsOverlay.classList.add('hidden');
+        if (modCooldownSeconds === 0 && cooldownInterval) {
+            clearInterval(cooldownInterval);
+            cooldownInterval = null;
+            hideCooldown();
+        }
+        if (phantomConnected) fetchAndDisplayAllTokens();
+        updateChatAccessibility();
+    });
+
+    // ===== Settings from Supabase =====
+    async function loadSettings() {
+        try {
+            const { data, error } = await supabase
+                .from('settings')
+                .select('token_requirement, cooldown_seconds')
+                .eq('id', 1)
+                .single();
+            if (error) {
+                // If no settings row, use defaults
+                console.warn('No settings found, using defaults.');
+                return;
+            }
+            if (data) {
+                modTokenRequirement = data.token_requirement;
+                modCooldownSeconds = data.cooldown_seconds;
+            }
+        } catch (err) {
+            console.error('Error loading settings:', err);
+        }
+        updateChatAccessibility();
+    }
+
+    function subscribeToSettings() {
+        if (settingsChannel) supabase.removeChannel(settingsChannel);
+        settingsChannel = supabase
+            .channel('settings-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, payload => {
+                const newData = payload.new;
+                if (newData && newData.id === 1) {
+                    modTokenRequirement = newData.token_requirement;
+                    modCooldownSeconds = newData.cooldown_seconds;
+                    updateChatAccessibility();
+                    if (phantomConnected) fetchAndDisplayAllTokens();
+                }
+            })
+            .subscribe();
+    }
+
+    // Cooldown indicator functions
+    function showCooldown(seconds) {
+        cooldownIndicator.classList.remove('hidden');
+        cooldownIndicator.textContent = `⏳ Cooldown: ${seconds}s`;
+    }
+
+    function hideCooldown() {
+        cooldownIndicator.classList.add('hidden');
+        cooldownIndicator.textContent = '';
+    }
+
+    function startCooldown(seconds) {
+        if (seconds <= 0) return;
+        const endTime = Date.now() + seconds * 1000;
+        lastMessageTimestamp = Date.now();
+        if (cooldownInterval) clearInterval(cooldownInterval);
+        cooldownInterval = setInterval(() => {
+            const remaining = Math.ceil((endTime - Date.now()) / 1000);
+            if (remaining <= 0) {
+                clearInterval(cooldownInterval);
+                cooldownInterval = null;
+                hideCooldown();
+            } else {
+                showCooldown(remaining);
+            }
+        }, 250);
+        showCooldown(seconds);
+    }
+
     // ===== End Phantom Integration =====
 
     let replyingTo = null;
@@ -278,7 +445,7 @@
     let currentTab = 'public';
     let onlineUsers = new Map();
     let isConnected = false;
-    let realtimeChannel = null, presenceChannel = null, privateRequestsChannel = null, privMsgChannel = null, reactionsChannel = null, privReactionsChannel = null;
+    let realtimeChannel = null, presenceChannel = null, privateRequestsChannel = null, privMsgChannel = null, reactionsChannel = null, privReactionsChannel = null, settingsChannel = null;
     let pendingPrivateRequests = new Map();
     let knownMessageIds = new Set();
     let messageReactions = {};
@@ -290,10 +457,15 @@
     const typingUsers = new Map();
     let typingChannel = null;
 
-    let acceptedPrivateChats = new Set(JSON.parse(localStorage.getItem('msn_accepted_chats') || '[]'));
+    let acceptedPrivateChats;
+    try {
+        acceptedPrivateChats = new Set(JSON.parse(localStorage.getItem('msn_accepted_chats') || '[]'));
+    } catch (e) {
+        acceptedPrivateChats = new Set();
+    }
 
     // ============================================================
-    // Token Tracker (DexScreener) – displays token price/logo
+    // Token Tracker (DexScreener)
     // ============================================================
     const TOKEN_ADDRESS = 'HmJDgky11u77hpBss6D8sjNpYPD5B6fWgSVDj58jpump';
 
@@ -381,7 +553,9 @@
             (sent||[]).forEach(r => acceptedPrivateChats.add(r.to_user));
             (received||[]).forEach(r => acceptedPrivateChats.add(r.from_user));
             saveAcceptedChats();
-        } catch (err) {}
+        } catch (err) {
+            console.error('Error loading accepted chats:', err);
+        }
     }
 
     // ============================================================
@@ -958,6 +1132,7 @@
 
     function setActivePrivateChat(partnerUsername) {
         activePrivateChat = partnerUsername;
+        localStorage.setItem(ACTIVE_CHAT_KEY, partnerUsername || '');
         if(partnerUsername) {
             privateIndicatorBar.classList.remove('hidden');
             privateChatUserDisp.textContent = partnerUsername;
@@ -1059,7 +1234,7 @@
     }
 
     // ============================================================
-    // Private chat requests
+    // Private chat requests (simplified and faster)
     // ============================================================
     function showRequestOverlay(fromUser, requestId) {
         currentRequestData = { from_user: fromUser, id: requestId };
@@ -1154,7 +1329,9 @@
                 }
             });
             updateSidebarUI();
-        } catch(err) {}
+        } catch(err) {
+            console.error('Error loading pending requests:', err);
+        }
     }
     function subscribeToPrivateRequests() {
         if(!username) return;
@@ -1211,11 +1388,25 @@
     }
 
     async function sendMessage() {
-        // Re-check access
-        if (!username || !phantomConnected || !hasTokenAccess) {
-            showError('You need Phantom connected and more than 50K tokens to chat.');
+        let canSend = false;
+        if (username) {
+            if (modTokenRequirement <= 0) canSend = true;
+            else canSend = phantomConnected && hasTokenAccess;
+        }
+        if (!canSend) {
+            showError(modTokenRequirement <= 0 ? 'Set your username first' : `You need Phantom connected and more than ${modTokenRequirement} tokens to chat.`);
             return;
         }
+
+        if (modCooldownSeconds > 0) {
+            const now = Date.now();
+            if (now - lastMessageTimestamp < modCooldownSeconds * 1000) {
+                const remaining = Math.ceil((modCooldownSeconds * 1000 - (now - lastMessageTimestamp)) / 1000);
+                showCooldown(remaining);
+                return;
+            }
+        }
+
         const text = messageInput.value.trim();
         if (!text && !pendingImageUrl) return;
         sendBtn.disabled = true;
@@ -1252,6 +1443,7 @@
             setReplyingTo(null);
             clearAttachedImage();
             stopTyping();
+            startCooldown(modCooldownSeconds);
         } catch (err) {
             showError('Send failed: ' + err.message);
         } finally {
@@ -1324,7 +1516,7 @@
         switchTab('public');
         await updateSidebarUI();
         setupTypingChannel();
-        updateChatAccessibility(); // apply gating after username is set
+        updateChatAccessibility();
     }
 
     // ============================================================
@@ -1406,6 +1598,8 @@
     // ============================================================
     async function init() {
         if(window.innerWidth<=768) sidebarToggle.classList.remove('hidden');
+        await loadSettings();           // Cargar ajustes globales antes de cualquier otra cosa
+        subscribeToSettings();          // Escuchar cambios
         await loadAcceptedChatsFromDB();
         initPhantomAutoConnect(); // Attempt auto-connect if Phantom already trusted
         if(username) {
@@ -1438,7 +1632,13 @@
             loadReactions('private_message_reactions', true);
             subscribeReactions();
             setupTypingChannel();
-            updateChatAccessibility(); // apply gating after everything loaded
+            updateChatAccessibility();
+
+            // Restaurar chat privado activo si existía
+            const savedActiveChat = localStorage.getItem(ACTIVE_CHAT_KEY);
+            if (savedActiveChat && acceptedPrivateChats.has(savedActiveChat)) {
+                setActivePrivateChat(savedActiveChat);
+            }
         } else {
             nameOverlay.classList.remove('hidden'); nameInput.focus();
             subscribeToRealtime();
