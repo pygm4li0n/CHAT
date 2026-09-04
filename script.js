@@ -18,7 +18,7 @@
     let avatarCache = {};
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // DOM elements (removed userPill, displayNamePill, headerAvatar, changeNameBtn, lockOverlay, lockMessage)
+    // DOM elements
     const publicContainer = document.getElementById('publicMessagesContainer');
     const privateContainer = document.getElementById('privateMessagesContainer');
     const messageInput = document.getElementById('messageInput');
@@ -81,6 +81,8 @@
     const walletAddressSpan = document.getElementById('walletAddress');
     const phantomConnectBtnOverlay = document.getElementById('phantomConnectBtnOverlay');
     const walletAddressOverlay = document.getElementById('walletAddressOverlay');
+    // NEW: Mobile edit button
+    const mobileEditBtn = document.getElementById('mobileEditBtn');
 
     let currentRequestData = null;
 
@@ -1070,14 +1072,15 @@
             privateChatUserDisp.textContent = partnerUsername;
             setReplyingTo(null);
             messageInput.placeholder = `Private message to ${partnerUsername}...`;
-            if(currentTab !== 'private') switchTab('private');
+            // Force switch to private tab regardless of current tab
+            switchTab('private');
             loadPrivateMessages(partnerUsername);
         } else {
             activePrivateChat = null;
             privateIndicatorBar.classList.add('hidden');
             privateChatUserDisp.textContent = '';
             messageInput.placeholder = 'Type a message...';
-            if(currentTab === 'private') switchTab('public');
+            switchTab('public');
         }
         updateSidebarUI();
         updateTypingIndicator();
@@ -1138,9 +1141,22 @@
             const privateBtn = item.querySelector('.private-btn');
             if(privateBtn && userName !== username) {
                 privateBtn.addEventListener('click', (e) => { e.stopPropagation(); handlePrivateChatClick(userName); });
+                // Add touch event for mobile
+                privateBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handlePrivateChatClick(userName);
+                });
             }
             if(userName !== username) {
                 item.addEventListener('click', () => {
+                    if(activePrivateChat === userName) switchTab('private');
+                    else handlePrivateChatClick(userName);
+                });
+                // Add touch event for mobile
+                item.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     if(activePrivateChat === userName) switchTab('private');
                     else handlePrivateChatClick(userName);
                 });
@@ -1431,7 +1447,7 @@
         }
         if (sidebarBigName) sidebarBigName.textContent = name;
 
-        inputAreaBar.classList.remove('hidden'); // Use class instead of style
+        inputAreaBar.classList.remove('hidden');
         nameOverlay.classList.add('hidden');
         setReplyingTo(null);
         setActivePrivateChat(null);
@@ -1499,11 +1515,11 @@
     });
     nameInput.addEventListener('keypress', (e) => { if(e.key==='Enter') nameSubmitBtn.click(); });
 
-    // New sidebar change name button
+    // Sidebar and mobile edit profile buttons
     sidebarChangeNameBtn.addEventListener('click', () => {
         localStorage.removeItem(STORAGE_KEY_NAME);
         username = '';
-        inputAreaBar.classList.add('hidden'); // Use class instead of style
+        inputAreaBar.classList.add('hidden');
         nameOverlay.classList.remove('hidden');
         nameInput.value = '';
         nameInput.focus();
@@ -1513,10 +1529,17 @@
         onlineUsers.clear();
         updateSidebarUI();
     });
+    if (mobileEditBtn) {
+        mobileEditBtn.addEventListener('click', () => {
+            sidebarChangeNameBtn.click();
+        });
+    }
 
     sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
     document.getElementById('chatPanel').addEventListener('click', (e) => {
         if(window.innerWidth<=768 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target!==sidebarToggle && !sidebarToggle.contains(e.target)) {
+            // Don't close if request overlay is open
+            if (!requestOverlay.classList.contains('hidden')) return;
             sidebar.classList.remove('open');
         }
     });
@@ -1529,7 +1552,7 @@
         await loadAcceptedChatsFromDB();
         initPhantomAutoConnect();
 
-        // Hide input area initially using class
+        // Hide input area initially
         inputAreaBar.classList.add('hidden');
 
         if(username) {
@@ -1542,7 +1565,7 @@
                 if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = initial;
             }
             if (sidebarBigName) sidebarBigName.textContent = username;
-            inputAreaBar.classList.remove('hidden'); // Show input area
+            inputAreaBar.classList.remove('hidden');
             nameOverlay.classList.add('hidden');
             setReplyingTo(null);
             setActivePrivateChat(null);
