@@ -215,12 +215,14 @@ body {
 }
 .sidebar-footer .status-dot-sm { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); flex-shrink: 0; box-shadow: 0 0 6px rgba(34, 197, 94, 0.7); }
 .sidebar-toggle {
-    display: none; position: absolute; top: 12px; left: 12px; z-index: 30;
+    display: none; position: static;   /* changed from absolute to static (inside header) */
+    width: 36px; height: 36px; border-radius: 50%;
     background: var(--bg-elevated); border: 1px solid var(--border-default); color: #fff;
-    width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 1.4rem;
+    cursor: pointer; font-size: 1.2rem;
     align-items: center; justify-content: center;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 0 12px rgba(0, 240, 255, 0.3);
+    transition: all 0.3s; flex-shrink: 0;
 }
+.sidebar-toggle:hover { background: var(--bg-hover); border-color: var(--accent-cyan); box-shadow: 0 0 10px rgba(0, 240, 255, 0.4); }
 
 /* ── Chat Panel ── */
 .chat-panel {
@@ -258,6 +260,18 @@ body {
     display: block;
     max-width: 200px;
     filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.4));
+}
+/* NEW: header center for token tracker */
+.header-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
+}
+/* Hide old header icon (replaced by sidebar toggle) */
+.header-icon {
+    display: none;
 }
 .chat-header-bar .header-right { display: flex; align-items: center; gap: 8px; z-index: 1; flex-wrap: wrap; }
 .badge-pill {
@@ -809,11 +823,9 @@ button.send-btn-main:disabled { background: var(--bg-secondary); box-shadow: non
         margin: 10px 12px;
         padding: 6px 10px;
     }
-    /* Position sidebar toggle above scroll-to-bottom */
-    .sidebar-toggle {
-        top: auto;
-        bottom: 130px;
-        left: 12px;
+    /* Token tracker hidden on mobile (in header, we hide center) */
+    .header-center {
+        display: none;
     }
     .scroll-bottom-btn {
         bottom: 80px;
