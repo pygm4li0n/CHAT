@@ -133,8 +133,8 @@
             walletAddressOverlay.textContent = connected ? `👛 ${shortAddr}` : '';
             phantomConnectBtnOverlay.title = connected ? 'Disconnect Phantom' : 'Connect Phantom Wallet';
             phantomConnectBtnOverlay.innerHTML = connected 
-                ? `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" style="width:18px;height:18px;object-fit:contain;"> Disconnect`
-                : `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" style="width:18px;height:18px;object-fit:contain;"> Connect Phantom`;
+                ? `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Disconnect</span>`
+                : `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Connect Phantom</span>`;
         }
 
         checkIfModWallet();
@@ -408,7 +408,7 @@
         showCooldown(seconds);
     }
 
-    // ============== REST OF ORIGINAL CODE (unchanged but with necessary replacements) ==============
+    // ============== REST OF ORIGINAL CODE ==============
     let replyingTo = null;
     let activePrivateChat = null;
     let currentTab = 'public';
@@ -476,7 +476,7 @@
     updateTokenInfo();
     setInterval(updateTokenInfo, 60000);
 
-    // Scroll helpers, etc.
+    // Scroll helpers
     function scrollContainerToBottom(container) { if (container) container.scrollTop = container.scrollHeight; }
     function updateScrollButtonVisibility(container) {
         if (!scrollBottomBtn) return;
@@ -508,7 +508,7 @@
         } catch (err) { console.error('Error loading accepted chats:', err); }
     }
 
-    // Particle animation (kept as before)
+    // Particle animation
     const particleCanvas = document.getElementById('particleCanvas');
     const pCtx = particleCanvas.getContext('2d');
     let particles = [];
@@ -1431,7 +1431,7 @@
         }
         if (sidebarBigName) sidebarBigName.textContent = name;
 
-        inputAreaBar.style.display = 'flex';
+        inputAreaBar.classList.remove('hidden'); // Use class instead of style
         nameOverlay.classList.add('hidden');
         setReplyingTo(null);
         setActivePrivateChat(null);
@@ -1503,7 +1503,7 @@
     sidebarChangeNameBtn.addEventListener('click', () => {
         localStorage.removeItem(STORAGE_KEY_NAME);
         username = '';
-        inputAreaBar.style.display = 'none';
+        inputAreaBar.classList.add('hidden'); // Use class instead of style
         nameOverlay.classList.remove('hidden');
         nameInput.value = '';
         nameInput.focus();
@@ -1528,6 +1528,10 @@
         subscribeToSettings();
         await loadAcceptedChatsFromDB();
         initPhantomAutoConnect();
+
+        // Hide input area initially using class
+        inputAreaBar.classList.add('hidden');
+
         if(username) {
             const { data: profile } = await supabase.from('profiles').select('avatar_url').eq('username', username).single();
             if(profile && profile.avatar_url) {
@@ -1538,7 +1542,7 @@
                 if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = initial;
             }
             if (sidebarBigName) sidebarBigName.textContent = username;
-            inputAreaBar.style.display = 'flex';
+            inputAreaBar.classList.remove('hidden'); // Show input area
             nameOverlay.classList.add('hidden');
             setReplyingTo(null);
             setActivePrivateChat(null);
