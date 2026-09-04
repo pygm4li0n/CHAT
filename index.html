@@ -60,7 +60,7 @@
         </div>
     </div>
 
-    <button class="sidebar-toggle hidden" id="sidebarToggle" title="Users">☰</button>
+    <!-- No standalone sidebar toggle here anymore -->
 
     <div class="app-shell" id="appShell">
         <aside class="sidebar" id="sidebar">
@@ -72,14 +72,6 @@
                     <div class="big-status"><span class="status-dot"></span> Online</div>
                 </div>
                 <button class="btn-icon edit-profile-btn" id="sidebarChangeNameBtn" title="Change name">✎</button>
-            </div>
-
-            <!-- Token tracker moved to sidebar -->
-            <div class="token-tracker sidebar-token" id="tokenTracker">
-                <img class="token-logo" id="tokenLogo" src="" alt="logo">
-                <span class="token-name" id="tokenName">TOKEN</span>
-                <span class="token-price" id="tokenPrice">--</span>
-                <span class="token-change" id="tokenChange">--</span>
             </div>
 
             <div class="sidebar-section-label">
@@ -97,9 +89,21 @@
         <main class="chat-panel" id="chatPanel">
             <div class="chat-header-bar">
                 <div class="header-left">
-                    <span class="header-icon">💬</span>
+                    <!-- Sidebar toggle moved here, replaces old header icon -->
+                    <button class="sidebar-toggle hidden" id="sidebarToggle" title="Users">☰</button>
                     <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="Logo" class="header-logo">
                 </div>
+
+                <!-- NEW: center container for token tracker (big on desktop) -->
+                <div class="header-center">
+                    <div class="token-tracker" id="tokenTracker">
+                        <img class="token-logo" id="tokenLogo" src="" alt="logo">
+                        <span class="token-name" id="tokenName">TOKEN</span>
+                        <span class="token-price" id="tokenPrice">--</span>
+                        <span class="token-change" id="tokenChange">--</span>
+                    </div>
+                </div>
+
                 <div class="header-right">
                     <span class="badge-pill" id="connectionPill">
                         <span id="connDot"></span>
