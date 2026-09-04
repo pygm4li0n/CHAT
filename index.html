@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Meme Social Network // MSN</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- cache-busting query added -->
+    <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
     <canvas id="particleCanvas"></canvas>
@@ -12,21 +13,21 @@
     <!-- Name Entry Overlay -->
     <div class="overlay-full" id="nameOverlay">
         <div class="overlay-card">
-            <div class="profile-pic-upload" style="margin-bottom: 1.2rem;">
+            <div class="profile-pic-upload">
                 <div class="profile-pic-preview" id="profilePicPreview" title="Click to upload picture">
-                    <span style="font-size:2rem;">📷</span>
+                    <span>📷</span>
                 </div>
                 <input type="file" id="profilePicInput" accept="image/*" style="display:none;">
-                <span style="font-size:0.7rem; color:#7a8699;">Profile picture (optional)</span>
+                <span class="text-muted-small">Profile picture (optional)</span>
             </div>
-            <h3 style="margin-bottom: 0.8rem;">CREATE YOUR IDENTITY</h3>
-            <input type="text" id="nameInput" placeholder="Your signature..." maxlength="30" autocomplete="off" style="margin-bottom: 1rem;">
+            <h3>CREATE YOUR IDENTITY</h3>
+            <input type="text" id="nameInput" placeholder="Your signature..." maxlength="30" autocomplete="off">
             <!-- Phantom connect button with image -->
-            <button class="btn-icon" id="phantomConnectBtnOverlay" title="Connect Phantom Wallet" style="margin-bottom: 0.5rem; width: 100%; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" style="width: 20px; height: 20px; object-fit: contain;">
+            <button class="btn-icon phantom-overlay-btn" id="phantomConnectBtnOverlay" title="Connect Phantom Wallet">
+                <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom">
                 <span>Connect Phantom</span>
             </button>
-            <span id="walletAddressOverlay" style="font-size:0.7rem; margin-bottom: 1rem; color:#b8c2d0;"></span>
+            <span class="wallet-address" id="walletAddressOverlay"></span>
             <button id="nameSubmitBtn">JOIN MEME SOCIAL NETWORK</button>
         </div>
     </div>
@@ -48,16 +49,16 @@
         <div class="overlay-card">
             <h3>⚙️ MOD SETTINGS</h3>
             <label for="modTokenRequirement">Required tokens to chat</label>
-            <input type="number" id="modTokenRequirement" min="0" step="1000" style="margin-bottom:1rem;">
+            <input type="number" id="modTokenRequirement" min="0" step="1000">
             <label for="modCooldownSelect">Cooldown between messages</label>
-            <select id="modCooldownSelect" style="margin-bottom:1rem;">
+            <select id="modCooldownSelect">
                 <option value="0">No cooldown</option>
                 <option value="5">5 seconds</option>
                 <option value="10">10 seconds</option>
                 <option value="15">15 seconds</option>
             </select>
             <button id="modSaveSettingsBtn">SAVE SETTINGS</button>
-            <button id="modCloseSettingsBtn" style="background:rgba(255,255,255,0.1); margin-top:0.5rem;">Close</button>
+            <button id="modCloseSettingsBtn">Close</button>
         </div>
     </div>
 
@@ -72,7 +73,7 @@
                     <div class="big-rank hidden" id="sidebarBigRank"></div>
                     <div class="big-status"><span class="status-dot"></span> Online</div>
                 </div>
-                <button class="btn-icon" id="sidebarChangeNameBtn" title="Change name" style="flex-shrink:0;">✎</button>
+                <button class="btn-icon edit-profile-btn" id="sidebarChangeNameBtn" title="Change name">✎</button>
             </div>
             <div class="sidebar-section-label">
                 🔵 ACTIVE USERS <span class="active-users-count" id="sidebarActiveUsersCount">0</span>
@@ -90,19 +91,18 @@
             <div class="chat-header-bar">
                 <div class="header-left">
                     <span class="header-icon">💬</span>
-                    <!-- Nuevo logo -->
                     <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="Logo" class="header-logo">
                 </div>
                 <div class="header-right">
                     <!-- Token tracker -->
                     <div class="token-tracker" id="tokenTracker">
-                        <img class="token-logo" id="tokenLogo" src="" alt="logo" />
+                        <img class="token-logo" id="tokenLogo" src="" alt="logo">
                         <span class="token-name" id="tokenName">TOKEN</span>
                         <span class="token-price" id="tokenPrice">--</span>
                         <span class="token-change" id="tokenChange">--</span>
                     </div>
                     <span class="badge-pill" id="connectionPill">
-                        <span id="connDot" style="width:7px;height:7px;border-radius:50%;background:#ffc107;display:inline-block;"></span>
+                        <span id="connDot"></span>
                         <span id="connText" class="conn-text-full">Connecting…</span>
                     </span>
                     <span class="online-count-badge" id="onlineCountBadge">
@@ -110,10 +110,10 @@
                         <span id="onlineCountNumber">0</span>
                     </span>
                     <!-- Phantom wallet button with image -->
-                    <button class="btn-icon" id="phantomConnectBtn" title="Connect Phantom Wallet">
-                        <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" style="width: 18px; height: 18px; object-fit: contain;">
+                    <button class="btn-icon phantom-btn" id="phantomConnectBtn" title="Connect Phantom Wallet">
+                        <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom">
                     </button>
-                    <span id="walletAddress" style="font-size:0.7rem; margin-left:8px; color:#b8c2d0;"></span>
+                    <span class="wallet-address" id="walletAddress"></span>
                     <button class="btn-icon hidden" id="modSettingsBtn" title="Mod Settings">⚙️</button>
                     <button class="btn-icon" id="refreshBtn" title="Reconnect"><span class="spin-icon">↻</span></button>
                 </div>
@@ -131,16 +131,16 @@
                 <div class="empty-chat-hint" id="privateEmptyHint">No private messages with this user.</div>
             </div>
             <button class="scroll-bottom-btn" id="scrollBottomBtn" title="Scroll to bottom">↓</button>
-            <div class="input-area-bar" id="inputAreaBar" style="display:none;">
+            <div class="input-area-bar" id="inputAreaBar">
                 <div class="reply-indicator-bar hidden" id="replyIndicatorBar">
                     <span>↳ Replying to <strong id="replyToUserDisp"></strong></span>
-                    <img id="replyPreviewThumb" class="reply-preview-thumb hidden" src="" alt="thumb" />
-                    <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.8;font-style:italic;" id="replyPreviewDisp"></span>
+                    <img id="replyPreviewThumb" class="reply-preview-thumb hidden" src="" alt="thumb">
+                    <span class="reply-preview-text" id="replyPreviewDisp"></span>
                     <button class="cancel-btn" id="cancelReplyBtn">✕</button>
                 </div>
                 <div class="private-indicator-bar hidden" id="privateIndicatorBar">
                     🔒 Private chat with <strong id="privateChatUserDisp"></strong>
-                    <button class="cancel-btn" id="cancelPrivateBtn" style="color:#fbbf24;">✕ End</button>
+                    <button class="cancel-btn" id="cancelPrivateBtn">✕ End</button>
                 </div>
                 <div class="image-preview-row hidden" id="imagePreviewRow">
                     <img class="image-preview-thumb" id="imagePreviewThumb" src="" alt="preview">
