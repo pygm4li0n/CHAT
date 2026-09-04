@@ -9,10 +9,9 @@
 <body>
     <canvas id="particleCanvas"></canvas>
 
-    <!-- Name Entry Overlay (MODIFICADO: foto arriba, luego nombre, luego Phantom, luego unirse) -->
+    <!-- Name Entry Overlay -->
     <div class="overlay-full" id="nameOverlay">
         <div class="overlay-card">
-            <!-- Foto de perfil arriba -->
             <div class="profile-pic-upload" style="margin-bottom: 1.2rem;">
                 <div class="profile-pic-preview" id="profilePicPreview" title="Click to upload picture">
                     <span style="font-size:2rem;">📷</span>
@@ -20,25 +19,19 @@
                 <input type="file" id="profilePicInput" accept="image/*" style="display:none;">
                 <span style="font-size:0.7rem; color:#7a8699;">Profile picture (optional)</span>
             </div>
-
-            <!-- Título -->
             <h3 style="margin-bottom: 0.8rem;">CREATE YOUR IDENTITY</h3>
-
-            <!-- Campo de nombre -->
             <input type="text" id="nameInput" placeholder="Your signature..." maxlength="30" autocomplete="off" style="margin-bottom: 1rem;">
-
-            <!-- Botón de conexión Phantom (adicional al del header) -->
-            <button class="btn-icon" id="phantomConnectBtnOverlay" title="Connect Phantom Wallet" style="margin-bottom: 0.5rem; width: 100%; padding: 12px; border-radius: 12px;">
-                👻 Connect Phantom
+            <!-- Phantom connect button with image -->
+            <button class="btn-icon" id="phantomConnectBtnOverlay" title="Connect Phantom Wallet" style="margin-bottom: 0.5rem; width: 100%; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" style="width: 20px; height: 20px; object-fit: contain;">
+                <span>Connect Phantom</span>
             </button>
             <span id="walletAddressOverlay" style="font-size:0.7rem; margin-bottom: 1rem; color:#b8c2d0;"></span>
-
-            <!-- Botón de unirse -->
             <button id="nameSubmitBtn">JOIN MEME SOCIAL NETWORK</button>
         </div>
     </div>
 
-    <!-- Epic Request Overlay (sin cambios) -->
+    <!-- Epic Request Overlay -->
     <div class="request-overlay hidden" id="requestOverlay">
         <div class="request-card">
             <div class="request-avatar" id="requestAvatar"></div>
@@ -50,13 +43,12 @@
         </div>
     </div>
 
-    <!-- Mod Settings Overlay (NUEVO) -->
+    <!-- Mod Settings Overlay -->
     <div class="overlay-full hidden" id="modSettingsOverlay">
         <div class="overlay-card">
             <h3>⚙️ MOD SETTINGS</h3>
             <label for="modTokenRequirement">Required tokens to chat</label>
             <input type="number" id="modTokenRequirement" min="0" step="1000" style="margin-bottom:1rem;">
-            
             <label for="modCooldownSelect">Cooldown between messages</label>
             <select id="modCooldownSelect" style="margin-bottom:1rem;">
                 <option value="0">No cooldown</option>
@@ -64,7 +56,6 @@
                 <option value="10">10 seconds</option>
                 <option value="15">15 seconds</option>
             </select>
-            
             <button id="modSaveSettingsBtn">SAVE SETTINGS</button>
             <button id="modCloseSettingsBtn" style="background:rgba(255,255,255,0.1); margin-top:0.5rem;">Close</button>
         </div>
@@ -74,13 +65,14 @@
 
     <div class="app-shell" id="appShell">
         <aside class="sidebar" id="sidebar">
-            <!-- Big user profile -->
             <div class="sidebar-user-profile-big" id="sidebarUserProfileBig">
                 <div class="big-avatar" id="sidebarBigAvatar">?</div>
                 <div class="big-info">
                     <div class="big-name" id="sidebarBigName">You</div>
+                    <div class="big-rank hidden" id="sidebarBigRank"></div>
                     <div class="big-status"><span class="status-dot"></span> Online</div>
                 </div>
+                <button class="btn-icon" id="sidebarChangeNameBtn" title="Change name" style="flex-shrink:0;">✎</button>
             </div>
             <div class="sidebar-section-label">
                 🔵 ACTIVE USERS <span class="active-users-count" id="sidebarActiveUsersCount">0</span>
@@ -98,7 +90,8 @@
             <div class="chat-header-bar">
                 <div class="header-left">
                     <span class="header-icon">💬</span>
-                    <img src="https://i.postimg.cc/HLTtQcTP/Proyecto-nuevo-(4).png" alt="Logo" class="header-logo">
+                    <!-- Nuevo logo -->
+                    <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="Logo" class="header-logo">
                 </div>
                 <div class="header-right">
                     <!-- Token tracker -->
@@ -108,7 +101,6 @@
                         <span class="token-price" id="tokenPrice">--</span>
                         <span class="token-change" id="tokenChange">--</span>
                     </div>
-
                     <span class="badge-pill" id="connectionPill">
                         <span id="connDot" style="width:7px;height:7px;border-radius:50%;background:#ffc107;display:inline-block;"></span>
                         <span id="connText" class="conn-text-full">Connecting…</span>
@@ -117,17 +109,13 @@
                         <span class="dot"></span>
                         <span id="onlineCountNumber">0</span>
                     </span>
-                    <!-- Phantom Wallet Connect Button (header, sin cambios) -->
-                    <button class="btn-icon" id="phantomConnectBtn" title="Connect Phantom Wallet">👻</button>
+                    <!-- Phantom wallet button with image -->
+                    <button class="btn-icon" id="phantomConnectBtn" title="Connect Phantom Wallet">
+                        <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" style="width: 18px; height: 18px; object-fit: contain;">
+                    </button>
                     <span id="walletAddress" style="font-size:0.7rem; margin-left:8px; color:#b8c2d0;"></span>
-                    <!-- Mod Settings Button (solo visible para wallet MOD) -->
                     <button class="btn-icon hidden" id="modSettingsBtn" title="Mod Settings">⚙️</button>
                     <button class="btn-icon" id="refreshBtn" title="Reconnect"><span class="spin-icon">↻</span></button>
-                    <span class="badge-pill" id="userPill" style="display:none;cursor:pointer;" title="You">
-                        <span id="headerAvatar" style="width:20px;height:20px;border-radius:50%;background:#1e2a3a;display:flex;align-items:center;justify-content:center;font-size:0.6rem;overflow:hidden;"></span>
-                        <span id="displayNamePill" class="user-pill-name"></span>
-                        <span style="cursor:pointer;margin-left:2px;opacity:0.6;" id="changeNameBtn" title="Change name">✎</span>
-                    </span>
                 </div>
             </div>
             <div class="chat-tabs" id="chatTabs">
@@ -159,7 +147,6 @@
                     <span class="image-preview-name" id="imagePreviewName"></span>
                     <button class="image-preview-remove" id="imagePreviewRemove">✕</button>
                 </div>
-                <!-- Indicador de cooldown (NUEVO) -->
                 <div id="cooldownIndicator" class="cooldown-indicator hidden"></div>
                 <div class="input-row-wrap">
                     <input type="text" id="messageInput" placeholder="Type a message..." maxlength="500" autocomplete="off">
@@ -168,6 +155,7 @@
                     <button class="send-btn-main" id="sendBtn">SEND</button>
                 </div>
             </div>
+            <!-- (Lock overlay eliminado) -->
         </main>
     </div>
 
