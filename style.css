@@ -794,4 +794,38 @@ button.send-btn-main:disabled { background: var(--bg-secondary); box-shadow: non
     .sidebar-user-profile-big .big-avatar { width: 56px; height: 56px; font-size: 1.4rem; }
     .sidebar-user-profile-big .big-name { font-size: 1rem; }
     .header-logo { height: 30px; }
+
+    /* Mobile header: only logo, phantom, and edit profile */
+    .header-right .badge-pill,
+    .header-right .online-count-badge,
+    .header-right .wallet-address,
+    .header-right #refreshBtn {
+        display: none !important;
+    }
+    .mobile-edit-btn {
+        display: flex;
+    }
+    .sidebar-token {
+        margin: 10px 12px;
+        padding: 6px 10px;
+    }
+    /* Position sidebar toggle above scroll-to-bottom */
+    .sidebar-toggle {
+        top: auto;
+        bottom: 130px;
+        left: 12px;
+    }
+    .scroll-bottom-btn {
+        bottom: 80px;
+    }
+    /* Touch improvements */
+    .private-btn,
+    .sidebar-user-item {
+        touch-action: manipulation;
+    }
+}
+
+/* Hide mobile edit button on desktop */
+.mobile-edit-btn {
+    display: none;
 }
