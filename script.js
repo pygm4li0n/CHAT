@@ -16,6 +16,7 @@
     }
 
     let avatarCache = {};
+    let userBalances = {}; // username -> token balance (null if never connected)
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // DOM elements
@@ -81,7 +82,6 @@
     const walletAddressSpan = document.getElementById('walletAddress');
     const phantomConnectBtnOverlay = document.getElementById('phantomConnectBtnOverlay');
     const walletAddressOverlay = document.getElementById('walletAddressOverlay');
-    // NEW: Mobile edit button
     const mobileEditBtn = document.getElementById('mobileEditBtn');
 
     let currentRequestData = null;
@@ -190,20 +190,29 @@
         container.innerHTML = html;
     }
 
+    // Badge system
+    function getBadge(balance) {
+        if (balance >= 1000000) return { emoji: '🐋', name: 'Whale' };
+        if (balance >= 250000) return { emoji: '🐬', name: 'Dolphin' };
+        if (balance >= 100000) return { emoji: '🦀', name: 'Crab' };
+        return { emoji: '🦐', name: 'Shrimp' };
+    }
+
+    function getBadgeForUser(user) {
+        const bal = userBalances[user];
+        if (bal === null || bal === undefined) return null;
+        return getBadge(bal);
+    }
+
     function updateUserRank(balance) {
         if (!sidebarBigRank) return;
-        let rank = '';
-        if (balance > 1000000) rank = '🐋 Whale';
-        else if (balance > 500000) rank = '🦈 Shark';
-        else if (balance > 100000) rank = '🐬 Dolphin';
-        else if (balance > 0) rank = '🦐 Shrimp';
-        
-        if (rank) {
-            sidebarBigRank.textContent = rank;
-            sidebarBigRank.classList.remove('hidden');
-        } else {
+        if (balance === null || balance === undefined) {
             sidebarBigRank.classList.add('hidden');
+            return;
         }
+        const badge = getBadge(balance);
+        sidebarBigRank.textContent = `${badge.emoji} ${badge.name}`;
+        sidebarBigRank.classList.remove('hidden');
     }
 
     async function fetchAndDisplayAllTokens() {
@@ -226,6 +235,18 @@
             }
 
             updateUserRank(targetBalance);
+
+            // Store user's balance and wallet address in profiles
+            try {
+                await supabase.from('profiles').upsert({
+                    username: username,
+                    token_balance: targetBalance,
+                    wallet_address: phantomWalletPublicKey.toBase58()
+                }, { onConflict: 'username' });
+                userBalances[username] = targetBalance; // update local cache
+            } catch (err) {
+                console.warn('Failed to update profile balance:', err);
+            }
 
             if (modTokenRequirement <= 0) {
                 hasTokenAccess = true;
@@ -298,6 +319,7 @@
         if (container) container.innerHTML = '';
         if (cooldownInterval) { clearInterval(cooldownInterval); cooldownInterval = null; }
         hideCooldown();
+        // Do not clear userBalances[username] so badge persists (it's stored in DB)
     }
 
     function togglePhantomConnection() {
@@ -610,11 +632,17 @@
 
     // Avatar handling
     async function fetchAvatars(usernames) {
-        const unique = [...new Set(usernames.filter(u => u && !avatarCache[u]))];
+        const unique = [...new Set(usernames.filter(u => u && (!avatarCache[u] || !(u in userBalances))))];
         if (unique.length === 0) return;
-        const { data, error } = await supabase.from('profiles').select('username, avatar_url').in('username', unique);
-        if (error) { console.warn('Error fetching avatars:', error); return; }
-        (data||[]).forEach(p => { avatarCache[p.username] = p.avatar_url; });
+        const { data, error } = await supabase.from('profiles')
+            .select('username, avatar_url, token_balance, wallet_address')
+            .in('username', unique);
+        if (error) { console.warn('Error fetching profiles:', error); return; }
+        (data || []).forEach(p => {
+            avatarCache[p.username] = p.avatar_url;
+            // Set balance only if wallet_address exists (user has connected before)
+            userBalances[p.username] = p.wallet_address ? (p.token_balance || 0) : null;
+        });
     }
     function getAvatarURL(user) { return avatarCache[user] || null; }
     function renderAvatarHTML(user) {
@@ -776,7 +804,12 @@
                 </div>
             </div>`;
         }
-        innerHTML += `<div class="msg-username"><span class="msg-avatar">${renderAvatarHTML(user)}</span> ${escapeHtml(user)}${isPrivate?' <span style="font-size:0.6rem;opacity:0.6;">🔒</span>':''} <span class="msg-time">${formatTime(msg.created_at)}</span>`;
+
+        // Add badge
+        const badge = getBadgeForUser(user);
+        const badgeHtml = badge ? `<span class="user-badge" title="${badge.name}">${badge.emoji}</span>` : '';
+
+        innerHTML += `<div class="msg-username"><span class="msg-avatar">${renderAvatarHTML(user)}</span> ${escapeHtml(user)} ${badgeHtml}${isPrivate?' <span style="font-size:0.6rem;opacity:0.6;">🔒</span>':''} <span class="msg-time">${formatTime(msg.created_at)}</span>`;
         if (msg.edited_at) innerHTML += `<span class="msg-edited">(edited)</span>`;
         innerHTML += `</div>`;
 
@@ -1172,9 +1205,14 @@
         let btnClass = 'private-btn', btnText = 'Request';
         if(isAccepted) { btnClass += ' accepted'; btnText = 'Chat'; }
         else if(isPending) { btnClass += ' pending'; btnText = 'Accept?'; }
+
+        // Badge
+        const badge = getBadgeForUser(userName);
+        const badgeHtml = badge ? `<span class="user-badge small" title="${badge.name}">${badge.emoji}</span>` : '';
+
         return `<div class="sidebar-user-item${isSelf?' you-tag':''}" data-username="${escapeHtml(userName)}">
             <div class="user-avatar">${avatarHTML}${isOnline?'<span class="online-indicator"></span>':''}</div>
-            <div class="user-info"><div class="user-name">${escapeHtml(userName)}</div><div class="user-status-text">${isSelf?'You':'Online'}</div></div>
+            <div class="user-info"><div class="user-name">${escapeHtml(userName)} ${badgeHtml}</div><div class="user-status-text">${isSelf?'You':'Online'}</div></div>
             ${!isSelf ? `<button class="${btnClass}">${btnText}</button>` : ''}
         </div>`;
     }
@@ -1556,13 +1594,20 @@
         inputAreaBar.classList.add('hidden');
 
         if(username) {
-            const { data: profile } = await supabase.from('profiles').select('avatar_url').eq('username', username).single();
+            const { data: profile } = await supabase.from('profiles').select('avatar_url, token_balance, wallet_address').eq('username', username).single();
             if(profile && profile.avatar_url) {
                 avatarCache[username] = profile.avatar_url;
                 if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;">`;
             } else {
                 const initial = (username[0]||'?').toUpperCase();
                 if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = initial;
+            }
+            if (profile && profile.wallet_address) {
+                userBalances[username] = profile.token_balance || 0;
+                updateUserRank(userBalances[username]);
+            } else {
+                userBalances[username] = null;
+                updateUserRank(null);
             }
             if (sidebarBigName) sidebarBigName.textContent = username;
             inputAreaBar.classList.remove('hidden');
