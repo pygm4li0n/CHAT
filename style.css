@@ -841,3 +841,15 @@ button.send-btn-main:disabled { background: var(--bg-secondary); box-shadow: non
 .mobile-edit-btn {
     display: none;
 }
+
+/* ── User Badge (for chat and sidebar) ── */
+.user-badge {
+    font-size: 0.75rem;
+    margin-left: 4px;
+    vertical-align: middle;
+    filter: drop-shadow(0 0 4px rgba(255,255,255,0.4));
+}
+.user-badge.small {
+    font-size: 0.65rem;
+    margin-left: 3px;
+}
