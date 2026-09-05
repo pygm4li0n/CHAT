@@ -80,6 +80,13 @@
             <div class="sidebar-users" id="sidebarUsers">
                 <div class="no-users-sidebar">No one else online</div>
             </div>
+            <!-- Mobile-only token tracker inside sidebar -->
+            <div class="token-tracker mobile-only" id="mobileTokenTracker">
+                <img class="token-logo" id="mobileTokenLogo" src="" alt="logo">
+                <span class="token-name" id="mobileTokenName">TOKEN</span>
+                <span class="token-price" id="mobileTokenPrice">--</span>
+                <span class="token-change" id="mobileTokenChange">--</span>
+            </div>
             <div class="sidebar-footer">
                 <span class="status-dot-sm" id="sidebarStatusDot"></span>
                 <span id="sidebarStatusText">Connecting…</span>
@@ -103,6 +110,9 @@
                         <span class="token-change" id="tokenChange">--</span>
                     </div>
                 </div>
+
+                <!-- Mobile centered logo (hidden on desktop) -->
+                <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="Logo" class="header-logo-mobile">
 
                 <div class="header-right">
                     <span class="badge-pill" id="connectionPill">
