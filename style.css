@@ -36,7 +36,7 @@
     --radius-xl: 22px;
     --font-main: 'Segoe UI', 'Inter', 'Poppins', system-ui, -apple-system, sans-serif;
     --sidebar-width: 280px;
-    --header-height: 80px;   /* Increased to fit bigger logo */
+    --header-height: 70px;   /* Correct unit: 80px */
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; overflow: hidden; }
@@ -255,7 +255,7 @@ body {
 }
 /* Desktop logo */
 .header-logo {
-    height: 70px;               /* <--- Adjust desktop logo height here */
+    height: 65px;               /* <--- Correct unit: 70px */
     width: auto;
     object-fit: contain;
     display: block;
