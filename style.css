@@ -36,7 +36,7 @@
     --radius-xl: 22px;
     --font-main: 'Segoe UI', 'Inter', 'Poppins', system-ui, -apple-system, sans-serif;
     --sidebar-width: 280px;
-    --header-height: 64px;
+    --header-height: 80px;   /* Increased to fit bigger logo */
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 100%; height: 100%; overflow: hidden; }
@@ -236,7 +236,7 @@ body {
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
     border-bottom: 1px solid var(--border-default);
     background: linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(17, 24, 39, 0.95) 100%);
-    flex-shrink: 0; position: relative; overflow: hidden;
+    flex-shrink: 0; position: relative; overflow: visible;  /* <--- Changed to visible */
     box-shadow: 0 2px 12px rgba(0,0,0,0.3);
 }
 .chat-header-bar::after {
@@ -253,13 +253,18 @@ body {
     color: var(--text-primary); text-transform: uppercase;
     text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
 }
+/* Desktop logo */
 .header-logo {
-    height: 40px;
+    height: 70px;               /* <--- Adjust desktop logo height here */
     width: auto;
     object-fit: contain;
     display: block;
-    max-width: 200px;
+    max-width: none;            /* <--- Remove width cap */
     filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.4));
+}
+/* Mobile centered logo, hidden by default */
+.header-logo-mobile {
+    display: none;
 }
 /* NEW: header center for token tracker */
 .header-center {
@@ -697,6 +702,10 @@ button.send-btn-main:disabled { background: var(--bg-secondary); box-shadow: non
     color: var(--accent-red);
     text-shadow: 0 0 8px rgba(255, 92, 124, 0.5);
 }
+/* Hide mobile‑only token tracker by default */
+.token-tracker.mobile-only {
+    display: none;
+}
 
 /* ── Mod Settings Button & Overlay ── */
 #modSettingsBtn.hidden {
@@ -798,7 +807,7 @@ button.send-btn-main:disabled { background: var(--bg-secondary); box-shadow: non
     .msg-image-wrap { max-width: 220px; }
     #messageInput { font-size: 0.8rem; padding: 10px 12px; }
     button.send-btn-main { padding: 10px 16px; font-size: 0.75rem; }
-    .chat-header-bar { padding: 0 10px; }
+    .chat-header-bar { padding: 0 10px; justify-content: center; position: relative; }
     .chat-header-bar .header-title { font-size: 0.9rem; }
     .badge-pill { font-size: 0.68rem; padding: 5px 10px; }
     .online-count-badge { font-size: 0.68rem; padding: 4px 10px; }
@@ -807,7 +816,34 @@ button.send-btn-main:disabled { background: var(--bg-secondary); box-shadow: non
     .typing-indicator { font-size: 0.9rem; }
     .sidebar-user-profile-big .big-avatar { width: 56px; height: 56px; font-size: 1.4rem; }
     .sidebar-user-profile-big .big-name { font-size: 1rem; }
-    .header-logo { height: 30px; }
+    
+    /* Mobile: hide original desktop logo, show centered mobile logo */
+    .header-left .header-logo {
+        display: none;
+    }
+    .header-logo-mobile {
+        display: block;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        height: 50px;               /* <--- Adjust mobile logo height here */
+        width: auto;
+        max-width: none;
+        object-fit: contain;
+        z-index: 1;
+        filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.4));
+    }
+    /* Header left/right absolute for hamburger and buttons */
+    .header-left {
+        position: absolute;
+        left: 10px;
+        z-index: 2;
+    }
+    .header-right {
+        position: absolute;
+        right: 10px;
+        z-index: 2;
+    }
 
     /* Mobile header: only logo, phantom, and edit profile */
     .header-right .badge-pill,
@@ -823,9 +859,22 @@ button.send-btn-main:disabled { background: var(--bg-secondary); box-shadow: non
         margin: 10px 12px;
         padding: 6px 10px;
     }
-    /* Token tracker hidden on mobile (in header, we hide center) */
+    /* Token tracker hidden in header on mobile (center is hidden) */
     .header-center {
         display: none;
+    }
+    /* Show the mobile token tracker inside sidebar */
+    .token-tracker.mobile-only {
+        display: flex;
+        margin: 12px;
+        padding: 6px 10px;
+        border-radius: 18px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-default);
+        font-size: 0.7rem;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
     }
     .scroll-bottom-btn {
         bottom: 80px;
