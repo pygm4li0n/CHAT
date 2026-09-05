@@ -460,11 +460,8 @@
     // Token Tracker
     const TOKEN_ADDRESS = 'HmJDgky11u77hpBss6D8sjNpYPD5B6fWgSVDj58jpump';
     async function updateTokenInfo() {
-        const logoEl = document.getElementById('tokenLogo');
-        const nameEl = document.getElementById('tokenName');
-        const priceEl = document.getElementById('tokenPrice');
-        const changeEl = document.getElementById('tokenChange');
-        if (!priceEl || !changeEl) return;
+        const trackers = document.querySelectorAll('.token-tracker');
+        if (!trackers.length) return;
 
         try {
             const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${TOKEN_ADDRESS}`);
@@ -476,25 +473,49 @@
                 const tokenName = pair.baseToken.name || pair.baseToken.symbol || 'TOKEN';
                 const logoUrl = pair.info?.imageUrl || pair.baseToken?.imageUrl || '';
 
-                if (nameEl) nameEl.textContent = tokenName;
-                if (logoEl) {
-                    logoEl.src = logoUrl;
-                    logoEl.style.display = logoUrl ? 'block' : 'none';
-                }
-                priceEl.textContent = price ? `$${price.toFixed(4)}` : '--';
-                changeEl.textContent = change ? `${change.toFixed(2)}%` : '--';
-                changeEl.className = 'token-change ' + (change >= 0 ? 'positive' : 'negative');
+                trackers.forEach(tracker => {
+                    const logoEl = tracker.querySelector('.token-logo');
+                    const nameEl = tracker.querySelector('.token-name');
+                    const priceEl = tracker.querySelector('.token-price');
+                    const changeEl = tracker.querySelector('.token-change');
+
+                    if (nameEl) nameEl.textContent = tokenName;
+                    if (logoEl) {
+                        logoEl.src = logoUrl;
+                        logoEl.style.display = logoUrl ? 'block' : 'none';
+                    }
+                    if (priceEl) priceEl.textContent = price ? `$${price.toFixed(4)}` : '--';
+                    if (changeEl) {
+                        changeEl.textContent = change ? `${change.toFixed(2)}%` : '--';
+                        changeEl.className = 'token-change ' + (change >= 0 ? 'positive' : 'negative');
+                    }
+                });
             } else {
-                if (logoEl) logoEl.style.display = 'none';
-                priceEl.textContent = '--';
-                changeEl.textContent = '--';
-                changeEl.className = 'token-change';
+                trackers.forEach(tracker => {
+                    const logoEl = tracker.querySelector('.token-logo');
+                    const priceEl = tracker.querySelector('.token-price');
+                    const changeEl = tracker.querySelector('.token-change');
+                    if (logoEl) logoEl.style.display = 'none';
+                    if (priceEl) priceEl.textContent = '--';
+                    if (changeEl) {
+                        changeEl.textContent = '--';
+                        changeEl.className = 'token-change';
+                    }
+                });
             }
         } catch (err) {
             console.warn('Token fetch failed:', err);
-            if (logoEl) logoEl.style.display = 'none';
-            priceEl.textContent = '--';
-            changeEl.textContent = '--';
+            trackers.forEach(tracker => {
+                const logoEl = tracker.querySelector('.token-logo');
+                const priceEl = tracker.querySelector('.token-price');
+                const changeEl = tracker.querySelector('.token-change');
+                if (logoEl) logoEl.style.display = 'none';
+                if (priceEl) priceEl.textContent = '--';
+                if (changeEl) {
+                    changeEl.textContent = '--';
+                    changeEl.className = 'token-change';
+                }
+            });
         }
     }
     updateTokenInfo();
