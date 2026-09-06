@@ -19,6 +19,9 @@
     let userBalances = {}; // username -> token balance (null if never connected)
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // 🆕 Store current avatar URL for pre-filling overlay
+    let currentAvatarUrl = null;
+
     // DOM elements
     const publicContainer = document.getElementById('publicMessagesContainer');
     const privateContainer = document.getElementById('privateMessagesContainer');
@@ -792,6 +795,24 @@
         }
     }
 
+    // 🆕 Helper to render message content with X/Twitter embeds
+    function renderMessageContent(text) {
+        if (!text) return '';
+        const xUrlRegex = /https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/([^\/\s]+\/status\/\d+)/gi;
+        const matches = [...text.matchAll(xUrlRegex)];
+        const cleanText = text.replace(xUrlRegex, '').trim();
+        let html = '';
+        if (cleanText) {
+            html += `<div class="msg-text">${escapeHtml(cleanText)}</div>`;
+        }
+        for (const match of matches) {
+            const url = match[0];
+            // 🆕 Add the URL as visible link inside the blockquote fallback
+            html += `<blockquote class="twitter-tweet"><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></blockquote>`;
+        }
+        return html;
+    }
+
     async function renderMessage(msg, isPrivate = false) {
         if(knownMessageIds.has(msg.id)) return;
         knownMessageIds.add(msg.id);
@@ -837,7 +858,7 @@
         if (msg.is_deleted) {
             innerHTML += `<div class="msg-text deleted">Message removed</div>`;
         } else {
-            if (msg.message) innerHTML += `<div class="msg-text">${escapeHtml(msg.message)}</div>`;
+            if (msg.message) innerHTML += renderMessageContent(msg.message);
         }
         if (msg.image_url && !msg.is_deleted) {
             innerHTML += `<div class="msg-image-wrap" data-img-src="${escapeHtml(msg.image_url)}"><img src="${escapeHtml(msg.image_url)}" alt="shared image" loading="lazy"></div>`;
@@ -855,6 +876,11 @@
         wrapper.appendChild(bubble);
         container.appendChild(wrapper);
         container.scrollTop = container.scrollHeight;
+
+        // 🆕 Load Twitter/X embeds for this new message
+        if (window.twttr && window.twttr.widgets) {
+            window.twttr.widgets.load(wrapper);
+        }
 
         const replyBtn = bubble.querySelector('.reply-btn');
         if (replyBtn) {
@@ -950,7 +976,11 @@
             if (error) { showError('Edit failed'); return; }
             msg.message = newText;
             msg.edited_at = new Date().toISOString();
-            textDiv.innerHTML = escapeHtml(newText);
+            textDiv.innerHTML = renderMessageContent(newText);
+            // Reload embeds if any
+            if (window.twttr && window.twttr.widgets) {
+                window.twttr.widgets.load(textDiv);
+            }
             const timeSpan = bubble.querySelector('.msg-time');
             if (timeSpan) {
                 let editedSpan = bubble.querySelector('.msg-edited');
@@ -1493,16 +1523,24 @@
         username = name;
         localStorage.setItem(STORAGE_KEY_NAME, name);
 
+        let avatarUrlToUse = currentAvatarUrl;
         if(profilePicFile) {
             try {
-                const url = await uploadToStorage(profilePicFile, AVATAR_BUCKET, 300);
-                await supabase.from('profiles').upsert({ username: name, avatar_url: url });
-                avatarCache[name] = url;
-                if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
+                avatarUrlToUse = await uploadToStorage(profilePicFile, AVATAR_BUCKET, 300);
+                currentAvatarUrl = avatarUrlToUse; // update global
             } catch(err) { showError('Avatar upload failed: ' + err.message); }
-        } else {
-            const initial = (name[0]||'?').toUpperCase();
-            if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = initial;
+        }
+
+        // Upsert profile with avatar_url (whether new or existing)
+        await supabase.from('profiles').upsert({ username: name, avatar_url: avatarUrlToUse });
+        avatarCache[name] = avatarUrlToUse;
+        if (sidebarBigAvatar) {
+            if (avatarUrlToUse) {
+                sidebarBigAvatar.innerHTML = `<img src="${avatarUrlToUse}" style="width:100%;height:100%;object-fit:cover;">`;
+            } else {
+                const initial = (name[0]||'?').toUpperCase();
+                sidebarBigAvatar.innerHTML = initial;
+            }
         }
         if (sidebarBigName) sidebarBigName.textContent = name;
 
@@ -1576,12 +1614,25 @@
 
     // Sidebar and mobile edit profile buttons
     sidebarChangeNameBtn.addEventListener('click', () => {
+        // 🆕 Pre-fill overlay with current name and avatar
+        const prevName = username;
+        const prevAvatar = getAvatarURL(prevName) || null;
+        currentAvatarUrl = prevAvatar;
+
         localStorage.removeItem(STORAGE_KEY_NAME);
         username = '';
         inputAreaBar.classList.add('hidden');
         nameOverlay.classList.remove('hidden');
-        nameInput.value = '';
+        nameInput.value = prevName || '';
         nameInput.focus();
+
+        if (prevAvatar) {
+            profilePicPreview.innerHTML = `<img src="${prevAvatar}" alt="Profile">`;
+        } else {
+            profilePicPreview.innerHTML = '<span>📷</span>';
+        }
+        profilePicFile = null;
+
         setReplyingTo(null);
         setActivePrivateChat(null);
         if(presenceChannel) { presenceChannel.untrack(); supabase.removeChannel(presenceChannel); presenceChannel = null; }
@@ -1618,6 +1669,7 @@
             const { data: profile } = await supabase.from('profiles').select('avatar_url, token_balance, wallet_address').eq('username', username).single();
             if(profile && profile.avatar_url) {
                 avatarCache[username] = profile.avatar_url;
+                currentAvatarUrl = profile.avatar_url;
                 if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;">`;
             } else {
                 const initial = (username[0]||'?').toUpperCase();
