@@ -57,15 +57,20 @@
                 <option value="10">10 seconds</option>
                 <option value="15">15 seconds</option>
             </select>
+            <!-- MOD Announcement Section (visible only to mod wallet) -->
+            <div id="modAnnouncementSection" class="hidden">
+                <label for="modAnnouncementInput">Official Announcement</label>
+                <textarea id="modAnnouncementInput" rows="3" maxlength="300" placeholder="Type your announcement..."></textarea>
+                <button id="modPostAnnouncementBtn">POST ANNOUNCEMENT</button>
+            </div>
             <button id="modSaveSettingsBtn">SAVE SETTINGS</button>
             <button id="modCloseSettingsBtn">Close</button>
         </div>
     </div>
 
-    <!-- No standalone sidebar toggle here anymore -->
-
     <div class="app-shell" id="appShell">
         <aside class="sidebar" id="sidebar">
+            <!-- Sidebar content unchanged -->
             <div class="sidebar-user-profile-big" id="sidebarUserProfileBig">
                 <div class="big-avatar" id="sidebarBigAvatar">?</div>
                 <div class="big-info">
@@ -75,14 +80,12 @@
                 </div>
                 <button class="btn-icon edit-profile-btn" id="sidebarChangeNameBtn" title="Change name">✎</button>
             </div>
-
             <div class="sidebar-section-label">
                 🔵 ACTIVE USERS <span class="active-users-count" id="sidebarActiveUsersCount">0</span>
             </div>
             <div class="sidebar-users" id="sidebarUsers">
                 <div class="no-users-sidebar">No one else online</div>
             </div>
-            <!-- Mobile-only token tracker inside sidebar -->
             <div class="token-tracker mobile-only" id="mobileTokenTracker">
                 <img class="token-logo" id="mobileTokenLogo" src="" alt="logo">
                 <span class="token-name" id="mobileTokenName">TOKEN</span>
@@ -98,12 +101,9 @@
         <main class="chat-panel" id="chatPanel">
             <div class="chat-header-bar">
                 <div class="header-left">
-                    <!-- Sidebar toggle moved here, replaces old header icon -->
                     <button class="sidebar-toggle hidden" id="sidebarToggle" title="Users">☰</button>
                     <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="Logo" class="header-logo">
                 </div>
-
-                <!-- NEW: center container for token tracker (big on desktop) -->
                 <div class="header-center">
                     <div class="token-tracker" id="tokenTracker">
                         <img class="token-logo" id="tokenLogo" src="" alt="logo">
@@ -112,10 +112,7 @@
                         <span class="token-change" id="tokenChange">--</span>
                     </div>
                 </div>
-
-                <!-- Mobile centered logo (hidden on desktop) -->
                 <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="Logo" class="header-logo-mobile">
-
                 <div class="header-right">
                     <span class="badge-pill" id="connectionPill">
                         <span id="connDot"></span>
@@ -125,11 +122,9 @@
                         <span class="dot"></span>
                         <span id="onlineCountNumber">0</span>
                     </span>
-                    <!-- Phantom wallet button with image -->
                     <button class="btn-icon phantom-btn" id="phantomConnectBtn" title="Connect Phantom Wallet">
                         <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom">
                     </button>
-                    <!-- Mobile edit profile button (hidden on desktop) -->
                     <button class="btn-icon mobile-edit-btn" id="mobileEditBtn" title="Edit profile">✎</button>
                     <span class="wallet-address" id="walletAddress"></span>
                     <button class="btn-icon hidden" id="modSettingsBtn" title="Mod Settings">⚙️</button>
@@ -139,6 +134,11 @@
             <div class="chat-tabs" id="chatTabs">
                 <div class="chat-tab active" data-tab="public">🌐 Public</div>
                 <div class="chat-tab" data-tab="private">🔒 Private</div>
+            </div>
+            <!-- MOD Announcement Box (fixed above messages) -->
+            <div class="mod-message-box" id="modMessageBox">
+                <span class="mod-badge">MOD</span>
+                <span class="mod-message-text" id="modMessageText">No announcements yet</span>
             </div>
             <div class="error-toast" id="errorToast"></div>
             <div class="typing-indicator" id="typingIndicator"></div>
@@ -150,6 +150,7 @@
             </div>
             <button class="scroll-bottom-btn" id="scrollBottomBtn" title="Scroll to bottom">↓</button>
             <div class="input-area-bar" id="inputAreaBar">
+                <!-- Input area unchanged -->
                 <div class="reply-indicator-bar hidden" id="replyIndicatorBar">
                     <span>↳ Replying to <strong id="replyToUserDisp"></strong></span>
                     <img id="replyPreviewThumb" class="reply-preview-thumb hidden" src="" alt="thumb">
@@ -180,7 +181,6 @@
         <img id="lightboxImg" src="" alt="Enlarged image">
     </div>
 
-    <!-- Solana Web3 and SPL Token libraries -->
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
     <script src="https://unpkg.com/@solana/spl-token@latest/lib/index.iife.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
