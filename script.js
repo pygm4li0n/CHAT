@@ -16,11 +16,9 @@
     }
 
     let avatarCache = {};
-    let userBalances = {}; // username -> token balance (null if never connected)
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // 🆕 Store current avatar URL for pre-filling overlay
+    let userBalances = {};
     let currentAvatarUrl = null;
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // DOM elements
     const publicContainer = document.getElementById('publicMessagesContainer');
@@ -86,6 +84,12 @@
     const phantomConnectBtnOverlay = document.getElementById('phantomConnectBtnOverlay');
     const walletAddressOverlay = document.getElementById('walletAddressOverlay');
     const mobileEditBtn = document.getElementById('mobileEditBtn');
+    // 🆕 MOD announcement elements
+    const modMessageBox = document.getElementById('modMessageBox');
+    const modMessageText = document.getElementById('modMessageText');
+    const modAnnouncementSection = document.getElementById('modAnnouncementSection');
+    const modAnnouncementInput = document.getElementById('modAnnouncementInput');
+    const modPostAnnouncementBtn = document.getElementById('modPostAnnouncementBtn');
 
     let currentRequestData = null;
 
@@ -123,6 +127,10 @@
         } else {
             isModWallet = false;
             modSettingsBtn.classList.add('hidden');
+        }
+        // 🆕 Toggle announcement section visibility for mod only
+        if (modAnnouncementSection) {
+            modAnnouncementSection.classList.toggle('hidden', !isModWallet);
         }
     }
 
@@ -239,14 +247,13 @@
 
             updateUserRank(targetBalance);
 
-            // Store user's balance and wallet address in profiles
             try {
                 await supabase.from('profiles').upsert({
                     username: username,
                     token_balance: targetBalance,
                     wallet_address: phantomWalletPublicKey.toBase58()
                 }, { onConflict: 'username' });
-                userBalances[username] = targetBalance; // update local cache
+                userBalances[username] = targetBalance;
             } catch (err) {
                 console.warn('Failed to update profile balance:', err);
             }
@@ -322,7 +329,6 @@
         if (container) container.innerHTML = '';
         if (cooldownInterval) { clearInterval(cooldownInterval); cooldownInterval = null; }
         hideCooldown();
-        // Do not clear userBalances[username] so badge persists (it's stored in DB)
     }
 
     function togglePhantomConnection() {
@@ -347,6 +353,9 @@
     modSettingsBtn.addEventListener('click', () => {
         modTokenRequirementInput.value = modTokenRequirement;
         modCooldownSelect.value = modCooldownSeconds.toString();
+        if (modAnnouncementSection) {
+            modAnnouncementSection.classList.toggle('hidden', !isModWallet);
+        }
         modSettingsOverlay.classList.remove('hidden');
     });
     modCloseSettingsBtn.addEventListener('click', () => modSettingsOverlay.classList.add('hidden'));
@@ -375,16 +384,41 @@
         updateChatAccessibility();
     });
 
+    // 🆕 Post announcement
+    async function postModAnnouncement(message) {
+        try {
+            const { error } = await supabase
+                .from('settings')
+                .upsert({ id: 1, mod_announcement: message }, { onConflict: 'id' });
+            if (error) throw error;
+            showError('✅ Announcement posted!');
+        } catch (err) {
+            console.error('Error posting announcement:', err);
+            showError('Failed to post announcement: ' + err.message);
+        }
+    }
+
+    modPostAnnouncementBtn.addEventListener('click', async () => {
+        const msg = modAnnouncementInput.value.trim();
+        if (!msg) {
+            showError('Please enter an announcement.');
+            return;
+        }
+        await postModAnnouncement(msg);
+        modAnnouncementInput.value = '';
+    });
+
     async function loadSettings() {
         try {
             const { data, error } = await supabase
                 .from('settings')
-                .select('token_requirement, cooldown_seconds')
+                .select('token_requirement, cooldown_seconds, mod_announcement')
                 .eq('id', 1)
                 .single();
             if (!error && data) {
                 modTokenRequirement = data.token_requirement;
                 modCooldownSeconds = data.cooldown_seconds;
+                updateModAnnouncementDisplay(data.mod_announcement || '');
             }
         } catch (err) {
             console.error('Error loading settings:', err);
@@ -401,11 +435,21 @@
                 if (newData && newData.id === 1) {
                     modTokenRequirement = newData.token_requirement;
                     modCooldownSeconds = newData.cooldown_seconds;
+                    updateModAnnouncementDisplay(newData.mod_announcement || '');
                     updateChatAccessibility();
                     if (phantomConnected) fetchAndDisplayAllTokens();
                 }
             })
             .subscribe();
+    }
+
+    function updateModAnnouncementDisplay(message) {
+        if (!modMessageText) return;
+        if (message && message.trim() !== '') {
+            modMessageText.textContent = message.trim();
+        } else {
+            modMessageText.textContent = 'No announcements yet';
+        }
     }
 
     // Cooldown
@@ -435,7 +479,7 @@
         showCooldown(seconds);
     }
 
-    // ============== REST OF ORIGINAL CODE ==============
+    // ============== REST OF ORIGINAL CODE (message rendering, etc.) ==============
     let replyingTo = null;
     let activePrivateChat = null;
     let currentTab = 'public';
@@ -664,7 +708,6 @@
         if (error) { console.warn('Error fetching profiles:', error); return; }
         (data || []).forEach(p => {
             avatarCache[p.username] = p.avatar_url;
-            // Set balance only if wallet_address exists (user has connected before)
             userBalances[p.username] = p.wallet_address ? (p.token_balance || 0) : null;
         });
     }
@@ -795,7 +838,7 @@
         }
     }
 
-    // 🆕 Helper to render message content with X/Twitter embeds
+    // Helper to render message content with X/Twitter embeds
     function renderMessageContent(text) {
         if (!text) return '';
         const xUrlRegex = /https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/([^\/\s]+\/status\/\d+)/gi;
@@ -807,7 +850,6 @@
         }
         for (const match of matches) {
             const url = match[0];
-            // 🆕 Add the URL as visible link inside the blockquote fallback
             html += `<blockquote class="twitter-tweet"><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></blockquote>`;
         }
         return html;
@@ -847,7 +889,6 @@
             </div>`;
         }
 
-        // Add badge
         const badge = getBadgeForUser(user);
         const badgeHtml = badge ? `<span class="user-badge" title="${badge.name}">${badge.emoji}</span>` : '';
 
@@ -877,7 +918,6 @@
         container.appendChild(wrapper);
         container.scrollTop = container.scrollHeight;
 
-        // 🆕 Load Twitter/X embeds for this new message
         if (window.twttr && window.twttr.widgets) {
             window.twttr.widgets.load(wrapper);
         }
@@ -977,7 +1017,6 @@
             msg.message = newText;
             msg.edited_at = new Date().toISOString();
             textDiv.innerHTML = renderMessageContent(newText);
-            // Reload embeds if any
             if (window.twttr && window.twttr.widgets) {
                 window.twttr.widgets.load(textDiv);
             }
@@ -1156,7 +1195,6 @@
             privateChatUserDisp.textContent = partnerUsername;
             setReplyingTo(null);
             messageInput.placeholder = `Private message to ${partnerUsername}...`;
-            // Force switch to private tab regardless of current tab
             switchTab('private');
             loadPrivateMessages(partnerUsername);
         } else {
@@ -1225,7 +1263,6 @@
             const privateBtn = item.querySelector('.private-btn');
             if(privateBtn && userName !== username) {
                 privateBtn.addEventListener('click', (e) => { e.stopPropagation(); handlePrivateChatClick(userName); });
-                // Add touch event for mobile
                 privateBtn.addEventListener('touchend', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1237,7 +1274,6 @@
                     if(activePrivateChat === userName) switchTab('private');
                     else handlePrivateChatClick(userName);
                 });
-                // Add touch event for mobile
                 item.addEventListener('touchend', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1257,7 +1293,6 @@
         if(isAccepted) { btnClass += ' accepted'; btnText = 'Chat'; }
         else if(isPending) { btnClass += ' pending'; btnText = 'Accept?'; }
 
-        // Badge
         const badge = getBadgeForUser(userName);
         const badgeHtml = badge ? `<span class="user-badge small" title="${badge.name}">${badge.emoji}</span>` : '';
 
@@ -1527,11 +1562,10 @@
         if(profilePicFile) {
             try {
                 avatarUrlToUse = await uploadToStorage(profilePicFile, AVATAR_BUCKET, 300);
-                currentAvatarUrl = avatarUrlToUse; // update global
+                currentAvatarUrl = avatarUrlToUse;
             } catch(err) { showError('Avatar upload failed: ' + err.message); }
         }
 
-        // Upsert profile with avatar_url (whether new or existing)
         await supabase.from('profiles').upsert({ username: name, avatar_url: avatarUrlToUse });
         avatarCache[name] = avatarUrlToUse;
         if (sidebarBigAvatar) {
@@ -1612,9 +1646,7 @@
     });
     nameInput.addEventListener('keypress', (e) => { if(e.key==='Enter') nameSubmitBtn.click(); });
 
-    // Sidebar and mobile edit profile buttons
     sidebarChangeNameBtn.addEventListener('click', () => {
-        // 🆕 Pre-fill overlay with current name and avatar
         const prevName = username;
         const prevAvatar = getAvatarURL(prevName) || null;
         currentAvatarUrl = prevAvatar;
@@ -1648,7 +1680,6 @@
     sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
     document.getElementById('chatPanel').addEventListener('click', (e) => {
         if(window.innerWidth<=768 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target!==sidebarToggle && !sidebarToggle.contains(e.target)) {
-            // Don't close if request overlay is open
             if (!requestOverlay.classList.contains('hidden')) return;
             sidebar.classList.remove('open');
         }
@@ -1662,7 +1693,6 @@
         await loadAcceptedChatsFromDB();
         initPhantomAutoConnect();
 
-        // Hide input area initially
         inputAreaBar.classList.add('hidden');
 
         if(username) {
