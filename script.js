@@ -18,6 +18,7 @@
     let avatarCache = {};
     let userBalances = {};
     let currentAvatarUrl = null;
+    let modAnnouncement = '';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // DOM elements
@@ -84,7 +85,6 @@
     const phantomConnectBtnOverlay = document.getElementById('phantomConnectBtnOverlay');
     const walletAddressOverlay = document.getElementById('walletAddressOverlay');
     const mobileEditBtn = document.getElementById('mobileEditBtn');
-    // 🆕 MOD announcement elements
     const modMessageBox = document.getElementById('modMessageBox');
     const modMessageText = document.getElementById('modMessageText');
     const modAnnouncementSection = document.getElementById('modAnnouncementSection');
@@ -110,6 +110,29 @@
     const solanaConnection = new solanaWeb3.Connection(SOLANA_RPC_ENDPOINT);
     let tokenListContainer = null;
 
+    // IntersectionObserver for lazy loading Twitter embeds
+    let tweetObserver = null;
+
+    function setupTweetObserver() {
+        if (tweetObserver || !('IntersectionObserver' in window)) return;
+        tweetObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const wrapper = entry.target;
+                    if (window.twttr && window.twttr.widgets) {
+                        window.twttr.widgets.load(wrapper);
+                    }
+                    tweetObserver.unobserve(wrapper);
+                }
+            });
+        }, { rootMargin: '200px' });
+    }
+
+    function observeTweetsInWrapper(wrapper) {
+        if (!tweetObserver || !wrapper.querySelector('.twitter-tweet')) return;
+        tweetObserver.observe(wrapper);
+    }
+
     function getPhantomProvider() {
         if ('phantom' in window) {
             const provider = window.phantom?.solana;
@@ -128,7 +151,6 @@
             isModWallet = false;
             modSettingsBtn.classList.add('hidden');
         }
-        // 🆕 Toggle announcement section visibility for mod only
         if (modAnnouncementSection) {
             modAnnouncementSection.classList.toggle('hidden', !isModWallet);
         }
@@ -353,6 +375,9 @@
     modSettingsBtn.addEventListener('click', () => {
         modTokenRequirementInput.value = modTokenRequirement;
         modCooldownSelect.value = modCooldownSeconds.toString();
+        if (modAnnouncementInput) {
+            modAnnouncementInput.value = modAnnouncement || '';
+        }
         if (modAnnouncementSection) {
             modAnnouncementSection.classList.toggle('hidden', !isModWallet);
         }
@@ -384,13 +409,13 @@
         updateChatAccessibility();
     });
 
-    // 🆕 Post announcement
     async function postModAnnouncement(message) {
         try {
             const { error } = await supabase
                 .from('settings')
                 .upsert({ id: 1, mod_announcement: message }, { onConflict: 'id' });
             if (error) throw error;
+            modAnnouncement = message;
             showError('✅ Announcement posted!');
         } catch (err) {
             console.error('Error posting announcement:', err);
@@ -418,7 +443,8 @@
             if (!error && data) {
                 modTokenRequirement = data.token_requirement;
                 modCooldownSeconds = data.cooldown_seconds;
-                updateModAnnouncementDisplay(data.mod_announcement || '');
+                modAnnouncement = data.mod_announcement || '';
+                updateModAnnouncementDisplay(modAnnouncement);
             }
         } catch (err) {
             console.error('Error loading settings:', err);
@@ -435,7 +461,8 @@
                 if (newData && newData.id === 1) {
                     modTokenRequirement = newData.token_requirement;
                     modCooldownSeconds = newData.cooldown_seconds;
-                    updateModAnnouncementDisplay(newData.mod_announcement || '');
+                    modAnnouncement = newData.mod_announcement || '';
+                    updateModAnnouncementDisplay(modAnnouncement);
                     updateChatAccessibility();
                     if (phantomConnected) fetchAndDisplayAllTokens();
                 }
@@ -443,13 +470,24 @@
             .subscribe();
     }
 
+    function linkifyText(text) {
+        let escaped = escapeHtml(text);
+        const urlRegex = /(https?:\/\/[^\s<]+)/g;
+        return escaped.replace(urlRegex, url => {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#ff9999; text-decoration:underline;">${url}</a>`;
+        });
+    }
+
     function updateModAnnouncementDisplay(message) {
-        if (!modMessageText) return;
-        if (message && message.trim() !== '') {
-            modMessageText.textContent = message.trim();
-        } else {
-            modMessageText.textContent = 'No announcements yet';
+        if (!modMessageBox || !modMessageText) return;
+        const trimmed = message ? message.trim() : '';
+        if (trimmed === '') {
+            modMessageBox.classList.add('hidden');
+            modMessageText.innerHTML = '';
+            return;
         }
+        modMessageBox.classList.remove('hidden');
+        modMessageText.innerHTML = linkifyText(trimmed);
     }
 
     // Cooldown
@@ -479,7 +517,7 @@
         showCooldown(seconds);
     }
 
-    // ============== REST OF ORIGINAL CODE (message rendering, etc.) ==============
+    // ============== REST OF ORIGINAL CODE ==============
     let replyingTo = null;
     let activePrivateChat = null;
     let currentTab = 'public';
@@ -826,7 +864,7 @@
             if (error || !data) { showError('Original message could not be loaded.'); return; }
             const user = currentTab === 'public' ? data.username : data.from_user;
             if (!getAvatarURL(user)) await fetchAvatars([user]);
-            await renderMessage(data, currentTab === 'private');
+            await renderMessage(data, currentTab === 'private', false); // no scroll for single
             target = container.querySelector(`.msg-wrapper[data-msg-id="${msgId}"]`);
         }
         if (target) {
@@ -855,7 +893,7 @@
         return html;
     }
 
-    async function renderMessage(msg, isPrivate = false) {
+    async function renderMessage(msg, isPrivate = false, shouldScroll = true) {
         if(knownMessageIds.has(msg.id)) return;
         knownMessageIds.add(msg.id);
         const container = isPrivate ? privateContainer : publicContainer;
@@ -916,11 +954,13 @@
         bubble.innerHTML = innerHTML;
         wrapper.appendChild(bubble);
         container.appendChild(wrapper);
-        container.scrollTop = container.scrollHeight;
 
-        if (window.twttr && window.twttr.widgets) {
-            window.twttr.widgets.load(wrapper);
+        if (shouldScroll) {
+            container.scrollTop = container.scrollHeight;
         }
+
+        // Lazy load tweets: observe wrapper if it contains twitter-tweet
+        observeTweetsInWrapper(wrapper);
 
         const replyBtn = bubble.querySelector('.reply-btn');
         if (replyBtn) {
@@ -1017,9 +1057,7 @@
             msg.message = newText;
             msg.edited_at = new Date().toISOString();
             textDiv.innerHTML = renderMessageContent(newText);
-            if (window.twttr && window.twttr.widgets) {
-                window.twttr.widgets.load(textDiv);
-            }
+            observeTweetsInWrapper(wrapper);
             const timeSpan = bubble.querySelector('.msg-time');
             if (timeSpan) {
                 let editedSpan = bubble.querySelector('.msg-edited');
@@ -1091,12 +1129,26 @@
         let text = '';
         const dots = '<span class="typing-dots"><span></span><span></span><span></span></span>';
         if (currentTab === 'public') {
-            if (typersPublic.length === 1) text = `${typersPublic[0]} is typing... ${dots}`;
-            else if (typersPublic.length > 1) text = `Several people are typing... ${dots}`;
+            const count = typersPublic.length;
+            if (count === 1) {
+                text = `${escapeHtml(typersPublic[0])} is typing... ${dots}`;
+            } else if (count === 2) {
+                text = `${escapeHtml(typersPublic[0])} and ${escapeHtml(typersPublic[1])} are typing... ${dots}`;
+            } else if (count > 2) {
+                text = `2 or more are typing... ${dots}`;
+            }
         } else if (currentTab === 'private' && activePrivateChat) {
-            if (typersPrivate[activePrivateChat]) text = `${activePrivateChat} is typing... ${dots}`;
+            if (typersPrivate[activePrivateChat]) {
+                text = `${escapeHtml(activePrivateChat)} is typing... ${dots}`;
+            }
         }
-        typingIndicator.innerHTML = text || '';
+        if (!text) {
+            typingIndicator.classList.add('hidden');
+            typingIndicator.innerHTML = '';
+            return;
+        }
+        typingIndicator.classList.remove('hidden');
+        typingIndicator.innerHTML = text;
     }
     function setupTypingChannel() {
         if (typingChannel) supabase.removeChannel(typingChannel);
@@ -1225,10 +1277,11 @@
         } else {
             const users = [...new Set(data.flatMap(m => [m.from_user, m.to_user]))];
             await fetchAvatars(users);
-            for (const msg of data) await renderMessage(msg, true);
+            for (const msg of data) await renderMessage(msg, true, false); // no scroll during bulk
+            scrollContainerToBottom(privateContainer);
+            updateScrollButtonVisibility(privateContainer);
         }
         loadReactions('private_message_reactions', true);
-        setTimeout(() => { scrollContainerToBottom(privateContainer); updateScrollButtonVisibility(privateContainer); }, 150);
     }
 
     // Sidebar UI
@@ -1443,10 +1496,11 @@
             } else {
                 const users = [...new Set(data.map(m => m.username))];
                 await fetchAvatars(users);
-                for (const msg of data) await renderMessage(msg, false);
+                for (const msg of data) await renderMessage(msg, false, false); // no scroll during bulk
+                scrollContainerToBottom(publicContainer);
+                updateScrollButtonVisibility(publicContainer);
             }
             setConnection('connected');
-            setTimeout(() => { scrollContainerToBottom(publicContainer); updateScrollButtonVisibility(publicContainer); }, 150);
         } catch (err) {
             showError('Load failed: ' + err.message);
             setConnection('disconnected');
@@ -1522,7 +1576,7 @@
         if (realtimeChannel) supabase.removeChannel(realtimeChannel);
         realtimeChannel = supabase.channel('public-msgs')
             .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages' }, payload => {
-                renderMessage(payload.new, false);
+                renderMessage(payload.new, false, true);
                 setConnection('connected');
                 const isNearBottom = publicContainer.scrollHeight - publicContainer.scrollTop - publicContainer.clientHeight < 80;
                 if (isNearBottom) scrollContainerToBottom(publicContainer);
@@ -1534,7 +1588,7 @@
             .on('postgres_changes', { event:'INSERT', schema:'public', table:'private_messages' }, payload => {
                 const msg = payload.new;
                 if (activePrivateChat && ((msg.from_user === username && msg.to_user === activePrivateChat) || (msg.from_user === activePrivateChat && msg.to_user === username))) {
-                    renderMessage(msg, true);
+                    renderMessage(msg, true, true);
                     const isNearBottom = privateContainer.scrollHeight - privateContainer.scrollTop - privateContainer.clientHeight < 80;
                     if (isNearBottom) scrollContainerToBottom(privateContainer);
                 }
@@ -1687,11 +1741,17 @@
 
     // Init
     async function init() {
-        if(window.innerWidth<=768) sidebarToggle.classList.remove('hidden');
+        // Start wallet auto-connect immediately, before other heavy operations
+        if (window.innerWidth <= 768) sidebarToggle.classList.remove('hidden');
+        initPhantomAutoConnect();
+
+        // Setup IntersectionObserver for tweet lazy loading
+        setupTweetObserver();
+
+        // Continue with other initializations
         await loadSettings();
         subscribeToSettings();
         await loadAcceptedChatsFromDB();
-        initPhantomAutoConnect();
 
         inputAreaBar.classList.add('hidden');
 
