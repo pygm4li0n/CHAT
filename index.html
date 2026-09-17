@@ -1,25 +1,105 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="booting">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Meme Social Network // MSN</title>
 
-  <!-- ── Config: MUST be first, everything reads from it ── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap">
+
+  <link rel="preconnect" href="https://platform.twitter.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.syndication.twimg.com" crossorigin>
+  <link rel="dns-prefetch" href="https://platform.twitter.com">
+  <link rel="dns-prefetch" href="https://cdn.syndication.twimg.com">
+
+  <!-- ── Config — MUST be first ── -->
   <script src="config.js"></script>
 
-  <!-- ── Stylesheets ── -->
-  <link rel="stylesheet" href="style.css?v=2">
+  <!-- ── Theme stylesheet (no FOUC) ── -->
+  <script>
+    (function () {
+      var T = window.MSN.config.themes;
+      var K = window.MSN.config.storageKeys.theme;
+      var saved = localStorage.getItem(K) || 'original';
+      var href = T[saved] || T.original;
+      document.write('<link id="themeStylesheet" rel="stylesheet" href="' + href + '">');
+    })();
+  </script>
+
+  <!-- ── Feature stylesheets ── -->
+  <link rel="stylesheet" href="mobile-sidebar.css">
+  <link rel="stylesheet" href="chat-texture.css">
+  <link rel="stylesheet" href="rankings-epic.css">
+  <link rel="stylesheet" href="theme-accents-fix.css">
   <link rel="stylesheet" href="styles/features/phantom-fixes.css">
   <link rel="stylesheet" href="styles/features/token-card.css">
 
-  <!-- ── Twitter Widgets (X embeds) ── -->
   <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+  <script>
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        document.documentElement.classList.remove('booting');
+      });
+    });
+  </script>
+
+  <style>
+    /* Base fallbacks for elements owned by feature files.
+       These are safe even if the feature files aren't loaded yet. */
+    .header-theme-btn,
+    .sidebar-theme-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 1px solid var(--border-default, #454B4B);
+      background: var(--bg-elevated, #1e2221);
+      color: var(--text-primary, #ffffff);
+      font-size: 1.2rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .header-theme-btn:hover,
+    .sidebar-theme-btn:hover {
+      border-color: var(--accent-cyan, #20FF62);
+      box-shadow: 0 0 8px rgba(32,255,98,0.4);
+    }
+    .sidebar-theme-btn { display: none; }
+    @media (max-width: 768px) {
+      .header-theme-btn { display: none; }
+      .sidebar-theme-btn { display: flex; }
+    }
+
+    .theme-overlay-card { max-width: 320px; }
+    .theme-options {
+      display: flex; flex-direction: column;
+      gap: 10px; margin: 15px 0;
+    }
+    .theme-option {
+      padding: 12px;
+      border: 1px solid var(--border-default, #454B4B);
+      border-radius: var(--radius-sm, 4px);
+      background: var(--bg-input, #111827);
+      color: var(--text-primary, #ffffff);
+      font-size: 0.9rem; cursor: pointer;
+      text-align: left; transition: all 0.2s;
+    }
+    .theme-option:hover {
+      border-color: var(--accent-cyan, #20FF62);
+      background: var(--bg-hover, #1d2b4d);
+    }
+    #themeOverlayCloseBtn {
+      width: 100%; padding: 10px;
+      border: none; border-radius: var(--radius-sm, 4px);
+      background: var(--bg-hover, #1d2b4d);
+      color: var(--text-primary, #ffffff);
+      cursor: pointer; font-weight: 600;
+    }
+  </style>
 </head>
 <body>
   <canvas id="particleCanvas"></canvas>
 
-  <!-- Name Entry Overlay -->
   <div class="overlay-full" id="nameOverlay">
     <div class="overlay-card">
       <div class="profile-pic-upload">
@@ -40,7 +120,6 @@
     </div>
   </div>
 
-  <!-- Request Overlay -->
   <div class="request-overlay hidden" id="requestOverlay">
     <div class="request-card">
       <div class="request-avatar" id="requestAvatar"></div>
@@ -52,7 +131,6 @@
     </div>
   </div>
 
-  <!-- Mod Settings Overlay -->
   <div class="overlay-full hidden" id="modSettingsOverlay">
     <div class="overlay-card">
       <h3>⚙️ MOD SETTINGS</h3>
@@ -93,6 +171,7 @@
         🔵 ACTIVE USERS <span class="active-users-count" id="sidebarActiveUsersCount">0</span>
       </div>
 
+      <button class="btn-icon sidebar-theme-btn" id="sidebarThemeBtn" title="Change theme">🎨</button>
       <button class="btn-icon rankings-btn" id="rankingsBtn" title="Rankings">🏆</button>
 
       <div class="sidebar-users" id="sidebarUsers">
@@ -148,7 +227,7 @@
           <button class="btn-icon mobile-edit-btn" id="mobileEditBtn" title="Edit profile">✎</button>
           <span class="wallet-address" id="walletAddress"></span>
           <button class="btn-icon hidden" id="modSettingsBtn" title="Mod Settings">⚙️</button>
-          <button class="btn-icon header-theme-btn" id="headerThemeBtn" title="Change theme" style="display:none;">🎨</button>
+          <button class="btn-icon header-theme-btn" id="headerThemeBtn" title="Change theme">🎨</button>
           <button class="btn-icon" id="refreshBtn" title="Reconnect"><span class="spin-icon">↻</span></button>
         </div>
       </div>
@@ -202,7 +281,21 @@
     </main>
   </div>
 
-  <!-- Rankings Overlay -->
+  <div class="overlay-full hidden" id="themeOverlay">
+    <div class="overlay-card theme-overlay-card">
+      <h3>Select Theme</h3>
+      <div class="theme-options">
+        <button class="theme-option" data-theme="original"><span class="emoji">🎨</span><span class="theme-name">OG</span></button>
+        <button class="theme-option" data-theme="orange"><span class="emoji">🟠</span><span class="theme-name">Orange</span></button>
+        <button class="theme-option" data-theme="cherry"><span class="emoji">🍒</span><span class="theme-name">Cherry</span></button>
+        <button class="theme-option" data-theme="gold"><span class="emoji">👑</span><span class="theme-name">GoldRush</span></button>
+        <button class="theme-option" data-theme="indu"><span class="emoji">🔨</span><span class="theme-name">Industrial</span></button>
+        <button class="theme-option" data-theme="science"><span class="emoji">🛰️</span><span class="theme-name">Science</span></button>
+      </div>
+      <button id="themeOverlayCloseBtn">Close</button>
+    </div>
+  </div>
+
   <div class="overlay-full hidden" id="rankingsOverlay">
     <div class="overlay-card rankings-card">
       <div class="rankings-header">
@@ -226,14 +319,13 @@
     </div>
   </div>
 
-  <!-- Lightbox -->
   <div class="lightbox-overlay hidden" id="lightboxOverlay">
     <img id="lightboxImg" src="" alt="Enlarged image">
   </div>
 
-  <!-- ═══════════ Scripts ═══════════ -->
+  <!-- ═══════════════ Scripts ═══════════════ -->
 
-  <!-- Vendors (order matters) -->
+  <!-- Vendors -->
   <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
   <script src="https://unpkg.com/@solana/spl-token@latest/lib/index.iife.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -245,24 +337,69 @@
   <script src="core/rank-badge.js"></script>
   <script src="core/toast.js"></script>
 
-  <!-- App logic -->
-  <script src="script.js"></script>
-  <script src="login-tracking.js"></script>
-  <script src="xp-system.js"></script>
-  <script src="token-ca.js"></script>
+  <!-- App -->
+  <script src="script.js?v=70"></script>
+  <script src="login-tracking.js?v=70"></script>
+  <script src="xp-system.js?v=70"></script>
+  <script src="token-ca.js?v=70"></script>
 
   <!-- Features -->
   <script src="features/debug-panel.js"></script>
   <script src="features/token-card.js"></script>
 
-  <!-- Sidebar back button (mobile) -->
+  <!-- Theme picker -->
+  <script>
+    (function () {
+      var T = window.MSN.config.themes;
+      var K = window.MSN.config.storageKeys.theme;
+      var link = document.getElementById('themeStylesheet');
+      var overlay = document.getElementById('themeOverlay');
+      var headerBtn = document.getElementById('headerThemeBtn');
+      var sidebarBtn = document.getElementById('sidebarThemeBtn');
+      var closeBtn = document.getElementById('themeOverlayCloseBtn');
+
+      function highlight() {
+        var cur = localStorage.getItem(K) || 'original';
+        document.querySelectorAll('.theme-option').forEach(function (b) {
+          b.classList.toggle('active', b.getAttribute('data-theme') === cur);
+        });
+      }
+      function setTheme(id) {
+        if (!T[id]) id = 'original';
+        link.setAttribute('href', T[id]);
+        localStorage.setItem(K, id);
+        highlight();
+      }
+      function open()  { highlight(); overlay.classList.remove('hidden'); }
+      function close() { overlay.classList.add('hidden'); }
+
+      if (headerBtn) headerBtn.addEventListener('click', open);
+      if (sidebarBtn) sidebarBtn.addEventListener('click', open);
+      if (closeBtn)   closeBtn.addEventListener('click', close);
+
+      document.querySelectorAll('.theme-option').forEach(function (b) {
+        b.addEventListener('click', function () {
+          setTheme(b.getAttribute('data-theme'));
+          close();
+        });
+      });
+
+      highlight();
+      window.setTheme = setTheme;
+      window.getCurrentTheme = function () { return localStorage.getItem(K) || 'original'; };
+    })();
+  </script>
+
+  <!-- Mobile sidebar back button -->
   <script>
     (function () {
       var MQ = window.matchMedia('(max-width: 768px)');
+
       function sync() {
         var sidebar = document.getElementById('sidebar');
         if (!sidebar) return;
         var existing = document.getElementById('sidebarBackBtn');
+
         if (MQ.matches && !existing) {
           var btn = document.createElement('button');
           btn.id = 'sidebarBackBtn';
@@ -270,17 +407,28 @@
           btn.type = 'button';
           btn.setAttribute('aria-label', 'Back to chat');
           btn.innerHTML = '<span class="arrow">←</span><span class="label">BACK TO CHAT</span>';
-          btn.addEventListener('click', function () { sidebar.classList.remove('open'); });
+          btn.addEventListener('click', function () {
+            sidebar.classList.remove('open');
+          });
           sidebar.insertBefore(btn, sidebar.firstChild);
         } else if (!MQ.matches && existing) {
           existing.remove();
         }
       }
+
       sync();
       if (MQ.addEventListener) MQ.addEventListener('change', sync);
       else MQ.addListener(sync);
       document.addEventListener('DOMContentLoaded', sync);
       window.addEventListener('load', sync);
+
+      var mo = new MutationObserver(function () {
+        if (MQ.matches && !document.getElementById('sidebarBackBtn')) sync();
+      });
+      document.addEventListener('DOMContentLoaded', function () {
+        var sidebar = document.getElementById('sidebar');
+        if (sidebar) mo.observe(sidebar, { childList: true });
+      });
     })();
   </script>
 </body>
