@@ -1,0 +1,830 @@
+/* ═════════════════════════════════════════════════════
+   THEME REVAMP — universal polish + per-skin detail
+   ─────────────────────────────────────────────────────
+   Loaded AFTER the theme CSS + theme-fixes.css.
+   Works on every theme automatically via CSS vars.
+
+   Philosophy:
+   • Edge lights, not halos. Small radius, low alpha.
+   • Contrast from dark backing shadows, not colored glows.
+   • Secondary text (times, dates, statuses) explicitly lifted
+     so it stays readable on every theme.
+   • Per-theme accents kept, but dialed to ~40% intensity.
+═════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════
+   1) UNIVERSAL UPGRADES — apply to every theme
+═══════════════════════════════════════════════ */
+
+/* ── Outer shell — firm rim, deep shadow, no bloom ── */
+.app-shell {
+    border-width: 2px !important;
+    box-shadow:
+        inset 0 2px 6px rgba(255,255,255,0.10),
+        inset 0 -4px 8px rgba(0,0,0,0.70),
+        inset 3px 0 6px rgba(255,255,255,0.05),
+        inset -3px 0 6px rgba(0,0,0,0.55),
+        0 8px 24px rgba(0,0,0,0.85),
+        0 0 20px var(--accent-cyan, rgba(57, 255, 20, 0.12)) !important;
+}
+
+/* ── Sidebar — clean edge, tight shadow ── */
+.sidebar {
+    box-shadow:
+        inset 2px 0 6px rgba(255,255,255,0.08),
+        inset -4px 0 8px rgba(0,0,0,0.65),
+        inset 0 2px 4px rgba(255,255,255,0.06),
+        inset 0 -2px 4px rgba(0,0,0,0.5),
+        2px 0 10px var(--accent-cyan, rgba(57, 255, 20, 0.10)) !important;
+}
+
+/* ── Chat panel — deep CRT well ── */
+.chat-panel {
+    box-shadow:
+        inset 0 0 30px rgba(0,0,0,0.98),
+        inset 0 0 60px var(--accent-cyan, rgba(57, 255, 20, 0.05)),
+        inset 0 2px 4px rgba(255,255,255,0.03) !important;
+}
+
+/* ── Header bar — chrome lip, tight shadow ── */
+.chat-header-bar {
+    border-bottom-width: 3px !important;
+    box-shadow:
+        inset 0 4px 6px rgba(255,255,255,0.10),
+        inset 0 -4px 6px rgba(0,0,0,0.55),
+        0 3px 8px var(--accent-cyan, rgba(57, 255, 20, 0.12)) !important;
+}
+
+/* ── Input bar — clean top edge ── */
+.input-area-bar {
+    border-top-width: 2px !important;
+    box-shadow:
+        inset 0 4px 6px rgba(255,255,255,0.05),
+        0 -3px 8px var(--accent-cyan, rgba(57, 255, 20, 0.10)) !important;
+}
+
+/* ── Buttons — depth not bloom ── */
+.btn-icon,
+.send-btn-main,
+.sidebar-toggle,
+.theme-option,
+.private-btn,
+.msg-action-btn {
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease,
+        transform 0.15s ease !important;
+}
+
+.btn-icon:hover,
+.sidebar-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        inset 0 1px 2px rgba(255,255,255,0.10),
+        inset 0 -1px 2px rgba(0,0,0,0.35),
+        0 0 10px var(--accent-cyan, rgba(57, 255, 20, 0.35)),
+        0 2px 4px rgba(0,0,0,0.5) !important;
+}
+
+.btn-icon:active,
+.sidebar-toggle:active {
+    transform: translateY(0) scale(0.97);
+}
+
+/* ── Message bubbles — clean edges, strong grounding shadow ── */
+.msg-bubble {
+    border-width: 1.5px !important;
+    box-shadow:
+        0 0 6px var(--accent-cyan, rgba(57, 255, 20, 0.28)),
+        0 2px 6px rgba(0,0,0,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.05),
+        inset 0 0 8px rgba(0,0,0,0.55) !important;
+}
+
+.msg-wrapper.own .msg-bubble {
+    box-shadow:
+        0 0 8px var(--accent-cyan, rgba(57, 255, 20, 0.38)),
+        0 2px 8px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(255,255,255,0.06),
+        inset 0 0 8px rgba(0,0,0,0.55) !important;
+}
+
+.msg-bubble:hover {
+    box-shadow:
+        0 0 12px var(--accent-cyan, rgba(57, 255, 20, 0.48)),
+        0 3px 10px rgba(0,0,0,0.65),
+        inset 0 1px 0 rgba(255,255,255,0.06),
+        inset 0 0 8px rgba(0,0,0,0.55) !important;
+}
+
+/* ── Inputs — clean focus ring, not a fog ── */
+#messageInput:focus,
+.overlay-card input:focus,
+.overlay-card textarea:focus,
+.overlay-card select:focus,
+#modSettingsOverlay input:focus,
+#modSettingsOverlay textarea:focus,
+#modSettingsOverlay select:focus {
+    box-shadow:
+        inset 0 3px 8px rgba(0,0,0,0.95),
+        0 0 0 1px var(--accent-cyan, #39FF14),
+        0 0 12px var(--accent-cyan, rgba(57, 255, 20, 0.40)) !important;
+}
+
+/* ── Send button — glossy chrome, tight shine ── */
+button.send-btn-main {
+    border-width: 1.5px !important;
+    box-shadow:
+        inset 0 2px 3px rgba(255,255,255,0.35),
+        inset 0 -2px 3px rgba(0,0,0,0.45),
+        0 2px 8px rgba(0,0,0,0.6),
+        0 0 10px var(--accent-cyan, rgba(57, 255, 20, 0.45)) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+button.send-btn-main:hover {
+    box-shadow:
+        inset 0 2px 3px rgba(255,255,255,0.42),
+        inset 0 -2px 3px rgba(0,0,0,0.35),
+        0 2px 10px rgba(0,0,0,0.65),
+        0 0 16px var(--accent-cyan, rgba(57, 255, 20, 0.65)) !important;
+}
+
+button.send-btn-main::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255,255,255,0.25) 50%,
+        transparent 100%);
+    animation: sendBtnShine 4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes sendBtnShine {
+    0%, 100% { left: -100%; }
+    50%      { left: 130%; }
+}
+
+/* ── Reaction buttons — small, clean, alive ── */
+.reaction-btn {
+    border-width: 1px !important;
+    transition: all 0.2s ease !important;
+}
+.reaction-btn:hover {
+    transform: translateY(-1px) scale(1.04);
+}
+.reaction-btn.active {
+    box-shadow:
+        inset 0 1px 2px rgba(255,255,255,0.28),
+        0 0 8px var(--accent-cyan, rgba(57, 255, 20, 0.55)) !important;
+}
+
+/* ── Scrollbars — themed, clean thumb ── */
+.messages-container::-webkit-scrollbar-thumb,
+.sidebar-users::-webkit-scrollbar-thumb,
+#walletTokenList::-webkit-scrollbar-thumb,
+.rankings-list::-webkit-scrollbar-thumb {
+    border-radius: 4px !important;
+    background: linear-gradient(180deg,
+        var(--border-default, #B25E22) 0%,
+        var(--accent-cyan, #39FF14) 100%) !important;
+    box-shadow: 0 0 4px var(--accent-cyan, rgba(57, 255, 20, 0.30)) !important;
+}
+
+/* ── Sidebar user rows — crisp hover, no bloom ── */
+.sidebar-user-item {
+    border-width: 1.5px !important;
+    transition: all 0.2s ease !important;
+}
+.sidebar-user-item:hover {
+    transform: translateX(2px);
+    box-shadow:
+        inset 0 1px 2px rgba(255,255,255,0.10),
+        inset 0 -1px 2px rgba(0,0,0,0.5),
+        0 0 10px var(--accent-cyan, rgba(57, 255, 20, 0.28)) !important;
+}
+
+/* ── Overlays — deeper blur, contained glow ── */
+.request-overlay,
+.overlay-full {
+    backdrop-filter: blur(6px) !important;
+    background: rgba(0, 0, 0, 0.88) !important;
+}
+.request-card,
+.overlay-card {
+    border-width: 2px !important;
+    box-shadow:
+        0 16px 40px rgba(0,0,0,0.9),
+        inset 0 2px 6px rgba(255,255,255,0.10),
+        inset 0 -2px 6px rgba(0,0,0,0.5),
+        0 0 24px var(--accent-cyan, rgba(57, 255, 20, 0.18)) !important;
+}
+
+/* ── Theme picker cards — clean lift ── */
+#themeOverlay .theme-option {
+    transition:
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        background 0.25s ease,
+        transform 0.2s ease !important;
+}
+#themeOverlay .theme-option:hover {
+    transform: translateY(-2px) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.06),
+        0 0 14px currentColor !important;
+}
+
+/* ═══════════════════════════════════════════════
+   2) PER-THEME ENHANCEMENTS — accent kept, bloom cut
+═══════════════════════════════════════════════ */
+
+/* ── OG — deep navy + cyan ── */
+body.og-theme .app-shell,
+html[data-theme="original"] .app-shell {
+    box-shadow:
+        inset 0 2px 6px rgba(1, 225, 234, 0.08),
+        inset 0 -4px 8px rgba(0,0,0,0.75),
+        0 8px 24px rgba(0,0,0,0.9),
+        0 0 24px rgba(1, 225, 234, 0.18) !important;
+}
+body.og-theme .msg-bubble,
+html[data-theme="original"] .msg-bubble {
+    border-color: rgba(1, 225, 234, 0.85) !important;
+    box-shadow:
+        0 0 6px rgba(1, 225, 234, 0.35),
+        0 2px 6px rgba(0,0,0,0.55),
+        inset 0 1px 0 rgba(1, 225, 234, 0.12),
+        inset 0 0 8px rgba(0,0,0,0.55) !important;
+}
+
+/* ── ORANGE — dark amber + orange ── */
+body.orange-theme .app-shell,
+html[data-theme="orange"] .app-shell {
+    box-shadow:
+        inset 0 2px 6px rgba(255, 140, 0, 0.10),
+        inset 0 -4px 8px rgba(0,0,0,0.75),
+        0 8px 24px rgba(0,0,0,0.9),
+        0 0 24px rgba(255, 140, 0, 0.20) !important;
+}
+body.orange-theme .msg-bubble,
+html[data-theme="orange"] .msg-bubble {
+    border-color: rgba(255, 140, 0, 0.9) !important;
+    box-shadow:
+        0 0 6px rgba(255, 140, 0, 0.35),
+        0 2px 6px rgba(0,0,0,0.55),
+        inset 0 1px 0 rgba(255, 200, 100, 0.10),
+        inset 0 0 8px rgba(0,0,0,0.55) !important;
+}
+
+/* ── CHERRY — deep pink + crimson ── */
+body.cherry-theme .app-shell,
+html[data-theme="cherry"] .app-shell {
+    box-shadow:
+        inset 0 2px 6px rgba(255, 92, 124, 0.10),
+        inset 0 -4px 8px rgba(0,0,0,0.75),
+        0 8px 24px rgba(0,0,0,0.9),
+        0 0 24px rgba(255, 92, 124, 0.20) !important;
+}
+body.cherry-theme .msg-bubble,
+html[data-theme="cherry"] .msg-bubble {
+    border-color: rgba(255, 92, 124, 0.9) !important;
+    box-shadow:
+        0 0 6px rgba(255, 92, 124, 0.35),
+        0 2px 6px rgba(0,0,0,0.55),
+        inset 0 1px 0 rgba(255, 150, 180, 0.12),
+        inset 0 0 8px rgba(0,0,0,0.55) !important;
+}
+
+/* ── GOLD — bronze + gold ── */
+body.gold-theme .app-shell,
+html[data-theme="gold"] .app-shell {
+    box-shadow:
+        inset 0 2px 6px rgba(255, 213, 74, 0.12),
+        inset 0 -4px 8px rgba(0,0,0,0.75),
+        0 8px 24px rgba(0,0,0,0.9),
+        0 0 24px rgba(255, 213, 74, 0.22) !important;
+}
+body.gold-theme .msg-bubble,
+html[data-theme="gold"] .msg-bubble {
+    border-color: rgba(255, 213, 74, 0.9) !important;
+    box-shadow:
+        0 0 6px rgba(255, 213, 74, 0.40),
+        0 2px 6px rgba(0,0,0,0.55),
+        inset 0 1px 0 rgba(255, 240, 180, 0.16),
+        inset 0 0 8px rgba(0,0,0,0.55) !important;
+}
+body.gold-theme button.send-btn-main,
+html[data-theme="gold"] button.send-btn-main {
+    box-shadow:
+        inset 0 2px 3px rgba(255, 255, 200, 0.45),
+        inset 0 -2px 3px rgba(0,0,0,0.45),
+        0 2px 8px rgba(0,0,0,0.6),
+        0 0 12px rgba(255, 213, 74, 0.55) !important;
+}
+
+/* ── INDUSTRIAL — phosphor green + copper ── */
+body.indu-theme .app-shell,
+html[data-theme="indu"] .app-shell {
+    box-shadow:
+        inset 0 2px 6px rgba(57, 255, 20, 0.12),
+        inset 0 -4px 8px rgba(0,0,0,0.80),
+        0 8px 24px rgba(0,0,0,0.9),
+        0 0 24px rgba(57, 255, 20, 0.22) !important;
+}
+body.indu-theme .msg-bubble,
+html[data-theme="indu"] .msg-bubble {
+    border-color: rgba(57, 255, 20, 0.9) !important;
+    box-shadow:
+        0 0 6px rgba(57, 255, 20, 0.40),
+        0 2px 6px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(182, 255, 26, 0.14),
+        inset 0 0 8px rgba(0,0,0,0.6) !important;
+}
+body.indu-theme .chat-panel,
+html[data-theme="indu"] .chat-panel {
+    box-shadow:
+        inset 0 0 30px rgba(0,0,0,0.98),
+        inset 0 0 60px rgba(57, 255, 20, 0.06),
+        inset 0 2px 4px rgba(182, 255, 26, 0.04) !important;
+}
+
+/* ── SCIENCE — deep space + electric blue ── */
+body.science-theme .app-shell,
+html[data-theme="science"] .app-shell {
+    box-shadow:
+        inset 0 2px 6px rgba(0, 212, 255, 0.12),
+        inset 0 -4px 8px rgba(0,0,0,0.80),
+        0 8px 24px rgba(0,0,0,0.9),
+        0 0 24px rgba(0, 212, 255, 0.22) !important;
+}
+body.science-theme .msg-bubble,
+html[data-theme="science"] .msg-bubble {
+    border-color: rgba(0, 212, 255, 0.9) !important;
+    box-shadow:
+        0 0 6px rgba(0, 212, 255, 0.40),
+        0 2px 6px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(120, 220, 255, 0.16),
+        inset 0 0 8px rgba(0,0,0,0.6) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   3) CONTRAST LIFT — muted text readable everywhere
+   Dark backing shadow instead of glow.
+═══════════════════════════════════════════════ */
+
+/* Timestamps & edited markers */
+.msg-time,
+.msg-edited {
+    color: var(--text-secondary, #9fb0a0) !important;
+    opacity: 0.95 !important;
+    font-weight: 500 !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.95) !important;
+}
+
+/* "Online" status under sidebar users */
+.sidebar-user-item .user-status-text {
+    color: var(--text-secondary, #9fb0a0) !important;
+    opacity: 0.92 !important;
+    font-weight: 500 !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Sidebar footer status + wallet address */
+.sidebar-footer #sidebarStatusText {
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.95) !important;
+}
+.sidebar-footer .wallet-address {
+    color: var(--text-secondary, #9fb0a0) !important;
+    opacity: 0.92 !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Profile "● Online" line */
+.big-status {
+    color: var(--text-secondary, #9fb0a0) !important;
+    opacity: 0.95 !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Rank details in leaderboard */
+#rankingsOverlay .rank-detail {
+    color: var(--text-secondary, #9fb0a0) !important;
+    opacity: 0.95 !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Reply preview quotes */
+.reply-ref-block .r-text {
+    color: var(--text-secondary, #9fb0a0) !important;
+    opacity: 0.95 !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Empty chat hint + no-users line */
+.empty-chat-hint,
+.no-users-sidebar {
+    color: var(--text-secondary, #9fb0a0) !important;
+    opacity: 0.92 !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Deleted messages */
+.msg-text.deleted {
+    color: var(--text-secondary, #9fb0a0) !important;
+    opacity: 0.85 !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   4) MICRO-DETAILS — clean, no pulse
+═══════════════════════════════════════════════ */
+
+/* Status dots — small LED, no pulsing beacon */
+.big-status .status-dot,
+.online-indicator,
+.sidebar-footer .status-dot-sm {
+    box-shadow:
+        0 0 4px var(--accent-cyan, rgba(57, 255, 20, 0.8)),
+        0 0 8px var(--accent-cyan, rgba(57, 255, 20, 0.35)) !important;
+    /* animation removed — no pulse */
+    animation: none !important;
+}
+
+/* Text-shadow on names + titles — dark backing only */
+.big-name,
+.msg-username,
+.sidebar-section-label,
+.rankings-header h3 {
+    text-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.95),
+        0 0 6px var(--accent-cyan, rgba(57, 255, 20, 0.18)) !important;
+}
+
+/* Selection color */
+::selection {
+    background: var(--accent-cyan, rgba(57, 255, 20, 0.5)) !important;
+    color: #000 !important;
+}
+
+/* Focus rings */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.theme-option:focus-visible,
+.reaction-btn:focus-visible,
+.msg-action-btn:focus-visible {
+    outline: 2px solid var(--accent-cyan, #39FF14) !important;
+    outline-offset: 2px !important;
+}
+
+/* Kill any stale glow animations from other files */
+@keyframes revPulse { 0%, 100% { box-shadow: inherit; } 50% { box-shadow: inherit; } }
+@keyframes chromeShimmer { 0%, 100% { left: -100%; opacity: 0.85; } 50% { left: 0%; opacity: 1; } }
+
+/* ═════════════════════════════════════════════════════
+   ⚑ PHANTOM — no pulsing dot indicator
+═════════════════════════════════════════════════════ */
+.phantom-btn.connected::after,
+.phantom-overlay-btn.connected::after,
+.btn-icon.phantom-btn.connected::after,
+#phantomConnectBtn.connected::after,
+#phantomConnectBtnOverlay.connected::after {
+    content: none !important;
+    display: none !important;
+    animation: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+@keyframes phantomDotPulse { 0%, 100% { opacity: 0; } 50% { opacity: 0; } }
+@keyframes phantomPulse    { 0%, 100% { transform: none; opacity: 0; } 50% { transform: none; opacity: 0; } }
+
+/* ═════════════════════════════════════════════════════
+   ⚑ FALLBACK — browsers without color-mix() keep same values
+═════════════════════════════════════════════════════ */
+@supports not (color: color-mix(in srgb, red, blue)) {
+    /* Nothing to change — all values above use rgba() directly */
+    /* This block is a placeholder so future edits have a home */
+}
+
+/* ═════════════════════════════════════════════════════
+   5) PINNED ANNOUNCEMENT — final version
+   ★ Ultra-high specificity on button
+   ★ Bigger desktop text
+   ★ Tighter mobile so short text always fits
+═════════════════════════════════════════════════════ */
+
+/* ── 5a. Pinned bar ── */
+.mod-message-box {
+    position: relative;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 10px 16px 10px 18px !important;
+    background:
+        var(--tex-brushed, none),
+        linear-gradient(160deg, #14100A 0%, #0A0704 55%, #14100A 100%) !important;
+    border-top:    1px solid var(--accent-cyan, #39FF14) !important;
+    border-bottom: 1px solid var(--accent-cyan, #39FF14) !important;
+    border-left:   none !important;
+    border-right:  none !important;
+    border-radius: 0 !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        inset 0 0 22px rgba(0,0,0,0.85),
+        0 2px 8px rgba(0,0,0,0.55),
+        0 0 12px var(--accent-cyan, #39FF14) !important;
+    overflow: hidden;
+}
+
+.mod-message-box::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg,
+        var(--accent-cyan, #39FF14) 0%,
+        var(--accent-yellow, #FFFFFF) 50%,
+        var(--accent-cyan, #39FF14) 100%);
+    box-shadow: 0 0 10px var(--accent-cyan, #39FF14);
+    pointer-events: none;
+}
+
+/* ── 5b. "PINNED" badge ── */
+.mod-message-box .mod-badge {
+    flex: 0 0 auto !important;
+    padding: 4px 12px !important;
+    border-radius: 3px !important;
+    font-size: 0.62rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.16em !important;
+    text-transform: uppercase !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+    color: #0A0704 !important;
+    background: var(--accent-cyan, #39FF14) !important;
+    border: 1px solid #0A0704 !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.35) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.40),
+        inset 0 -1px 0 rgba(0,0,0,0.30),
+        0 1px 6px rgba(0,0,0,0.65),
+        0 0 14px var(--accent-cyan, #39FF14) !important;
+}
+
+/* ── 5c. Pinned text — DESKTOP is now 0.95rem (bigger) ── */
+.mod-message-box .mod-message-text,
+.mod-message-box #modMessageText {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    display: block !important;
+    font-size: 0.95rem !important;        /* ← bigger on desktop */
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    color: var(--accent-cyan, #39FF14) !important;
+    opacity: 1 !important;
+    text-shadow:
+        0 0 8px  var(--accent-cyan, #39FF14),
+        0 0 16px var(--accent-cyan, #39FF14),
+        0 1px 3px rgba(0,0,0,1) !important;
+}
+
+.mod-message-box:hover .mod-message-text,
+.mod-message-box:hover #modMessageText {
+    color: var(--accent-yellow, #FFFFFF) !important;
+    text-shadow:
+        0 0 10px var(--accent-yellow, #FFFFFF),
+        0 0 22px var(--accent-cyan, #39FF14),
+        0 1px 3px rgba(0,0,0,1) !important;
+}
+
+.mod-message-box #modMessageText:only-child {
+    color: var(--accent-cyan, #39FF14) !important;
+    opacity: 0.55 !important;
+    font-style: italic;
+}
+
+/* ── 5d. POST ANNOUNCEMENT button — ULTRA aggressive ──
+   Triple-ID selector + shorthand `background:` — beats
+   ANY other rule, regardless of load order or !important.
+*/
+html body #modSettingsOverlay #modPostAnnouncementBtn,
+html body #modPostAnnouncementBtn#modPostAnnouncementBtn#modPostAnnouncementBtn {
+    /* kill every previously-set background */
+    background: var(--accent-cyan, #39FF14) !important;
+    background-image: none !important;
+    background-color: var(--accent-cyan, #39FF14) !important;
+
+    display: block !important;
+    width: 100% !important;
+    margin-top: 10px !important;
+    padding: 12px 18px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+
+    font-family: var(--font-mono) !important;
+    font-size: 0.85rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    color: #0A0704 !important;               /* dark text = max contrast */
+
+    border: 2px solid #0A0704 !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.35) !important;
+    box-shadow:
+        inset 0 2px 0 rgba(255,255,255,0.45),
+        inset 0 -2px 0 rgba(0,0,0,0.30),
+        0 2px 8px rgba(0,0,0,0.60),
+        0 0 18px var(--accent-cyan, #39FF14) !important;
+    transition:
+        background 0.22s ease,
+        color 0.22s ease,
+        border-color 0.22s ease,
+        box-shadow 0.22s ease,
+        transform 0.15s ease !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* very subtle shine — no longer washing out the color */
+html body #modPostAnnouncementBtn#modPostAnnouncementBtn::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -60%;
+    width: 30%; height: 100%;
+    background: linear-gradient(100deg,
+        transparent 0%, rgba(255,255,255,0.28) 50%, transparent 100%);
+    transform: skewX(-20deg);
+    transition: left 0.55s ease;
+    pointer-events: none;
+}
+html body #modPostAnnouncementBtn#modPostAnnouncementBtn:hover::after { left: 130%; }
+
+html body #modSettingsOverlay #modPostAnnouncementBtn:hover,
+html body #modPostAnnouncementBtn#modPostAnnouncementBtn#modPostAnnouncementBtn:hover {
+    color: #000000 !important;
+    background: var(--accent-yellow, #FFFFFF) !important;
+    background-image: none !important;
+    border-color: var(--accent-cyan, #39FF14) !important;
+    box-shadow:
+        inset 0 2px 0 rgba(255,255,255,0.85),
+        inset 0 -2px 0 rgba(0,0,0,0.25),
+        0 3px 14px rgba(0,0,0,0.55),
+        0 0 30px var(--accent-cyan, #39FF14) !important;
+    transform: translateY(-1px);
+}
+html body #modPostAnnouncementBtn:active {
+    transform: translateY(0) scale(0.97);
+}
+
+/* ── 5d-bis. HARD per-theme colors — bulletproof ── */
+body.gold-theme #modPostAnnouncementBtn,
+html[data-theme="gold"] #modPostAnnouncementBtn,
+body.gold-theme #modSettingsOverlay #modPostAnnouncementBtn,
+html[data-theme="gold"] #modSettingsOverlay #modPostAnnouncementBtn {
+    background: #FFD54A !important;
+    background-image: none !important;
+    border-color: #6B4E1A !important;
+    box-shadow:
+        inset 0 2px 0 rgba(255,255,255,0.55),
+        inset 0 -2px 0 rgba(0,0,0,0.30),
+        0 2px 8px rgba(0,0,0,0.60),
+        0 0 18px rgba(255,213,74,0.70) !important;
+}
+body.og-theme #modPostAnnouncementBtn,
+html[data-theme="original"] #modPostAnnouncementBtn,
+body.og-theme #modSettingsOverlay #modPostAnnouncementBtn,
+html[data-theme="original"] #modSettingsOverlay #modPostAnnouncementBtn {
+    background: #01E1EA !important;
+    background-image: none !important;
+    border-color: #003F44 !important;
+}
+body.orange-theme #modPostAnnouncementBtn,
+html[data-theme="orange"] #modPostAnnouncementBtn,
+body.orange-theme #modSettingsOverlay #modPostAnnouncementBtn,
+html[data-theme="orange"] #modSettingsOverlay #modPostAnnouncementBtn {
+    background: #FF8C00 !important;
+    background-image: none !important;
+    border-color: #5C2E00 !important;
+}
+body.cherry-theme #modPostAnnouncementBtn,
+html[data-theme="cherry"] #modPostAnnouncementBtn,
+body.cherry-theme #modSettingsOverlay #modPostAnnouncementBtn,
+html[data-theme="cherry"] #modSettingsOverlay #modPostAnnouncementBtn {
+    background: #FF5C7C !important;
+    background-image: none !important;
+    border-color: #5C1A2A !important;
+}
+body.indu-theme #modPostAnnouncementBtn,
+html[data-theme="indu"] #modPostAnnouncementBtn,
+body.indu-theme #modSettingsOverlay #modPostAnnouncementBtn,
+html[data-theme="indu"] #modSettingsOverlay #modPostAnnouncementBtn {
+    background: #39FF14 !important;
+    background-image: none !important;
+    border-color: #0A3A00 !important;
+}
+body.science-theme #modPostAnnouncementBtn,
+html[data-theme="science"] #modPostAnnouncementBtn,
+body.science-theme #modSettingsOverlay #modPostAnnouncementBtn,
+html[data-theme="science"] #modSettingsOverlay #modPostAnnouncementBtn {
+    background: #00D4FF !important;
+    background-image: none !important;
+    border-color: #003A4A !important;
+}
+
+/* ── 5e. Announcement textarea ── */
+#modAnnouncementInput {
+    background: linear-gradient(160deg, #1E1A0E 0%, #0F0C06 60%, #1E1A0E 100%) !important;
+    border: 2px solid var(--accent-cyan, #39FF14) !important;
+    color: var(--accent-yellow, #F0E2B8) !important;
+    font-family: var(--font-mono) !important;
+    border-radius: 4px !important;
+    box-shadow: inset 0 3px 10px rgba(0,0,0,0.90) !important;
+}
+#modAnnouncementInput:focus {
+    border-color: var(--accent-yellow, #FFFFFF) !important;
+    box-shadow:
+        inset 0 3px 10px rgba(0,0,0,0.90),
+        0 0 0 1px var(--accent-cyan, #39FF14),
+        0 0 18px var(--accent-cyan, #39FF14) !important;
+    outline: none !important;
+}
+
+/* ── 5f. Announcement label ── */
+#modAnnouncementSection label[for="modAnnouncementInput"] {
+    color: var(--accent-cyan, #E8D48A) !important;
+    text-shadow:
+        0 1px 2px rgba(0,0,0,0.85),
+        0 0 8px var(--accent-cyan, #39FF14) !important;
+}
+
+/* ── 5g. MOBILE (incl. Phantom in-app browser) ──
+   Narrower gap, smaller badge, but text still readable
+   and SHORT text always fits completely.
+*/
+@media (max-width: 768px) {
+    .mod-message-box {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: 6px !important;
+        padding: 7px 10px 7px 12px !important;
+        min-height: 34px;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .mod-message-box .mod-badge {
+        flex: 0 0 auto !important;
+        font-size: 0.55rem !important;
+        padding: 3px 7px !important;
+        letter-spacing: 0.10em !important;
+    }
+    .mod-message-box .mod-message-text,
+    .mod-message-box #modMessageText {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        font-size: 0.74rem !important;
+        letter-spacing: 0.02em !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+}
+
+/* ── 5h. VERY narrow screens (Phantom wallet ~360px) ── */
+@media (max-width: 400px) {
+    .mod-message-box {
+        gap: 5px !important;
+        padding: 6px 8px 6px 10px !important;
+    }
+    .mod-message-box .mod-badge {
+        font-size: 0.5rem !important;
+        padding: 2px 6px !important;
+        letter-spacing: 0.08em !important;
+    }
+    .mod-message-box .mod-message-text,
+    .mod-message-box #modMessageText {
+        font-size: 0.7rem !important;
+    }
+}
