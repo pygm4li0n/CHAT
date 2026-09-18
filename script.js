@@ -1,23 +1,472 @@
 (function() {
-    'use strict';
+    const SUPABASE_URL = 'https://uxrpjfsouwxnlcbhjilz.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_cLeBoHrdvg1b7WlnyJ-oVQ_6skjHc_H';
+    const STORAGE_BUCKET = 'chat-images';
+    const AVATAR_BUCKET = 'chat-avatars';
 
-    // ── Shared core (loaded before this file) ──
-    const sb     = window.MSN.supabase;
-    const wallet = window.MSN.wallet;
-    const badge  = window.MSN.badge;
-    const toast  = window.MSN.toast;
-    const events = window.MSN.events;
-    const CFG    = window.MSN.config;
+    // ═══════════════════════════════════════════════════════════
+    //  ⚑ PHANTOM / MOBILE VISUAL FIXES + RIGHT SIDEBAR — injected once
+    // ═══════════════════════════════════════════════════════════
+    (function injectPhantomFixes() {
+        if (document.querySelector('style[data-msn-phantom-fixes]')) return;
+        const css = `
+            /* ── Phantom connect button ── */
+            .btn-icon.phantom-btn,
+            #phantomConnectBtn {
+                width: 44px !important;
+                height: 44px !important;
+                position: relative;
+                flex-shrink: 0 !important;
+                transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
+            }
+            .btn-icon.phantom-btn img,
+            #phantomConnectBtn img {
+                width: 24px !important;
+                height: 24px !important;
+                filter: drop-shadow(0 0 4px rgba(153, 69, 255, 0.5));
+            }
+            .btn-icon.phantom-btn.connected,
+            #phantomConnectBtn.connected {
+                background: linear-gradient(180deg, #2ecc71 0%, #1a9e52 100%) !important;
+                border-color: #4ade80 !important;
+                box-shadow:
+                    0 0 14px rgba(46, 204, 113, 0.7),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+            }
+            .btn-icon.phantom-btn.connected img,
+            #phantomConnectBtn.connected img {
+                filter: brightness(1.2) drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
+            }
+            .btn-icon.phantom-btn.connected::after,
+            #phantomConnectBtn.connected::after {
+                content: '';
+                position: absolute;
+                top: -3px; right: -3px;
+                width: 11px; height: 11px;
+                border-radius: 50%;
+                background: #4ade80;
+                border: 2px solid var(--bg-panel, #01091A);
+                box-shadow: 0 0 8px #4ade80;
+                animation: phantomDotPulse 2s ease-in-out infinite;
+                pointer-events: none;
+            }
+            @keyframes phantomDotPulse {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50%      { opacity: 0.55; transform: scale(0.82); }
+            }
 
-    const SUPABASE_URL        = CFG.supabase.url;
-    const STORAGE_BUCKET      = CFG.supabase.buckets.chat;
-    const AVATAR_BUCKET       = CFG.supabase.buckets.avatar;
-    const MOD_WALLET          = CFG.mod.wallet;
-    const TOKEN_MINT_ADDRESS  = CFG.tokens.gate;
-    const SOLANA_RPC_ENDPOINT = CFG.solana.rpc;
-    const TOKEN_ADDRESS       = CFG.tokens.price;
+            /* ═══════════════════════════════════════════════════════════
+               ⚑ HEADER LAYOUT — desktop + mobile
+            ═══════════════════════════════════════════════════════════ */
+            #connectionPill,
+            #onlineCountBadge {
+                display: none !important;
+            }
+            .header-right {
+                justify-content: flex-end !important;
+                align-items: center !important;
+            }
+            .header-right #walletAddress {
+                order: 1;
+                min-width: 0;
+                max-width: 150px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                text-align: right;
+                margin-right: 4px;
+            }
+            .header-right #phantomConnectBtn {
+                order: 2;
+                flex-shrink: 0 !important;
+            }
+            .header-right #refreshBtn {
+                order: 3;
+                flex-shrink: 0 !important;
+            }
+            .header-right #mobileEditBtn {
+                order: 4;
+            }
+            .header-right #rankingsBtn {
+                order: 5;
+            }
+            .header-right #modSettingsBtn {
+                order: 6;
+            }
+            .header-right #headerThemeBtn {
+                order: 7;
+            }
+            .header-right #walletAddress:empty {
+                display: none !important;
+            }
 
-    
+            /* ── Rankings trophy button ── */
+            /* ⚑ Exclude the right-sidebar card so it can stretch like the others */
+            .rankings-btn:not(.msn-rs-card),
+            #rankingsBtn:not(.msn-rs-card) {
+                width: 44px !important;
+                height: 44px !important;
+                font-size: 1.3rem !important;
+            }
+            @media (max-width: 768px) {
+                .rankings-btn:not(.msn-rs-card),
+                #rankingsBtn:not(.msn-rs-card) {
+                    width: 46px !important;
+                    height: 46px !important;
+                    font-size: 1.45rem !important;
+                    display: flex !important;
+                }
+            }
+
+            /* ── Sidebar theme button — mobile only (theme-aware) ── */
+            .sidebar-theme-btn { display: none; }
+            @media (max-width: 768px) {
+                .sidebar-theme-btn {
+                    display: flex !important;
+                    width: 46px !important;
+                    height: 46px !important;
+                    margin: 10px 12px !important;
+                    font-size: 1.45rem !important;
+                    align-items: center;
+                    justify-content: center;
+                    background: var(--bg-elevated, #1e2221) !important;
+                    border: 1px solid var(--border-default, #454B4B) !important;
+                    color: var(--text-primary, #fff) !important;
+                    border-radius: var(--radius-sm, 4px) !important;
+                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25) !important;
+                    cursor: pointer;
+                    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+                    align-self: flex-start;
+                }
+                .sidebar-theme-btn:hover {
+                    border-color: var(--accent-cyan, #01E1EA) !important;
+                    box-shadow: 0 0 14px var(--border-glow, rgba(1, 225, 234, 0.45)) !important;
+                    background: var(--bg-hover, #2a2f2e) !important;
+                }
+            }
+
+            /* ── Rank + XP badges ── */
+            .big-rank {
+                display: inline-block !important;
+                font-size: 0.72rem !important;
+                padding: 3px 10px !important;
+                margin-top: 5px !important;
+                border-radius: 4px !important;
+                background: linear-gradient(135deg, #C9A84E 0%, #A88A3A 100%) !important;
+                color: #1a0f00 !important;
+                font-weight: 800 !important;
+                letter-spacing: 0.06em !important;
+                text-transform: uppercase !important;
+                box-shadow: 0 0 10px rgba(201, 168, 78, 0.4) !important;
+                border: none !important;
+            }
+            .big-rank.hidden { display: none !important; }
+            .big-level {
+                display: inline-block !important;
+                font-size: 0.72rem !important;
+                padding: 3px 9px !important;
+                margin-top: 5px !important;
+                border-radius: 4px !important;
+                background: rgba(1, 225, 234, 0.12) !important;
+                color: #01E1EA !important;
+                border: 1px solid #01E1EA !important;
+                font-weight: 700 !important;
+                letter-spacing: 0.04em !important;
+                box-shadow: 0 0 8px rgba(1, 225, 234, 0.3) !important;
+                text-shadow: 0 0 6px rgba(1, 225, 234, 0.5) !important;
+            }
+            .big-level.hidden { display: none !important; }
+
+            @media (max-width: 768px) {
+                .header-right .btn-icon {
+                    width: 40px !important;
+                    height: 40px !important;
+                    font-size: 1.15rem !important;
+                }
+                .header-right .btn-icon img {
+                    width: 22px !important;
+                    height: 22px !important;
+                }
+            }
+
+            /* ── Message loading state ── */
+            .messages-container {
+                position: relative;
+            }
+            .msn-msg-loader {
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                pointer-events: none;
+                z-index: 5;
+                opacity: 0;
+                transition: opacity 0.2s ease;
+            }
+            .msn-msg-loader.msn-show { opacity: 1; }
+            .msn-msg-loader-inner {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 14px;
+                color: var(--text-muted, #426080);
+                font-family: var(--font-mono, monospace);
+                font-size: 0.68rem;
+                letter-spacing: 0.22em;
+                text-transform: uppercase;
+            }
+            .msn-loader-dots {
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+            }
+            .msn-loader-dots span {
+                width: 9px;
+                height: 9px;
+                border-radius: 50%;
+                background: currentColor;
+                animation: msnLoaderPulse 1.3s ease-in-out infinite;
+                box-shadow: 0 0 6px currentColor;
+            }
+            .msn-loader-dots span:nth-child(2) { animation-delay: 0.18s; }
+            .msn-loader-dots span:nth-child(3) { animation-delay: 0.36s; }
+            @keyframes msnLoaderPulse {
+                0%, 100% { opacity: 0.28; transform: translateY(0) scale(0.85); }
+                50%      { opacity: 1;    transform: translateY(-4px) scale(1); }
+            }
+
+            /* ── Pinned announcement (theme-aware) ── */
+            .mod-message-box {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                gap: 8px !important;
+                align-self: center !important;
+                width: auto !important;
+                max-width: min(85%, 560px);
+                margin: 10px 16px !important;
+                padding: 8px 14px !important;
+                border-radius: 16px 16px 16px 4px;
+                background: var(--bg-elevated, rgba(0, 0, 0, 0.4));
+                border: 1px solid var(--accent-yellow, rgba(234, 179, 8, 0.5));
+                box-shadow:
+                    0 2px 12px rgba(0, 0, 0, 0.4),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+                flex-shrink: 0 !important;
+                z-index: 5;
+                position: relative;
+                font-family: var(--font-mono, monospace);
+                pointer-events: auto;
+            }
+            .mod-message-box.hidden { display: none !important; }
+            .mod-message-box .mod-badge {
+                background: var(--accent-yellow, #eab308);
+                color: #1a0f00;
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-size: 0.55rem;
+                font-weight: 900;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                flex-shrink: 0;
+                border: none;
+                box-shadow: 0 0 8px var(--glow-yellow, rgba(234, 179, 8, 0.55));
+                line-height: 1.2;
+                white-space: nowrap;
+            }
+            .mod-message-box .mod-message-text {
+                color: var(--text-primary, #fff);
+                font-size: 0.82rem;
+                line-height: 1.45;
+                white-space: normal !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
+                overflow-wrap: anywhere;
+                word-break: break-word;
+                flex: 1;
+                min-width: 0;
+                text-align: left;
+                letter-spacing: 0.01em;
+            }
+            .mod-message-box .mod-message-text a {
+                color: var(--accent-cyan, #01E1EA);
+                text-decoration: underline;
+                text-underline-offset: 2px;
+            }
+            @media (max-width: 768px) {
+                .mod-message-box {
+                    max-width: calc(100% - 24px) !important;
+                    margin: 8px 12px !important;
+                    padding: 7px 12px !important;
+                    border-radius: 14px 14px 14px 4px;
+                    gap: 7px !important;
+                }
+                .mod-message-box .mod-badge {
+                    font-size: 0.5rem;
+                    padding: 2px 6px;
+                    letter-spacing: 0.08em;
+                }
+                .mod-message-box .mod-message-text {
+                    font-size: 0.78rem;
+                    line-height: 1.4;
+                }
+            }
+
+            /* ═══════════════════════════════════════════════════════════
+               ⚑ CHAT + RIGHT SIDEBAR — DESKTOP ONLY
+            ═══════════════════════════════════════════════════════════ */
+            @media (min-width: 769px) {
+
+                .chat-panel {
+                    padding-right: 280px !important;
+                    position: relative !important;
+                    flex: 1 1 auto !important;
+                    max-width: none !important;
+                    border-radius: 0 !important;
+                }
+
+                .chat-header-bar {
+                    width: calc(100% + 280px) !important;
+                    position: relative !important;
+                    z-index: 10 !important;
+                }
+
+                .messages-container::-webkit-scrollbar { width: 10px; }
+                .messages-container::-webkit-scrollbar-track { background: transparent; }
+                .messages-container::-webkit-scrollbar-thumb {
+                    background: var(--border-default, #1a3a5c);
+                    border-radius: 5px;
+                    border: 2px solid transparent;
+                    background-clip: padding-box;
+                }
+                .messages-container::-webkit-scrollbar-thumb:hover {
+                    background: var(--accent-cyan, #01E1EA);
+                    background-clip: padding-box;
+                }
+
+                /* ── RIGHT SIDEBAR — vertical stack of action cards ── */
+                .msn-right-sidebar {
+                    position: absolute !important;
+                    top: var(--header-height, 70px) !important;
+                    right: 0 !important;
+                    bottom: 0 !important;
+                    width: 280px !important;
+                    background: linear-gradient(180deg,
+                        var(--bg-panel, #01091A) 0%,
+                        var(--bg-deep, #050914) 100%) !important;
+                    border-left: 1px solid var(--border-subtle, rgba(255,255,255,0.06)) !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 0 !important;
+                    padding: 16px 14px !important;
+                    overflow: hidden !important;
+                    z-index: 5 !important;
+                    font-family: var(--font-mono, monospace) !important;
+                }
+                .msn-right-sidebar .msn-rs-section {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0;
+                    flex: 1 1 auto;
+                    min-height: 0;
+                }
+                                .msn-right-sidebar .msn-rs-actions {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    grid-auto-rows: minmax(90px, 1fr);
+                    gap: 12px;
+                    flex: 1 1 auto;
+                    min-height: 0;
+                    overflow-y: auto;
+                    overflow-x: hidden;
+                }
+                .msn-right-sidebar .msn-rs-actions::-webkit-scrollbar { width: 6px; }
+                .msn-right-sidebar .msn-rs-actions::-webkit-scrollbar-track { background: transparent; }
+                .msn-right-sidebar .msn-rs-actions::-webkit-scrollbar-thumb {
+                    background: var(--border-default, #1a3a5c);
+                    border-radius: 3px;
+                }
+                .msn-right-sidebar .msn-rs-actions .btn-icon,
+                .msn-right-sidebar .msn-rs-actions .header-theme-btn,
+                .msn-right-sidebar .msn-rs-actions .rankings-btn {
+                    width: 100% !important;
+                    height: 100% !important;
+                    min-height: 90px !important;
+                    padding: 14px 10px !important;
+                    font-size: 2rem !important;
+                    border-radius: 10px !important;
+                    background: var(--bg-elevated, rgba(255,255,255,0.03)) !important;
+                    border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)) !important;
+                    color: var(--text-primary, #fff) !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    gap: 8px !important;
+                    cursor: pointer !important;
+                    transition: background 0.18s ease,
+                                border-color 0.18s ease,
+                                box-shadow 0.18s ease,
+                                color 0.18s ease,
+                                transform 0.18s ease !important;
+                }
+                .msn-right-sidebar .msn-rs-actions .msn-rs-card-label {
+                    font-family: var(--font-mono, monospace);
+                    font-size: 0.72rem;
+                    font-weight: 800;
+                    letter-spacing: 0.22em;
+                    text-transform: uppercase;
+                    color: inherit;
+                    opacity: 0.75;
+                    line-height: 1;
+                    pointer-events: none;
+                    user-select: none;
+                    transition: opacity 0.18s ease;
+                }
+                .msn-right-sidebar .msn-rs-actions .btn-icon:hover,
+                .msn-right-sidebar .msn-rs-actions .header-theme-btn:hover,
+                .msn-right-sidebar .msn-rs-actions .rankings-btn:hover {
+                    border-color: var(--accent-cyan, #01E1EA) !important;
+                    color: var(--accent-cyan, #01E1EA) !important;
+                    box-shadow: 0 0 16px var(--border-glow, rgba(1, 225, 234, 0.35)) !important;
+                    background: var(--bg-hover, rgba(255,255,255,0.06)) !important;
+                    transform: translateY(-2px) !important;
+                }
+                .msn-right-sidebar .msn-rs-actions .btn-icon:hover .msn-rs-card-label {
+                    opacity: 1;
+                }
+                .msn-right-sidebar .msn-rs-actions .btn-icon img {
+                    width: 36px !important;
+                    height: 36px !important;
+                    object-fit: contain !important;
+                }
+                .msn-right-sidebar .msn-rs-actions .btn-icon.hidden {
+                    display: none !important;
+                }
+                /* ⚑ MOD card is mod-wallet only — hard-hide on .hidden */
+                .msn-right-sidebar .msn-rs-actions #modSettingsBtn.hidden,
+                .msn-right-sidebar .msn-rs-actions #modSettingsBtn[style*="display: none"] {
+                    display: none !important;
+                }
+
+                .messages-container {
+                    padding: 12px 14px !important;
+                    gap: 10px !important;
+                }
+                .input-area-bar {
+                    padding: 8px 12px 10px !important;
+                }
+                .mod-message-box {
+                    max-width: min(90%, 500px) !important;
+                }
+            }
+        `;
+        const tag = document.createElement('style');
+        tag.setAttribute('data-msn-phantom-fixes', '1');
+        tag.textContent = css;
+        document.head.appendChild(tag);
+    })();
 
     // State
     const STORAGE_KEY_NAME = 'msn_chat_username';
@@ -40,10 +489,12 @@
     let userBalances = {};
     let currentAvatarUrl = null;
     let modAnnouncement = '';
-    const supabase = sb;
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     function getWalletAddress() {
-        return wallet.get();
+        try {
+            return phantomWalletPublicKey ? phantomWalletPublicKey.toBase58() : null;
+        } catch (e) { return null; }
     }
 
     function updateAppHeight() {
@@ -405,12 +856,15 @@
     }
 
     function getBadge(balance) {
-        return badge.get(balance);
+        if (balance >= 1000000) return { emoji: '🐋', name: 'Whale' };
+        if (balance >= 250000) return { emoji: '🐬', name: 'Dolphin' };
+        if (balance >= 100000) return { emoji: '🦀', name: 'Crab' };
+        return { emoji: '🦐', name: 'Shrimp' };
     }
     function getBadgeForUser(user) {
         const bal = userBalances[user];
         if (bal === null || bal === undefined) return null;
-        return badge.get(bal);
+        return getBadge(bal);
     }
 
     function updateUserRank(balance) {
@@ -508,9 +962,12 @@
         }
     }
 
-    async     function getPhantomProvider() {
-        return wallet.provider();
-    }
+    async function connectPhantom() {
+        const provider = getPhantomProvider();
+        if (!provider) {
+            showError('Phantom wallet not installed. Please install it from phantom.app');
+            return false;
+        }
 
         if (phantomConnectBtnOverlay) {
             phantomConnectBtnOverlay.disabled = true;
@@ -574,6 +1031,16 @@
     }
     phantomConnectBtn.addEventListener('click', togglePhantomConnection);
     if (phantomConnectBtnOverlay) phantomConnectBtnOverlay.addEventListener('click', togglePhantomConnection);
+
+    function initPhantomAutoConnect() {
+        const provider = getPhantomProvider();
+        if (provider && provider.isConnected && provider.publicKey) {
+            phantomWalletPublicKey = provider.publicKey;
+            phantomConnected = true;
+            updatePhantomUI();
+            fetchAndDisplayAllTokens();
+        }
+    }
 
     modSettingsBtn.addEventListener('click', () => {
         modTokenRequirementInput.value = modTokenRequirement;
@@ -933,8 +1400,11 @@
     function escapeHtml(t) { const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}; return String(t).replace(/[&<>"']/g, m=>map[m]); }
     function trunc(t, l=45) { return t && t.length>l ? t.substring(0,l)+'…' : t||''; }
 
-        function showError(msg) {
-        toast.error(msg);
+    function showError(msg) {
+        errorToast.textContent = '⚠️ ' + msg;
+        errorToast.classList.add('visible');
+        clearTimeout(errorToast._timeout);
+        errorToast._timeout = setTimeout(() => errorToast.classList.remove('visible'), 8000);
         if (nameOverlay && !nameOverlay.classList.contains('hidden')) {
             showOverlayMessage(msg, 'error');
         }
@@ -942,7 +1412,10 @@
 
     function showSuccess(msg) {
         const clean = String(msg).replace(/^✅\s*/, '').replace(/^⚠️\s*/, '');
-        toast.success(clean);
+        errorToast.textContent = '✅ ' + clean;
+        errorToast.classList.add('visible');
+        clearTimeout(errorToast._timeout);
+        errorToast._timeout = setTimeout(() => errorToast.classList.remove('visible'), 5000);
         if (nameOverlay && !nameOverlay.classList.contains('hidden')) {
             showOverlayMessage(clean, 'success');
         }
