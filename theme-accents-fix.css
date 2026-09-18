@@ -1,0 +1,262 @@
+/* ============================================================
+   THEME ACCENTS FIX — CA pill + ONLINE dot follow the theme
+   ------------------------------------------------------------
+   Loads LAST in <head>. Uses ONLY CSS variables, never
+   hardcoded colors — so it stays gold on gold theme, green
+   on industrial, cyan on OG, orange on orange, etc.
+   No !important needed except where it must beat theme-fixes.
+============================================================ */
+
+/* ── ONLINE USERS LED dot — theme accent ── */
+.sidebar-section-label .online-dot {
+    display: inline-block !important;
+    width: 9px !important;
+    height: 9px !important;
+    border-radius: 50% !important;
+    margin-right: 8px !important;
+    flex-shrink: 0 !important;
+    vertical-align: middle !important;
+    background: var(--accent-cyan) !important;
+    border: 1px solid rgba(0, 0, 0, 0.4) !important;
+    box-shadow:
+        0 0 6px var(--accent-cyan),
+        0 0 14px var(--accent-cyan),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+    animation: themeDotPulse 2.4s ease-in-out infinite !important;
+}
+
+@keyframes themeDotPulse {
+    0%, 100% {
+        box-shadow:
+            0 0 6px var(--accent-cyan),
+            0 0 14px var(--accent-cyan),
+            inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow:
+            0 0 12px var(--accent-cyan),
+            0 0 26px var(--accent-cyan),
+            inset 0 1px 0 rgba(255, 255, 255, 0.55);
+        transform: scale(1.1);
+    }
+}
+
+/* Count badge next to ONLINE USERS */
+.sidebar-section-label .active-users-count {
+    background:
+        linear-gradient(180deg,
+            rgba(255, 255, 255, 0.06) 0%,
+            rgba(0, 0, 0, 0.12) 100%),
+        var(--bg-elevated) !important;
+    color: var(--accent-cyan) !important;
+    border: 1px solid var(--accent-cyan) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 0 10px var(--accent-cyan) !important;
+    text-shadow: 0 0 6px var(--accent-cyan) !important;
+}
+
+/* ── TOKEN CA PILL — theme accents ── */
+.token-ca {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 6px 8px 6px 10px !important;
+    border-radius: 6px !important;
+    background:
+        linear-gradient(180deg,
+            rgba(255, 255, 255, 0.05) 0%,
+            rgba(0, 0, 0, 0.15) 100%),
+        var(--bg-input) !important;
+    border: 1px solid var(--border-default) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    color: var(--text-secondary) !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    white-space: nowrap !important;
+    position: relative !important;
+    overflow: hidden !important;
+    transition:
+        border-color 0.2s ease,
+        color 0.2s ease,
+        box-shadow 0.25s ease,
+        transform 0.15s ease !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+        0 1px 3px rgba(0, 0, 0, 0.5) !important;
+}
+
+.token-ca::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important; left: -100% !important;
+    width: 60% !important;
+    height: 100% !important;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.12) 50%,
+        transparent 100%) !important;
+    transition: left 0.5s ease !important;
+    pointer-events: none !important;
+}
+.token-ca:hover::before { left: 130% !important; }
+
+.token-ca:hover {
+    border-color: var(--accent-cyan) !important;
+    color: var(--text-primary) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+        0 0 16px var(--accent-cyan),
+        0 1px 3px rgba(0, 0, 0, 0.5) !important;
+}
+
+.token-ca:active { transform: scale(0.97) !important; }
+
+.token-ca .ca-label {
+    padding: 2px 6px !important;
+    border-radius: 3px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid var(--accent-cyan) !important;
+    color: var(--accent-cyan) !important;
+    font-size: 0.62rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.14em !important;
+    line-height: 1 !important;
+    text-shadow: 0 0 6px var(--accent-cyan) !important;
+    box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.04) !important;
+}
+
+.token-ca .ca-value {
+    color: inherit !important;
+    letter-spacing: 0.06em !important;
+    font-variant-numeric: tabular-nums !important;
+    font-weight: 700 !important;
+    font-size: 0.8rem !important;
+}
+
+.token-ca .ca-copy {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 22px !important;
+    height: 22px !important;
+    margin-left: 2px !important;
+    border-radius: 4px !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid var(--border-subtle) !important;
+    color: var(--text-secondary) !important;
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.15s ease !important;
+    flex-shrink: 0 !important;
+    line-height: 1 !important;
+}
+
+.token-ca:hover .ca-copy {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: var(--accent-cyan) !important;
+    color: var(--accent-cyan) !important;
+}
+
+/* Copied state — theme accent */
+.token-ca.copied {
+    border-color: var(--accent-cyan) !important;
+    color: var(--accent-cyan) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+        0 0 24px var(--accent-cyan),
+        0 1px 3px rgba(0, 0, 0, 0.5) !important;
+}
+.token-ca.copied .ca-value {
+    text-shadow: 0 0 10px var(--accent-cyan) !important;
+}
+.token-ca.copied .ca-copy {
+    background: var(--accent-cyan) !important;
+    border-color: var(--accent-cyan) !important;
+    color: #000 !important;
+    transform: scale(1.05) !important;
+}
+
+.token-ca:focus-visible {
+    outline: 2px solid var(--accent-cyan) !important;
+    outline-offset: 2px !important;
+}
+
+/* Mobile — still hidden */
+@media (max-width: 768px) {
+    .token-ca { display: none !important; }
+}
+
+/* ═════════════════════════════════════════════════════
+   ⚑ CA COPY ICON — force perfect centering
+   Handles both emoji (📋) and inline SVG icons.
+   Kills line-height, baseline offset, and font padding
+   that push the glyph off-center.
+═════════════════════════════════════════════════════ */
+.token-ca .ca-copy {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+
+    /* Lock the box so nothing shifts */
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    padding: 0 !important;
+    margin: 0 0 0 2px !important;
+    box-sizing: border-box !important;
+
+    /* Kill every baseline / line-height quirk */
+    line-height: 1 !important;
+    font-size: 0.9rem !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+
+    /* Prevent glyph drift */
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+/* If the icon is raw text (emoji), pin it dead center */
+.token-ca .ca-copy:not(:has(svg)) {
+    /* Reset any inherited text metrics */
+    font-family: system-ui, 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif !important;
+    letter-spacing: 0 !important;
+    text-indent: 0 !important;
+    text-shadow: none !important;
+    /* Force the glyph into the middle of its line box */
+    transform: translateY(0.5px) !important;
+}
+
+/* If the icon is an SVG, center it too */
+.token-ca .ca-copy svg {
+    display: block !important;
+    width: 14px !important;
+    height: 14px !important;
+    margin: auto !important;
+    position: static !important;
+    transform: none !important;
+    vertical-align: middle !important;
+    pointer-events: none !important;
+}
+
+/* Nudge the emoji perfectly when the box is small */
+.token-ca .ca-copy svg + *,
+.token-ca .ca-copy > *:not(svg) {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    transform: none !important;
+}
