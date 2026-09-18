@@ -1,435 +1,491 @@
 <!DOCTYPE html>
 <html lang="en" class="booting">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Meme Social Network // MSN</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Meme Social Network // MSN</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap">
 
-  <link rel="preconnect" href="https://platform.twitter.com" crossorigin>
-  <link rel="preconnect" href="https://cdn.syndication.twimg.com" crossorigin>
-  <link rel="dns-prefetch" href="https://platform.twitter.com">
-  <link rel="dns-prefetch" href="https://cdn.syndication.twimg.com">
+    <link rel="preconnect" href="https://platform.twitter.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.syndication.twimg.com" crossorigin>
+    <link rel="dns-prefetch" href="https://platform.twitter.com">
+    <link rel="dns-prefetch" href="https://cdn.syndication.twimg.com">
 
-  <!-- ── Config — MUST be first ── -->
-  <script src="config.js"></script>
+    <script>
+        (function () {
+            var THEME_KEY = 'msn_theme';
+            var themes = {
+                original: 'style.css?v=73',
+                orange:   'orange-theme.css?v=69',
+                cherry:   'cherry-theme.css?v=69',
+                gold:     'gold-theme.css?v=69',
+                indu:     'indu-theme.css?v=69',
+                science:  'science-theme.css?v=70'
+            };
+            var saved = localStorage.getItem(THEME_KEY) || 'original';
+            var href = themes[saved] || themes.original;
+            document.write('<link id="themeStylesheet" rel="stylesheet" href="' + href + '">');
+        })();
+    </script>
 
-  <!-- ── Theme stylesheet (no FOUC) ── -->
-  <script>
-    (function () {
-      var T = window.MSN.config.themes;
-      var K = window.MSN.config.storageKeys.theme;
-      var saved = localStorage.getItem(K) || 'original';
-      var href = T[saved] || T.original;
-      document.write('<link id="themeStylesheet" rel="stylesheet" href="' + href + '">');
-    })();
-  </script>
+    <link rel="stylesheet" href="theme-fixes.css">
+    <link rel="stylesheet" href="theme-revamp.css">
+    <link rel="stylesheet" href="mobile-sidebar.css">
+    <link rel="stylesheet" href="chat-texture.css">
+    <link rel="stylesheet" href="rankings-epic.css">
+    <link rel="stylesheet" href="theme-accents-fix.css">
 
-  <!-- ── Feature stylesheets ── -->
-  <link rel="stylesheet" href="mobile-sidebar.css">
-  <link rel="stylesheet" href="chat-texture.css">
-  <link rel="stylesheet" href="rankings-epic.css">
-  <link rel="stylesheet" href="theme-accents-fix.css">
-  <link rel="stylesheet" href="styles/features/phantom-fixes.css">
-  <link rel="stylesheet" href="styles/features/token-card.css">
+    <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
-  <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+    <script>
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                document.documentElement.classList.remove('booting');
+            });
+        });
+    </script>
 
-  <script>
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        document.documentElement.classList.remove('booting');
-      });
-    });
-  </script>
+    <style>
+        .header-theme-btn,
+        .sidebar-theme-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1px solid var(--border-default, #454B4B);
+            background: var(--bg-elevated, #1e2221);
+            color: var(--text-primary, #ffffff);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .header-theme-btn:hover,
+        .sidebar-theme-btn:hover {
+            border-color: var(--accent-cyan, #20FF62);
+            box-shadow: 0 0 8px rgba(32,255,98,0.4);
+        }
 
-  <style>
-    /* Base fallbacks for elements owned by feature files.
-       These are safe even if the feature files aren't loaded yet. */
-    .header-theme-btn,
-    .sidebar-theme-btn {
-      width: 34px; height: 34px; border-radius: 50%;
-      border: 1px solid var(--border-default, #454B4B);
-      background: var(--bg-elevated, #1e2221);
-      color: var(--text-primary, #ffffff);
-      font-size: 1.2rem; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s;
-    }
-    .header-theme-btn:hover,
-    .sidebar-theme-btn:hover {
-      border-color: var(--accent-cyan, #20FF62);
-      box-shadow: 0 0 8px rgba(32,255,98,0.4);
-    }
-    .sidebar-theme-btn { display: none; }
-    @media (max-width: 768px) {
-      .header-theme-btn { display: none; }
-      .sidebar-theme-btn { display: flex; }
-    }
+        .theme-overlay-card { max-width: 320px; }
+        .theme-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .theme-option {
+            padding: 12px;
+            border: 1px solid var(--border-default, #454B4B);
+            border-radius: var(--radius-sm, 4px);
+            background: var(--bg-input, #111827);
+            color: var(--text-primary, #ffffff);
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .theme-option:hover {
+            border-color: var(--accent-cyan, #20FF62);
+            background: var(--bg-hover, #1d2b4d);
+        }
+        #themeOverlayCloseBtn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: var(--radius-sm, 4px);
+            background: var(--bg-hover, #1d2b4d);
+            color: var(--text-primary, #ffffff);
+            cursor: pointer;
+            font-weight: 600;
+        }
 
-    .theme-overlay-card { max-width: 320px; }
-    .theme-options {
-      display: flex; flex-direction: column;
-      gap: 10px; margin: 15px 0;
-    }
-    .theme-option {
-      padding: 12px;
-      border: 1px solid var(--border-default, #454B4B);
-      border-radius: var(--radius-sm, 4px);
-      background: var(--bg-input, #111827);
-      color: var(--text-primary, #ffffff);
-      font-size: 0.9rem; cursor: pointer;
-      text-align: left; transition: all 0.2s;
-    }
-    .theme-option:hover {
-      border-color: var(--accent-cyan, #20FF62);
-      background: var(--bg-hover, #1d2b4d);
-    }
-    #themeOverlayCloseBtn {
-      width: 100%; padding: 10px;
-      border: none; border-radius: var(--radius-sm, 4px);
-      background: var(--bg-hover, #1d2b4d);
-      color: var(--text-primary, #ffffff);
-      cursor: pointer; font-weight: 600;
-    }
-  </style>
+        .sidebar-theme-btn { display: none; }
+
+        @media (max-width: 768px) {
+            .header-theme-btn { display: none; }
+            .sidebar-theme-btn { display: flex; }
+        }
+
+        .big-level {
+            font-size: 0.72rem;
+            color: var(--accent-cyan, #00f0ff);
+            font-weight: 700;
+            margin-top: 4px;
+            letter-spacing: 0.03em;
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+        }
+        .big-level.hidden { display: none; }
+
+        .reset-login-btn {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 92, 124, 0.15);
+            border: 1px solid rgba(255, 92, 124, 0.5);
+            color: #ffb3c1;
+            border-radius: var(--radius-md, 10px);
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-family: var(--font-main, inherit);
+            letter-spacing: 0.05em;
+        }
+        .reset-login-btn:hover {
+            background: rgba(255, 92, 124, 0.3);
+            box-shadow: 0 0 10px rgba(255, 92, 124, 0.4);
+        }
+    </style>
 </head>
 <body>
-  <canvas id="particleCanvas"></canvas>
+    <canvas id="particleCanvas"></canvas>
 
-  <div class="overlay-full" id="nameOverlay">
-    <div class="overlay-card">
-      <div class="profile-pic-upload">
-        <div class="profile-pic-preview" id="profilePicPreview" title="Click to upload picture">
-          <span>📷</span>
+    <div class="overlay-full" id="nameOverlay">
+        <div class="overlay-card">
+            <div class="profile-pic-upload">
+                <div class="profile-pic-preview" id="profilePicPreview" title="Click to upload picture">
+                    <span>📷</span>
+                </div>
+                <input type="file" id="profilePicInput" accept="image/*" style="display:none;">
+                <span class="text-muted-small">Profile picture (optional)</span>
+            </div>
+            <h3>CREATE YOUR IDENTITY</h3>
+            <input type="text" id="nameInput" placeholder="Your signature..." maxlength="30" autocomplete="off">
+            <button class="btn-icon phantom-overlay-btn" id="phantomConnectBtnOverlay" title="Connect Phantom Wallet">
+                <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom">
+                <span>Connect Phantom</span>
+            </button>
+            <span class="wallet-address" id="walletAddressOverlay"></span>
+            <button id="nameSubmitBtn">JOIN MEME SOCIAL NETWORK</button>
         </div>
-        <input type="file" id="profilePicInput" accept="image/*" style="display:none;">
-        <span class="text-muted-small">Profile picture (optional)</span>
-      </div>
-      <h3>CREATE YOUR IDENTITY</h3>
-      <input type="text" id="nameInput" placeholder="Your signature..." maxlength="30" autocomplete="off">
-      <button class="btn-icon phantom-overlay-btn" id="phantomConnectBtnOverlay" title="Connect Phantom Wallet">
-        <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom">
-        <span>Connect Phantom</span>
-      </button>
-      <span class="wallet-address" id="walletAddressOverlay"></span>
-      <button id="nameSubmitBtn">JOIN MEME SOCIAL NETWORK</button>
     </div>
-  </div>
 
-  <div class="request-overlay hidden" id="requestOverlay">
-    <div class="request-card">
-      <div class="request-avatar" id="requestAvatar"></div>
-      <div class="request-name" id="requestName"></div>
-      <div class="request-buttons">
-        <button class="btn-accept" id="requestAcceptBtn">✅ Accept</button>
-        <button class="btn-decline" id="requestDeclineBtn">❌ Decline</button>
-      </div>
+    <div class="request-overlay hidden" id="requestOverlay">
+        <div class="request-card">
+            <div class="request-avatar" id="requestAvatar"></div>
+            <div class="request-name" id="requestName"></div>
+            <div class="request-buttons">
+                <button class="btn-accept" id="requestAcceptBtn">✅ Accept</button>
+                <button class="btn-decline" id="requestDeclineBtn">❌ Decline</button>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <div class="overlay-full hidden" id="modSettingsOverlay">
-    <div class="overlay-card">
-      <h3>⚙️ MOD SETTINGS</h3>
-      <label for="modTokenRequirement">Required tokens to chat</label>
-      <input type="number" id="modTokenRequirement" min="0" step="1000">
-      <label for="modCooldownSelect">Cooldown between messages</label>
-      <select id="modCooldownSelect">
-        <option value="0">No cooldown</option>
-        <option value="5">5 seconds</option>
-        <option value="10">10 seconds</option>
-        <option value="15">15 seconds</option>
-      </select>
-      <div id="modAnnouncementSection" class="hidden">
-        <label for="modAnnouncementInput">Official Announcement</label>
-        <textarea id="modAnnouncementInput" rows="3" maxlength="300" placeholder="Type your announcement..."></textarea>
-        <button id="modPostAnnouncementBtn">POST ANNOUNCEMENT</button>
-      </div>
-      <button id="modResetLoginBtn" class="reset-login-btn">🔄 Reset All Login Streaks</button>
-      <button id="modSaveSettingsBtn">SAVE SETTINGS</button>
-      <button id="modCloseSettingsBtn">Close</button>
+    <div class="overlay-full hidden" id="modSettingsOverlay">
+        <div class="overlay-card">
+            <h3>⚙️ MOD SETTINGS</h3>
+            <label for="modTokenRequirement">Required tokens to chat</label>
+            <input type="number" id="modTokenRequirement" min="0" step="1000">
+            <label for="modCooldownSelect">Cooldown between messages</label>
+            <select id="modCooldownSelect">
+                <option value="0">No cooldown</option>
+                <option value="5">5 seconds</option>
+                <option value="10">10 seconds</option>
+                <option value="15">15 seconds</option>
+            </select>
+            <div id="modAnnouncementSection" class="hidden">
+                <label for="modAnnouncementInput">Official Announcement</label>
+                <textarea id="modAnnouncementInput" rows="3" maxlength="300" placeholder="Type your announcement..."></textarea>
+                <button id="modPostAnnouncementBtn">POST ANNOUNCEMENT</button>
+            </div>
+            <button id="modResetLoginBtn" class="reset-login-btn">🔄 Reset All Login Streaks</button>
+            <button id="modSaveSettingsBtn">SAVE SETTINGS</button>
+            <button id="modCloseSettingsBtn">Close</button>
+        </div>
     </div>
-  </div>
 
-  <div class="app-shell" id="appShell">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-user-profile-big" id="sidebarUserProfileBig">
-        <div class="big-avatar" id="sidebarBigAvatar">?</div>
-        <div class="big-info">
-          <div class="big-name" id="sidebarBigName">You</div>
-          <div class="big-rank hidden" id="sidebarBigRank"></div>
-          <div class="big-level hidden" id="sidebarBigLevel"></div>
-          <div class="big-status"><span class="status-dot"></span> Online</div>
-        </div>
-        <button class="btn-icon edit-profile-btn" id="sidebarChangeNameBtn" title="Change name">✎</button>
-      </div>
+    <div class="app-shell" id="appShell">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-user-profile-big" id="sidebarUserProfileBig">
+                <div class="big-avatar" id="sidebarBigAvatar">?</div>
+                <div class="big-info">
+                    <div class="big-name" id="sidebarBigName">You</div>
+                    <div class="big-rank hidden" id="sidebarBigRank"></div>
+                    <div class="big-level hidden" id="sidebarBigLevel"></div>
+                    <div class="big-status"><span class="status-dot"></span> Online</div>
+                </div>
+                <button class="btn-icon edit-profile-btn" id="sidebarChangeNameBtn" title="Change name">✎</button>
+            </div>
+            <div class="sidebar-section-label">
+                🔵 ACTIVE USERS <span class="active-users-count" id="sidebarActiveUsersCount">0</span>
+            </div>
+            <button class="btn-icon sidebar-theme-btn" id="sidebarThemeBtn" title="Change theme">🎨</button>
+            <button class="btn-icon rankings-btn" id="rankingsBtn" title="Rankings">🏆</button>
+            <div class="sidebar-users" id="sidebarUsers">
+                <div class="no-users-sidebar">No one else online</div>
+            </div>
+            <div class="token-tracker mobile-only" id="mobileTokenTracker">
+                <img class="token-logo" id="mobileTokenLogo" src="" alt="logo">
+                <span class="token-name" id="mobileTokenName">TOKEN</span>
+                <span class="token-price" id="mobileTokenPrice">--</span>
+                <span class="token-change" id="mobileTokenChange">--</span>
+            </div>
+            <div class="sidebar-streak-display hidden" id="sidebarStreakDisplay">
+                <div class="streak-fires" id="streakFires"></div>
+                <span class="streak-overflow hidden" id="streakOverflow"></span>
+            </div>
+            <div class="sidebar-footer">
+                <span class="status-dot-sm" id="sidebarStatusDot"></span>
+                <span id="sidebarStatusText">Connecting…</span>
+                <span class="wallet-address" id="sidebarWalletAddress"></span>
+            </div>
+        </aside>
 
-      <div class="sidebar-section-label">
-        🔵 ACTIVE USERS <span class="active-users-count" id="sidebarActiveUsersCount">0</span>
-      </div>
-
-      <button class="btn-icon sidebar-theme-btn" id="sidebarThemeBtn" title="Change theme">🎨</button>
-      <button class="btn-icon rankings-btn" id="rankingsBtn" title="Rankings">🏆</button>
-
-      <div class="sidebar-users" id="sidebarUsers">
-        <div class="no-users-sidebar">No one else online</div>
-      </div>
-
-      <div class="token-tracker mobile-only" id="mobileTokenTracker">
-        <img class="token-logo" id="mobileTokenLogo" src="" alt="logo">
-        <span class="token-name" id="mobileTokenName">TOKEN</span>
-        <span class="token-price" id="mobileTokenPrice">--</span>
-        <span class="token-change" id="mobileTokenChange">--</span>
-      </div>
-
-      <div class="sidebar-streak-display hidden" id="sidebarStreakDisplay">
-        <div class="streak-fires" id="streakFires"></div>
-        <span class="streak-overflow hidden" id="streakOverflow"></span>
-      </div>
-
-      <div class="sidebar-footer">
-        <span class="status-dot-sm" id="sidebarStatusDot"></span>
-        <span id="sidebarStatusText">Connecting…</span>
-        <span class="wallet-address" id="sidebarWalletAddress"></span>
-      </div>
-    </aside>
-
-    <main class="chat-panel" id="chatPanel">
-      <div class="chat-header-bar">
-        <div class="header-left">
-          <button class="sidebar-toggle hidden" id="sidebarToggle" title="Users">☰</button>
-          <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="Logo" class="header-logo">
-        </div>
-        <div class="header-center">
-          <div class="token-tracker" id="tokenTracker">
-            <img class="token-logo" id="tokenLogo" src="" alt="logo">
-            <span class="token-name" id="tokenName">TOKEN</span>
-            <span class="token-price" id="tokenPrice">--</span>
-            <span class="token-change" id="tokenChange">--</span>
-          </div>
-        </div>
-        <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="Logo" class="header-logo-mobile">
-        <div class="header-right">
-          <span class="badge-pill" id="connectionPill">
-            <span id="connDot"></span>
-            <span id="connText" class="conn-text-full">Connecting…</span>
-          </span>
-          <span class="online-count-badge" id="onlineCountBadge">
-            <span class="dot"></span>
-            <span id="onlineCountNumber">0</span>
-          </span>
-          <button class="btn-icon phantom-btn" id="phantomConnectBtn" title="Connect Phantom Wallet">
-            <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom">
-          </button>
-          <button class="btn-icon mobile-edit-btn" id="mobileEditBtn" title="Edit profile">✎</button>
-          <span class="wallet-address" id="walletAddress"></span>
-          <button class="btn-icon hidden" id="modSettingsBtn" title="Mod Settings">⚙️</button>
-          <button class="btn-icon header-theme-btn" id="headerThemeBtn" title="Change theme">🎨</button>
-          <button class="btn-icon" id="refreshBtn" title="Reconnect"><span class="spin-icon">↻</span></button>
-        </div>
-      </div>
-
-      <div class="chat-tabs" id="chatTabs">
-        <div class="chat-tab active" data-tab="public">🌐 Public</div>
-        <div class="chat-tab" data-tab="private">🔒 Private</div>
-      </div>
-
-      <div class="mod-message-box" id="modMessageBox">
-        <span class="mod-badge">PINNED</span>
-        <span class="mod-message-text" id="modMessageText">No announcements yet</span>
-      </div>
-
-      <div class="error-toast" id="errorToast"></div>
-      <div class="typing-indicator" id="typingIndicator"></div>
-
-      <div class="messages-container" id="publicMessagesContainer">
-        <div class="empty-chat-hint" id="publicEmptyHint">No messages yet. Spark the conversation 💬</div>
-      </div>
-      <div class="messages-container hidden" id="privateMessagesContainer">
-        <div class="empty-chat-hint" id="privateEmptyHint">No private messages with this user.</div>
-      </div>
-
-      <button class="scroll-bottom-btn" id="scrollBottomBtn" title="Scroll to bottom">↓</button>
-
-      <div class="input-area-bar" id="inputAreaBar">
-        <div class="reply-indicator-bar hidden" id="replyIndicatorBar">
-          <span>↳ Replying to <strong id="replyToUserDisp"></strong></span>
-          <img id="replyPreviewThumb" class="reply-preview-thumb hidden" src="" alt="thumb">
-          <span class="reply-preview-text" id="replyPreviewDisp"></span>
-          <button class="cancel-btn" id="cancelReplyBtn">✕</button>
-        </div>
-        <div class="private-indicator-bar hidden" id="privateIndicatorBar">
-          🔒 Private chat with <strong id="privateChatUserDisp"></strong>
-          <button class="cancel-btn" id="cancelPrivateBtn">✕ End</button>
-        </div>
-        <div class="image-preview-row hidden" id="imagePreviewRow">
-          <img class="image-preview-thumb" id="imagePreviewThumb" src="" alt="preview">
-          <span class="image-preview-name" id="imagePreviewName"></span>
-          <button class="image-preview-remove" id="imagePreviewRemove">✕</button>
-        </div>
-        <div id="cooldownIndicator" class="cooldown-indicator hidden"></div>
-        <div class="input-row-wrap">
-          <input type="text" id="messageInput" placeholder="Type a message..." maxlength="500" autocomplete="off">
-          <button class="btn-upload-img" id="uploadImgBtn" title="Attach image (max 750px)">🖼</button>
-          <input type="file" id="fileInput" accept="image/*" style="display:none;">
-          <button class="send-btn-main" id="sendBtn">SEND</button>
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <div class="overlay-full hidden" id="themeOverlay">
-    <div class="overlay-card theme-overlay-card">
-      <h3>Select Theme</h3>
-      <div class="theme-options">
-        <button class="theme-option" data-theme="original"><span class="emoji">🎨</span><span class="theme-name">OG</span></button>
-        <button class="theme-option" data-theme="orange"><span class="emoji">🟠</span><span class="theme-name">Orange</span></button>
-        <button class="theme-option" data-theme="cherry"><span class="emoji">🍒</span><span class="theme-name">Cherry</span></button>
-        <button class="theme-option" data-theme="gold"><span class="emoji">👑</span><span class="theme-name">GoldRush</span></button>
-        <button class="theme-option" data-theme="indu"><span class="emoji">🔨</span><span class="theme-name">Industrial</span></button>
-        <button class="theme-option" data-theme="science"><span class="emoji">🛰️</span><span class="theme-name">Science</span></button>
-      </div>
-      <button id="themeOverlayCloseBtn">Close</button>
+        <main class="chat-panel" id="chatPanel">
+            <div class="chat-header-bar">
+                <div class="header-left">
+                    <button class="sidebar-toggle hidden" id="sidebarToggle" title="Users">☰</button>
+                    <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="Logo" class="header-logo">
+                </div>
+                <div class="header-center">
+                    <div class="token-tracker" id="tokenTracker">
+                        <img class="token-logo" id="tokenLogo" src="" alt="logo">
+                        <span class="token-name" id="tokenName">TOKEN</span>
+                        <span class="token-price" id="tokenPrice">--</span>
+                        <span class="token-change" id="tokenChange">--</span>
+                    </div>
+                </div>
+                <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="Logo" class="header-logo-mobile">
+                <div class="header-right">
+                    <span class="badge-pill" id="connectionPill">
+                        <span id="connDot"></span>
+                        <span id="connText" class="conn-text-full">Connecting…</span>
+                    </span>
+                    <span class="online-count-badge" id="onlineCountBadge">
+                        <span class="dot"></span>
+                        <span id="onlineCountNumber">0</span>
+                    </span>
+                    <button class="btn-icon phantom-btn" id="phantomConnectBtn" title="Connect Phantom Wallet">
+                        <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom">
+                    </button>
+                    <button class="btn-icon mobile-edit-btn" id="mobileEditBtn" title="Edit profile">✎</button>
+                    <span class="wallet-address" id="walletAddress"></span>
+                    <button class="btn-icon hidden" id="modSettingsBtn" title="Mod Settings">⚙️</button>
+                    <button class="btn-icon header-theme-btn" id="headerThemeBtn" title="Change theme">🎨</button>
+                    <button class="btn-icon" id="refreshBtn" title="Reconnect"><span class="spin-icon">↻</span></button>
+                </div>
+            </div>
+            <div class="chat-tabs" id="chatTabs">
+                <div class="chat-tab active" data-tab="public">🌐 Public</div>
+                <div class="chat-tab" data-tab="private">🔒 Private</div>
+            </div>
+            <div class="mod-message-box" id="modMessageBox">
+                <span class="mod-badge">PINNED</span>
+                <span class="mod-message-text" id="modMessageText">No announcements yet</span>
+            </div>
+            <div class="error-toast" id="errorToast"></div>
+            <div class="typing-indicator" id="typingIndicator"></div>
+            <div class="messages-container" id="publicMessagesContainer">
+                <div class="empty-chat-hint" id="publicEmptyHint">No messages yet. Spark the conversation 💬</div>
+            </div>
+            <div class="messages-container hidden" id="privateMessagesContainer">
+                <div class="empty-chat-hint" id="privateEmptyHint">No private messages with this user.</div>
+            </div>
+            <button class="scroll-bottom-btn" id="scrollBottomBtn" title="Scroll to bottom">↓</button>
+            <div class="input-area-bar" id="inputAreaBar">
+                <div class="reply-indicator-bar hidden" id="replyIndicatorBar">
+                    <span>↳ Replying to <strong id="replyToUserDisp"></strong></span>
+                    <img id="replyPreviewThumb" class="reply-preview-thumb hidden" src="" alt="thumb">
+                    <span class="reply-preview-text" id="replyPreviewDisp"></span>
+                    <button class="cancel-btn" id="cancelReplyBtn">✕</button>
+                </div>
+                <div class="private-indicator-bar hidden" id="privateIndicatorBar">
+                    🔒 Private chat with <strong id="privateChatUserDisp"></strong>
+                    <button class="cancel-btn" id="cancelPrivateBtn">✕ End</button>
+                </div>
+                <div class="image-preview-row hidden" id="imagePreviewRow">
+                    <img class="image-preview-thumb" id="imagePreviewThumb" src="" alt="preview">
+                    <span class="image-preview-name" id="imagePreviewName"></span>
+                    <button class="image-preview-remove" id="imagePreviewRemove">✕</button>
+                </div>
+                <div id="cooldownIndicator" class="cooldown-indicator hidden"></div>
+                <div class="input-row-wrap">
+                    <input type="text" id="messageInput" placeholder="Type a message..." maxlength="500" autocomplete="off">
+                    <button class="btn-upload-img" id="uploadImgBtn" title="Attach image (max 750px)">🖼</button>
+                    <input type="file" id="fileInput" accept="image/*" style="display:none;">
+                    <button class="send-btn-main" id="sendBtn">SEND</button>
+                </div>
+            </div>
+        </main>
     </div>
-  </div>
 
-  <div class="overlay-full hidden" id="rankingsOverlay">
-    <div class="overlay-card rankings-card">
-      <div class="rankings-header">
-        <h3>🏆 Rankings</h3>
-        <button class="rankings-close-btn" id="rankingsCloseBtn" title="Close">✕</button>
-      </div>
-      <div class="rankings-body">
-        <div class="rankings-column">
-          <div class="rankings-column-title">🐋 TOP HOLDERS</div>
-          <div id="holdersLeaderboard" class="rankings-list">
-            <div class="rankings-empty">Loading…</div>
-          </div>
+    <div class="overlay-full hidden" id="themeOverlay">
+        <div class="overlay-card theme-overlay-card">
+            <h3>Select Theme</h3>
+            <div class="theme-options">
+                <button class="theme-option" data-theme="original">
+                    <span class="emoji">🎨</span>
+                    <span class="theme-name">OG</span>
+                </button>
+                <button class="theme-option" data-theme="orange">
+                    <span class="emoji">🟠</span>
+                    <span class="theme-name">Orange</span>
+                </button>
+                <button class="theme-option" data-theme="cherry">
+                    <span class="emoji">🍒</span>
+                    <span class="theme-name">Cherry</span>
+                </button>
+                <button class="theme-option" data-theme="gold">
+                    <span class="emoji">👑</span>
+                    <span class="theme-name">GoldRush</span>
+                </button>
+                <button class="theme-option" data-theme="indu">
+                    <span class="emoji">🔨</span>
+                    <span class="theme-name">Industrial</span>
+                </button>
+                <button class="theme-option" data-theme="science">
+                    <span class="emoji">🛰️</span>
+                    <span class="theme-name">Science</span>
+                </button>
+            </div>
+            <button id="themeOverlayCloseBtn">Close</button>
         </div>
-        <div class="rankings-column">
-          <div class="rankings-column-title">🔥 TOP ACTIVITY</div>
-          <div id="activityLeaderboard" class="rankings-list">
-            <div class="rankings-empty">Loading…</div>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
 
-  <div class="lightbox-overlay hidden" id="lightboxOverlay">
-    <img id="lightboxImg" src="" alt="Enlarged image">
-  </div>
+    <div class="overlay-full hidden" id="rankingsOverlay">
+        <div class="overlay-card rankings-card">
+            <div class="rankings-header">
+                <h3>🏆 Rankings</h3>
+                <button class="rankings-close-btn" id="rankingsCloseBtn" title="Close">✕</button>
+            </div>
+            <div class="rankings-body">
+                <div class="rankings-column">
+                    <div class="rankings-column-title">🐋 TOP HOLDERS</div>
+                    <div id="holdersLeaderboard" class="rankings-list">
+                        <div class="rankings-empty">Loading…</div>
+                    </div>
+                </div>
+                <div class="rankings-column">
+                    <div class="rankings-column-title">🔥 TOP ACTIVITY</div>
+                    <div id="activityLeaderboard" class="rankings-list">
+                        <div class="rankings-empty">Loading…</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  <!-- ═══════════════ Scripts ═══════════════ -->
+    <div class="lightbox-overlay hidden" id="lightboxOverlay">
+        <img id="lightboxImg" src="" alt="Enlarged image">
+    </div>
 
-  <!-- Vendors -->
-  <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
-  <script src="https://unpkg.com/@solana/spl-token@latest/lib/index.iife.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
+    <script src="https://unpkg.com/@solana/spl-token@latest/lib/index.iife.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js?v=69"></script>
+    <script src="login-tracking.js?v=69"></script>
+    <script src="xp-system.js?v=69"></script>
+    <script src="token-ca.js"></script> 
+    <script src="rank-badge-fix.js"></script>
 
-  <!-- Core (order matters: events → supabase → wallet → badge → toast) -->
-  <script src="core/events.js"></script>
-  <script src="core/supabase.js"></script>
-  <script src="core/wallet.js"></script>
-  <script src="core/rank-badge.js"></script>
-  <script src="core/toast.js"></script>
+    <script>
+        (function () {
+            const themeLink = document.getElementById('themeStylesheet');
+            const THEME_KEY = 'msn_theme';
 
-  <!-- App -->
-  <script src="script.js?v=70"></script>
-  <script src="login-tracking.js?v=70"></script>
-  <script src="xp-system.js?v=70"></script>
-  <script src="token-ca.js?v=70"></script>
+            const themes = {
+                original: 'style.css?v=73',
+                orange:   'orange-theme.css?v=69',
+                cherry:   'cherry-theme.css?v=69',
+                gold:     'gold-theme.css?v=69',
+                indu:     'indu-theme.css?v=69',
+                science:  'science-theme.css?v=70'
+            };
 
-  <!-- Features -->
-  <script src="features/debug-panel.js"></script>
-  <script src="features/token-card.js"></script>
+            function setTheme(themeId) {
+                if (!themes[themeId]) themeId = 'original';
+                themeLink.setAttribute('href', themes[themeId]);
+                localStorage.setItem(THEME_KEY, themeId);
+                highlightCurrentTheme();
+            }
 
-  <!-- Theme picker -->
-  <script>
-    (function () {
-      var T = window.MSN.config.themes;
-      var K = window.MSN.config.storageKeys.theme;
-      var link = document.getElementById('themeStylesheet');
-      var overlay = document.getElementById('themeOverlay');
-      var headerBtn = document.getElementById('headerThemeBtn');
-      var sidebarBtn = document.getElementById('sidebarThemeBtn');
-      var closeBtn = document.getElementById('themeOverlayCloseBtn');
+            const headerThemeBtn = document.getElementById('headerThemeBtn');
+            const sidebarThemeBtn = document.getElementById('sidebarThemeBtn');
+            const themeOverlay = document.getElementById('themeOverlay');
+            const themeOverlayCloseBtn = document.getElementById('themeOverlayCloseBtn');
+            const themeOptionButtons = document.querySelectorAll('.theme-option');
 
-      function highlight() {
-        var cur = localStorage.getItem(K) || 'original';
-        document.querySelectorAll('.theme-option').forEach(function (b) {
-          b.classList.toggle('active', b.getAttribute('data-theme') === cur);
-        });
-      }
-      function setTheme(id) {
-        if (!T[id]) id = 'original';
-        link.setAttribute('href', T[id]);
-        localStorage.setItem(K, id);
-        highlight();
-      }
-      function open()  { highlight(); overlay.classList.remove('hidden'); }
-      function close() { overlay.classList.add('hidden'); }
+            function openThemeOverlay() {
+                highlightCurrentTheme();
+                themeOverlay.classList.remove('hidden');
+            }
 
-      if (headerBtn) headerBtn.addEventListener('click', open);
-      if (sidebarBtn) sidebarBtn.addEventListener('click', open);
-      if (closeBtn)   closeBtn.addEventListener('click', close);
+            function closeThemeOverlay() {
+                themeOverlay.classList.add('hidden');
+            }
 
-      document.querySelectorAll('.theme-option').forEach(function (b) {
-        b.addEventListener('click', function () {
-          setTheme(b.getAttribute('data-theme'));
-          close();
-        });
-      });
+            function highlightCurrentTheme() {
+                const current = localStorage.getItem(THEME_KEY) || 'original';
+                document.querySelectorAll('.theme-option').forEach(btn => {
+                    btn.classList.toggle('active', btn.getAttribute('data-theme') === current);
+                });
+            }
 
-      highlight();
-      window.setTheme = setTheme;
-      window.getCurrentTheme = function () { return localStorage.getItem(K) || 'original'; };
-    })();
-  </script>
+            if (headerThemeBtn) headerThemeBtn.addEventListener('click', openThemeOverlay);
+            if (sidebarThemeBtn) sidebarThemeBtn.addEventListener('click', openThemeOverlay);
+            if (themeOverlayCloseBtn) themeOverlayCloseBtn.addEventListener('click', closeThemeOverlay);
 
-  <!-- Mobile sidebar back button -->
-  <script>
-    (function () {
-      var MQ = window.matchMedia('(max-width: 768px)');
+            themeOptionButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const themeId = btn.getAttribute('data-theme');
+                    setTheme(themeId);
+                    closeThemeOverlay();
+                });
+            });
 
-      function sync() {
-        var sidebar = document.getElementById('sidebar');
-        if (!sidebar) return;
-        var existing = document.getElementById('sidebarBackBtn');
+            highlightCurrentTheme();
 
-        if (MQ.matches && !existing) {
-          var btn = document.createElement('button');
-          btn.id = 'sidebarBackBtn';
-          btn.className = 'sidebar-back-btn';
-          btn.type = 'button';
-          btn.setAttribute('aria-label', 'Back to chat');
-          btn.innerHTML = '<span class="arrow">←</span><span class="label">BACK TO CHAT</span>';
-          btn.addEventListener('click', function () {
-            sidebar.classList.remove('open');
-          });
-          sidebar.insertBefore(btn, sidebar.firstChild);
-        } else if (!MQ.matches && existing) {
-          existing.remove();
-        }
-      }
+            window.setTheme = setTheme;
+            window.getCurrentTheme = () => localStorage.getItem(THEME_KEY) || 'original';
+        })();
+    </script>
 
-      sync();
-      if (MQ.addEventListener) MQ.addEventListener('change', sync);
-      else MQ.addListener(sync);
-      document.addEventListener('DOMContentLoaded', sync);
-      window.addEventListener('load', sync);
+    <script>
+        (function () {
+            var MQ = window.matchMedia('(max-width: 768px)');
 
-      var mo = new MutationObserver(function () {
-        if (MQ.matches && !document.getElementById('sidebarBackBtn')) sync();
-      });
-      document.addEventListener('DOMContentLoaded', function () {
-        var sidebar = document.getElementById('sidebar');
-        if (sidebar) mo.observe(sidebar, { childList: true });
-      });
-    })();
-  </script>
+            function sync() {
+                var sidebar = document.getElementById('sidebar');
+                if (!sidebar) return;
+
+                var existing = document.getElementById('sidebarBackBtn');
+
+                if (MQ.matches && !existing) {
+                    var btn = document.createElement('button');
+                    btn.id = 'sidebarBackBtn';
+                    btn.className = 'sidebar-back-btn';
+                    btn.type = 'button';
+                    btn.setAttribute('aria-label', 'Back to chat');
+                    btn.innerHTML = '<span class="arrow">←</span><span class="label">BACK TO CHAT</span>';
+
+                    btn.addEventListener('click', function () {
+                        sidebar.classList.remove('open');
+                    });
+
+                    sidebar.insertBefore(btn, sidebar.firstChild);
+                } else if (!MQ.matches && existing) {
+                    existing.remove();
+                }
+            }
+
+            sync();
+            if (MQ.addEventListener) MQ.addEventListener('change', sync);
+            else MQ.addListener(sync);
+            document.addEventListener('DOMContentLoaded', sync);
+            window.addEventListener('load', sync);
+
+            var mo = new MutationObserver(function () {
+                if (MQ.matches && !document.getElementById('sidebarBackBtn')) sync();
+            });
+            document.addEventListener('DOMContentLoaded', function () {
+                var sidebar = document.getElementById('sidebar');
+                if (sidebar) mo.observe(sidebar, { childList: true });
+            });
+        })();
+    </script>
 </body>
 </html>
