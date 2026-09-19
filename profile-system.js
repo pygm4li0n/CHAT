@@ -599,7 +599,7 @@
         for (var i = 0; i < MAX; i++) {
             fires += '<span class="msn-fire ' + (i < filled ? 'filled' : 'empty') + '">🔥</span>';
         }
-        var count = '🔥 ' + streak; // always visible, even at 0/1
+        var count = 'X' + streak; // always visible, even at 0/1
         return ''
             + '<div class="msn-streak-row">'
             +   '<span class="msn-streak-label">Streak</span>'
