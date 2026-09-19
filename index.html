@@ -14,6 +14,7 @@
     <link rel="dns-prefetch" href="https://platform.twitter.com">
     <link rel="dns-prefetch" href="https://cdn.syndication.twimg.com">
 
+    <!-- Dynamic theme stylesheet — must load FIRST so overrides can win -->
     <script>
         (function () {
             var THEME_KEY = 'msn_theme';
@@ -31,10 +32,12 @@
         })();
     </script>
 
-    <link rel="stylesheet" href="theme-fixes.css">
-    <link rel="stylesheet" href="theme-revamp.css">
+    <!-- Merged override stack — replaces theme-fixes.css + theme-revamp.css + chat-texture.css.
+         Internal order (see file header): theme-fixes → theme-revamp → chat-texture → resolution. -->
+    <link rel="stylesheet" href="theme-merged.css">
+
+    <!-- Other app stylesheets -->
     <link rel="stylesheet" href="mobile-sidebar.css">
-    <link rel="stylesheet" href="chat-texture.css">
     <link rel="stylesheet" href="rankings-epic.css">
     <link rel="stylesheet" href="theme-accents-fix.css">
 
@@ -108,36 +111,6 @@
         @media (max-width: 768px) {
             .header-theme-btn { display: none; }
             .sidebar-theme-btn { display: flex; }
-        }
-
-        .big-level {
-            font-size: 0.72rem;
-            color: var(--accent-cyan, #00f0ff);
-            font-weight: 700;
-            margin-top: 4px;
-            letter-spacing: 0.03em;
-            text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
-        }
-        .big-level.hidden { display: none; }
-
-        .reset-login-btn {
-            width: 100%;
-            padding: 12px;
-            background: rgba(255, 92, 124, 0.15);
-            border: 1px solid rgba(255, 92, 124, 0.5);
-            color: #ffb3c1;
-            border-radius: var(--radius-md, 10px);
-            font-weight: 700;
-            cursor: pointer;
-            margin-top: 0.5rem;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            font-family: var(--font-main, inherit);
-            letter-spacing: 0.05em;
-        }
-        .reset-login-btn:hover {
-            background: rgba(255, 92, 124, 0.3);
-            box-shadow: 0 0 10px rgba(255, 92, 124, 0.4);
         }
     </style>
 </head>
