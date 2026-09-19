@@ -7,10 +7,10 @@
 
    • Reuses window.MSN.supabase (or builds a fallback client)
    • Reads self identity from localStorage (no closure access)
+   • Self streak is read from the live tracking DOM (#sidebarStreakDisplay)
    • Detects online status from the sidebar DOM
    • Renders one reusable card for "Me" or "Other user"
    • Clickable usernames with hover underline + "VIEW PROFILE" hint
-   • Degrades gracefully if new columns/tables don't exist yet
    ============================================================ */
 (function () {
     'use strict';
@@ -64,12 +64,34 @@
         );
         return !!(item && item.querySelector('.online-indicator'));
     }
+
+    /* ── Read live streak from the tracking system's DOM ────
+       app-extras.js Section 3 owns the streak. It renders
+       #sidebarStreakDisplay / #streakFires / #streakOverflow.
+       We read that DOM instead of profiles.current_streak,
+       which is empty because tracking is wallet-based. */
+    function readSelfStreakFromDOM() {
+        var container = document.getElementById('sidebarStreakDisplay');
+        if (!container || container.classList.contains('hidden')) return 0;
+
+        // Overflow "× N" when streak > 7
+        var overflow = document.getElementById('streakOverflow');
+        if (overflow && !overflow.classList.contains('hidden')) {
+            var txt = overflow.textContent || '';
+            var m = txt.match(/(\d+)/);
+            if (m) return Number(m[1]);
+        }
+
+        // Otherwise count filled fire slots (max 7)
+        var fires = document.getElementById('streakFires');
+        if (!fires) return 0;
+        return fires.querySelectorAll('.fire-slot.fire-filled').length;
+    }
+
     function extractUsernameFromMsgUsername(el) {
         if (!el) return null;
-        // Prefer the wrapped span (post-decoration)
         var link = el.querySelector('.msn-username-link');
         if (link) return link.textContent.trim() || null;
-        // Fallback: raw text node
         for (var i = 0; i < el.childNodes.length; i++) {
             var n = el.childNodes[i];
             if (n.nodeType === 3) {
@@ -80,7 +102,7 @@
         return null;
     }
 
-    /* ── Toast (piggy-backs on existing #errorToast element) ── */
+    /* ── Toast ─────────────────────────────────────────────── */
     function toast(msg) {
         var el = document.getElementById('errorToast');
         if (!el) { console.log('[profile]', msg); return; }
@@ -168,9 +190,9 @@
         +   'letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin:0 0 18px;'
         + '}'
 
-        /* HUD stats */
+        /* HUD stats — 3 columns (Level / XP / Messages) */
         + '.msn-profile-hud{'
-        +   'display:grid;grid-template-columns:repeat(4,1fr);gap:6px;'
+        +   'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;'
         +   'padding:12px 8px;margin-bottom:14px;'
         +   'background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,rgba(0,0,0,.15) 100%),var(--bg-input,#111827);'
         +   'border:1px solid var(--border-default,#233261);border-radius:var(--radius-md,10px);'
@@ -410,7 +432,6 @@
             el.setAttribute('data-msn-pu', '1');
             return;
         }
-        // No raw text node — mark so we don't retry forever
         el.setAttribute('data-msn-pu', '1');
     }
 
@@ -446,7 +467,7 @@
     }
 
     /* ── Data fetch ───────────────────────────────────────── */
-    async function fetchProfileData(username) {
+    async function fetchProfileData(username, isSelf) {
         var sb = getSB();
         if (!sb) return { error: 'no-supabase' };
 
@@ -485,8 +506,15 @@
         out.xp             = Number(profile.xp || 0);
         out.level          = Number(profile.level || levelFromXp(out.xp));
         out.messages_count = Number(profile.messages_count || 0);
-        out.current_streak = Number(profile.current_streak || 0);
         out.created_at     = profile.created_at || null;
+
+        // Streak: for SELF read live value from the tracking DOM.
+        // For OTHERS, fall back to the profiles column (may be 0).
+        if (isSelf) {
+            out.current_streak = readSelfStreakFromDOM();
+        } else {
+            out.current_streak = Number(profile.current_streak || 0);
+        }
 
         // Derive messages count from messages table if column empty
         if (!out.messages_count) {
@@ -537,7 +565,7 @@
         for (var i = 0; i < MAX; i++) {
             fires += '<span class="msn-fire ' + (i < filled ? 'filled' : 'empty') + '">🔥</span>';
         }
-        var count = '🔥 ' + streak; // always visible, even at 1
+        var count = '🔥 ' + streak; // always visible, even at 0/1
         return ''
             + '<div class="msn-streak-row">'
             +   '<span class="msn-streak-label">Streak</span>'
@@ -588,13 +616,14 @@
             + '<p class="msn-profile-signature">' + (data.signature ? esc(data.signature) : '') + '</p>'
             + '<div class="msn-profile-meta">◆ Joined ' + esc(fmtDate(data.created_at)) + '</div>'
 
+            // HUD — 3 stats: Level / XP / Messages
             + '<div class="msn-profile-hud">'
             +   '<div class="msn-hud-stat"><span class="msn-hud-label">Level</span><span class="msn-hud-value">' + level + '</span></div>'
             +   '<div class="msn-hud-stat"><span class="msn-hud-label">XP</span><span class="msn-hud-value">' + esc(fmtNum(xp)) + '</span></div>'
-            +   '<div class="msn-hud-stat"><span class="msn-hud-label">Streak</span><span class="msn-hud-value">' + streak + '</span></div>'
             +   '<div class="msn-hud-stat"><span class="msn-hud-label">Messages</span><span class="msn-hud-value">' + esc(fmtNum(msgs)) + '</span></div>'
             + '</div>'
 
+            // Streak row — fires + count
             + renderFireRow(streak)
 
             + '<div class="msn-profile-section-label">Achievements</div>'
@@ -602,7 +631,6 @@
 
             + '<div class="msn-profile-actions">' + actionsHTML + '</div>';
 
-        // Action wiring
         var actions = bodyEl.querySelector('.msn-profile-actions');
         if (actions) {
             actions.addEventListener('click', function (e) {
@@ -689,8 +717,8 @@
         var me = getSelfUsername();
         var isSelf = (username === me);
 
-        var data = await fetchProfileData(username);
-        if (token !== currentToken) return; // superseded by newer request
+        var data = await fetchProfileData(username, isSelf);
+        if (token !== currentToken) return;
 
         if (data.error === 'no-supabase')      { renderError('Connection unavailable'); return; }
         if (data.error === 'not-found')        { renderError('Profile not found'); return; }
@@ -700,15 +728,14 @@
 
     function closeProfile() {
         if (overlay) overlay.classList.remove('open');
-        currentToken++; // invalidate in-flight fetches
+        currentToken++;
     }
 
-    /* ── Trigger wiring (capture-phase, delegated) ────────── */
+    /* ── Trigger wiring ───────────────────────────────────── */
     document.addEventListener('click', function (e) {
         var t = e.target;
         if (!t || !t.closest) return;
 
-        // 1. Avatar or username inside a chat message
         var unameEl = t.closest('.msg-username');
         if (unameEl) {
             if (t.closest('.msg-actions-container, .msg-time, .user-badge, .msg-edited, .reply-ref-block')) return;
@@ -716,7 +743,6 @@
             if (uname) { e.preventDefault(); e.stopPropagation(); openProfile(uname); return; }
         }
 
-        // 2. Sidebar user avatar (not the whole row — row opens private chat)
         var sideAvatar = t.closest('.sidebar-user-item .user-avatar');
         if (sideAvatar) {
             var sideItem = sideAvatar.closest('.sidebar-user-item');
@@ -724,14 +750,12 @@
             if (sideName) { e.preventDefault(); e.stopPropagation(); openProfile(sideName); return; }
         }
 
-        // 3. Own big avatar in sidebar → opens My Profile
         var bigAvatar = t.closest('.sidebar-user-profile-big .big-avatar, .sidebar-user-profile-big .big-name');
         if (bigAvatar) {
             var me = getSelfUsername();
             if (me) { e.preventDefault(); e.stopPropagation(); openProfile(me); return; }
         }
 
-        // 4. Rankings rows
         var rankRow = t.closest('#rankingsOverlay .rank-row');
         if (rankRow && t.closest('.rank-avatar, .rank-name')) {
             var nameEl = rankRow.querySelector('.rank-name');
@@ -743,7 +767,6 @@
         }
     }, true);
 
-    // ESC to close
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && overlay && overlay.classList.contains('open')) {
             e.preventDefault();
@@ -766,7 +789,6 @@
     function boot() {
         injectStyles();
         injectOverlay();
-        // Decorate any usernames already on-screen
         decorateUsernames(document.getElementById('publicMessagesContainer'));
         decorateUsernames(document.getElementById('privateMessagesContainer'));
         setupUsernameObserver();
