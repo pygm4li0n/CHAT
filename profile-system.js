@@ -7,9 +7,10 @@
 
    • Reuses window.MSN.supabase (or builds a fallback client)
    • Reads self identity from localStorage (no closure access)
-   • Self streak is read from the live tracking DOM (#sidebarStreakDisplay)
-   • Detects online status from the sidebar DOM
-   • Renders one reusable card for "Me" or "Other user"
+   • Self streak read from #sidebarStreakDisplay (live tracking DOM)
+   • Other-user streak read via get_streak_by_wallet RPC
+   • Joined date derived from messages.created_at (truest signal)
+   • Ghost users (chatted, no profile row) still render a card
    • Clickable usernames with hover underline + "VIEW PROFILE" hint
    ============================================================ */
 (function () {
@@ -65,16 +66,11 @@
         return !!(item && item.querySelector('.online-indicator'));
     }
 
-    /* ── Read live streak from the tracking system's DOM ────
-       app-extras.js Section 3 owns the streak. It renders
-       #sidebarStreakDisplay / #streakFires / #streakOverflow.
-       We read that DOM instead of profiles.current_streak,
-       which is empty because tracking is wallet-based. */
+    /* ── Read live streak from the tracking system's DOM ──── */
     function readSelfStreakFromDOM() {
         var container = document.getElementById('sidebarStreakDisplay');
         if (!container || container.classList.contains('hidden')) return 0;
 
-        // Overflow "× N" when streak > 7
         var overflow = document.getElementById('streakOverflow');
         if (overflow && !overflow.classList.contains('hidden')) {
             var txt = overflow.textContent || '';
@@ -82,7 +78,6 @@
             if (m) return Number(m[1]);
         }
 
-        // Otherwise count filled fire slots (max 7)
         var fires = document.getElementById('streakFires');
         if (!fires) return 0;
         return fires.querySelectorAll('.fire-slot.fire-filled').length;
@@ -307,7 +302,7 @@
         +   'text-transform:uppercase;'
         + '}'
 
-        /* ── Message username: clickable affordance ── */
+        /* Message username: clickable affordance */
         + '.msg-username .msn-username-link{'
         +   'cursor:pointer;position:relative;display:inline-block;'
         +   'transition:color .2s ease,text-shadow .2s ease;'
@@ -328,7 +323,7 @@
         + '}'
         + '.msg-username .msg-avatar{cursor:pointer;}'
 
-        /* ── "VIEW PROFILE" hover hint ── */
+        /* "VIEW PROFILE" hover hint */
         + '.msg-username,.sidebar-user-profile-big{position:relative;}'
         + '.msg-username::before,'
         + '.sidebar-user-item::before,'
@@ -479,12 +474,17 @@
             level: 1,
             messages_count: 0,
             current_streak: 0,
-            created_at: null
+            created_at: null,
+            wallet_address: null,
+            achievements: [],
+            hasProfile: false
         };
 
-        var richSel = 'username, avatar_url, xp, level, messages_count, '
-                    + 'current_streak, signature, created_at';
-        var minSel  = 'username, avatar_url, xp';
+        /* ── 1. Try profile row ──
+           Column is updated_at in this schema, not created_at. */
+        var richSel = 'username, avatar_url, wallet_address, xp, level, messages_count, '
+                    + 'current_streak, signature, updated_at';
+        var minSel  = 'username, avatar_url, wallet_address, xp';
 
         var profile = null;
         try {
@@ -499,34 +499,68 @@
             } catch (e) { /* ignore */ }
         }
 
-        if (!profile) return { error: 'not-found' };
+        if (profile) {
+            out.hasProfile     = true;
+            out.avatar_url     = profile.avatar_url || null;
+            out.wallet_address = profile.wallet_address || null;
+            out.signature      = profile.signature || '';
+            out.xp             = Number(profile.xp || 0);
+            out.level          = Number(profile.level || levelFromXp(out.xp));
+            out.messages_count = Number(profile.messages_count || 0);
+        }
 
-        out.avatar_url     = profile.avatar_url || null;
-        out.signature      = profile.signature || '';
-        out.xp             = Number(profile.xp || 0);
-        out.level          = Number(profile.level || levelFromXp(out.xp));
-        out.messages_count = Number(profile.messages_count || 0);
-        out.created_at     = profile.created_at || null;
+        /* ── 2. Messages-derived data (works for ANY user who chatted) ── */
 
-        // Streak: for SELF read live value from the tracking DOM.
-        // For OTHERS, fall back to the profiles column (may be 0).
+        // Message count
+        try {
+            var mc = await sb.from('messages')
+                .select('*', { count: 'exact', head: true })
+                .eq('username', username);
+            if (typeof mc.count === 'number' && !out.messages_count) {
+                out.messages_count = mc.count;
+            }
+        } catch (e) { /* ignore */ }
+
+        // Joined date — earliest message is the truest join signal
+        try {
+            var fm = await sb.from('messages')
+                .select('created_at')
+                .eq('username', username)
+                .order('created_at', { ascending: true })
+                .limit(1);
+            if (fm.data && fm.data[0] && fm.data[0].created_at) {
+                out.created_at = fm.data[0].created_at;
+            }
+        } catch (e) { /* ignore */ }
+
+        // Fallback to profiles.updated_at if no message history at all
+        if (!out.created_at && profile && profile.updated_at) {
+            out.created_at = profile.updated_at;
+        }
+
+        /* ── 3. Ghost user? (chatted but no profile row) ── */
+        if (!out.hasProfile && !out.created_at) {
+            return { error: 'not-found' };
+        }
+
+        /* ── 4. Streak resolution ──
+           SELF: live DOM from the tracking system
+           OTHER: profiles column, then wallet_streaks via RPC */
         if (isSelf) {
             out.current_streak = readSelfStreakFromDOM();
         } else {
-            out.current_streak = Number(profile.current_streak || 0);
+            out.current_streak = Number((profile && profile.current_streak) || 0);
+            if (!out.current_streak && out.wallet_address) {
+                try {
+                    var sr = await sb.rpc('get_streak_by_wallet', { p_wallet: out.wallet_address });
+                    if (!sr.error && typeof sr.data === 'number') {
+                        out.current_streak = sr.data;
+                    }
+                } catch (e) { /* RPC may not exist yet */ }
+            }
         }
 
-        // Derive messages count from messages table if column empty
-        if (!out.messages_count) {
-            try {
-                var mc = await sb.from('messages')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('username', username);
-                if (typeof mc.count === 'number') out.messages_count = mc.count;
-            } catch (e) { /* ignore */ }
-        }
-
-        // Achievements (if table exists)
+        /* ── 5. Achievements (if table exists) ── */
         try {
             var ac = await sb.from('user_achievements')
                 .select('achievement_code, unlocked_at')
@@ -606,6 +640,9 @@
                 + '<button class="msn-action-btn primary" data-msn-profile-action="message">Message</button>';
         }
 
+        /* Show streak row: always for self, only if resolved (>0) for others */
+        var showStreakRow = isSelf || streak > 0;
+
         bodyEl.innerHTML = ''
             + '<div class="msn-profile-avatar-wrap">'
             +   '<div class="msn-profile-avatar">' + avatarHTML(data) + '</div>'
@@ -623,8 +660,8 @@
             +   '<div class="msn-hud-stat"><span class="msn-hud-label">Messages</span><span class="msn-hud-value">' + esc(fmtNum(msgs)) + '</span></div>'
             + '</div>'
 
-            // Streak row — fires + count
-            + renderFireRow(streak)
+            // Streak row — fires + count (conditional)
+            + (showStreakRow ? renderFireRow(streak) : '')
 
             + '<div class="msn-profile-section-label">Achievements</div>'
             + '<div class="msn-achievements-grid">' + achHTML + '</div>'
