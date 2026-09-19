@@ -924,3 +924,203 @@
     0%, 100% { opacity: 1; }
     50%      { opacity: 0.35; }
 }
+
+/* =========================================================
+   v4 — DESKTOP EPIC DUAL-TAB REVAMP
+   Fires ONLY at min-width:1025px, i.e. strictly above every
+   phantom/mobile breakpoint above (which tops out at 1024px).
+   Nothing below is touched — phantom stays pixel-identical.
+
+   What changes: the two ranking lists stop being one card
+   split by a hairline and become two independent, glowing
+   "tab" panels sitting left and right, with a light-beam
+   seam between them, a holographic title, and an animated
+   rotating rim on the #1 hero row.
+   ========================================================= */
+@media (min-width: 1025px) {
+
+    #rankingsOverlay .rankings-card {
+        padding: 34px 40px 36px !important;
+        background:
+            radial-gradient(ellipse 120% 60% at 50% -10%, rgba(1, 225, 234, 0.06), transparent 55%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0) 20%),
+            linear-gradient(180deg, var(--bg-panel) 0%, rgba(0, 0, 0, 0.35) 100%) !important;
+    }
+
+    /* holographic, chromatic-edge title */
+    #rankingsOverlay .rankings-header h3 {
+        background: linear-gradient(100deg, var(--accent-cyan) 0%, var(--text-primary) 45%, var(--accent-orange) 100%) !important;
+        background-size: 220% 100% !important;
+        -webkit-background-clip: text !important;
+        background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        color: transparent !important;
+        text-shadow: none !important;
+        filter:
+            drop-shadow(0 0 18px rgba(1, 225, 234, 0.35))
+            drop-shadow(0 0 30px rgba(246, 187, 22, 0.18)) !important;
+        animation: v4HoloSheen 7s ease-in-out infinite !important;
+    }
+    @keyframes v4HoloSheen {
+        0%, 100% { background-position: 0% 50%; }
+        50%      { background-position: 100% 50%; }
+    }
+
+    /* body: two flex tabs instead of a joined grid */
+    #rankingsOverlay .rankings-body {
+        display: flex !important;
+        gap: 30px !important;
+        position: relative !important;
+    }
+    /* glowing seam / light-beam between the two tabs */
+    #rankingsOverlay .rankings-body::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 4% !important;
+        bottom: 4% !important;
+        left: 50% !important;
+        width: 1px !important;
+        transform: translateX(-50%) !important;
+        background: linear-gradient(180deg,
+            transparent,
+            var(--accent-cyan) 18%,
+            var(--accent-magenta) 50%,
+            var(--accent-orange) 82%,
+            transparent) !important;
+        opacity: 0.4 !important;
+        pointer-events: none !important;
+        z-index: 1 !important;
+    }
+
+    /* each column: its own elevated tab-panel */
+    #rankingsOverlay .rankings-column {
+        flex: 1 1 0 !important;
+        position: relative !important;
+        padding: 0 22px 18px !important;
+        border-radius: 6px 18px 18px 18px !important;
+        border: 1px solid var(--border-default) !important;
+        background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 32%),
+            linear-gradient(160deg, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.10)) !important;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.05),
+            0 18px 44px rgba(0, 0, 0, 0.5) !important;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
+    }
+    #rankingsOverlay .rankings-column:hover { transform: translateY(-3px) !important; }
+
+    /* faint scanline texture inside each tab, kept behind content */
+    #rankingsOverlay .rankings-column::after {
+        content: '' !important;
+        position: absolute !important;
+        inset: 0 !important;
+        z-index: 0 !important;
+        pointer-events: none !important;
+        border-radius: inherit !important;
+        background: repeating-linear-gradient(180deg,
+            rgba(255, 255, 255, 0.015) 0px,
+            rgba(255, 255, 255, 0.015) 1px,
+            transparent 1px,
+            transparent 3px) !important;
+    }
+    /* soft corner glow */
+    #rankingsOverlay .rankings-column::before {
+        content: '' !important;
+        position: absolute !important;
+        top: -35% !important;
+        left: -15% !important;
+        width: 55% !important;
+        height: 75% !important;
+        z-index: 0 !important;
+        pointer-events: none !important;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.05), transparent 70%) !important;
+    }
+    #rankingsOverlay .rankings-column-title,
+    #rankingsOverlay .rankings-list {
+        position: relative !important;
+        z-index: 1 !important;
+    }
+
+    #rankingsOverlay .rankings-column:nth-child(1) {
+        border-color: rgba(1, 225, 234, 0.32) !important;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.05),
+            0 0 0 1px rgba(1, 225, 234, 0.08),
+            0 20px 54px rgba(1, 225, 234, 0.10),
+            0 18px 44px rgba(0, 0, 0, 0.5) !important;
+    }
+    #rankingsOverlay .rankings-column:nth-child(2) {
+        border-color: rgba(246, 140, 22, 0.32) !important;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.05),
+            0 0 0 1px rgba(246, 140, 22, 0.08),
+            0 20px 54px rgba(246, 140, 22, 0.10),
+            0 18px 44px rgba(0, 0, 0, 0.5) !important;
+    }
+    #rankingsOverlay .rankings-column:nth-child(1):hover {
+        border-color: rgba(1, 225, 234, 0.55) !important;
+    }
+    #rankingsOverlay .rankings-column:nth-child(2):hover {
+        border-color: rgba(246, 140, 22, 0.55) !important;
+    }
+
+    /* remove the old joined-card padding/border-left */
+    #rankingsOverlay .rankings-column:first-child { padding-right: 22px !important; }
+    #rankingsOverlay .rankings-column:last-child {
+        padding-left: 22px !important;
+        border-left: 1px solid var(--border-default) !important;
+    }
+
+    /* title becomes a raised flange across the top of its own tab */
+    #rankingsOverlay .rankings-column-title {
+        margin: 0 -22px 16px !important;
+        padding: 14px 22px 12px !important;
+        border-bottom: 1px solid var(--border-subtle) !important;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)) !important;
+    }
+    #rankingsOverlay .rankings-column-title::before {
+        content: '' !important;
+        width: 7px !important;
+        height: 7px !important;
+        margin-right: 2px !important;
+        border-radius: 2px !important;
+        background: currentColor !important;
+        box-shadow: 0 0 10px currentColor !important;
+        transform: rotate(45deg) !important;
+        flex-shrink: 0 !important;
+    }
+    #rankingsOverlay .rankings-column-title::after { width: 40px !important; }
+
+    /* rows: a touch sharper + livelier hover */
+    #rankingsOverlay .rankings-list > .rank-row {
+        border-radius: 8px 12px 12px 8px !important;
+    }
+    #rankingsOverlay .rankings-list > .rank-row:hover {
+        transform: translateX(3px) scale(1.008) !important;
+    }
+
+    /* hero row: animated rotating rim light (falls back to a static
+       gold border on browsers without @property support) */
+    #rankingsOverlay .rankings-list > .rank-row:first-child {
+        border: 2px solid transparent !important;
+        border-radius: 16px !important;
+        background:
+            linear-gradient(180deg, rgba(246, 187, 22, 0.12) 0%, rgba(246, 187, 22, 0.02) 46%, rgba(0, 0, 0, 0) 100%) padding-box,
+            linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012)) padding-box,
+            conic-gradient(from var(--v4-spin, 0deg),
+                rgba(246, 187, 22, 0.95),
+                rgba(255, 255, 255, 0.08) 30%,
+                rgba(246, 187, 22, 0.95) 60%,
+                rgba(255, 255, 255, 0.08) 90%,
+                rgba(246, 187, 22, 0.95)) border-box !important;
+        animation: v4RimSpin 5s linear infinite !important;
+    }
+    @keyframes v4RimSpin {
+        to { --v4-spin: 360deg; }
+    }
+}
+@property --v4-spin {
+    syntax: '<angle>';
+    inherits: false;
+    initial-value: 0deg;
+}
