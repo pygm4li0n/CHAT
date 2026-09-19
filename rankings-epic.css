@@ -1,5 +1,7 @@
 /* =========================================================
-   RANKINGS — CELL EDITION v4.1 (EPIC · ENERGETIC · THINNER)
+   RANKINGS — CELL EDITION v4.2 (EPIC · ENERGETIC · THINNER)
+   #1 = SOLAR FLARE (flowing gradient rim · pulsing aura · dual beam)
+   #2 = POLAR / PLATINUM (cool edge · slow diagonal shimmer)
    ========================================================= */
 
 /* ── CARD ─────────────────────────────────────────── */
@@ -416,7 +418,7 @@
         0 0 16px rgba(1, 225, 234, 0.22) !important;
 }
 
-/* ── #1 HERO ──────────────────────────────────────── */
+/* ── #1 HERO (base) ───────────────────────────────── */
 #rankingsOverlay .rankings-list > .rank-row:first-child {
     grid-template-columns: 46px 66px minmax(0, 1fr) auto !important;
     gap: 18px !important;
@@ -505,7 +507,7 @@
     text-shadow: 0 0 26px rgba(246, 187, 22, 0.35) !important;
 }
 
-/* ── #2 / #3 PODIUM ──────────────────────────────── */
+/* ── #2 / #3 PODIUM (base) ───────────────────────── */
 #rankingsOverlay .rankings-list > .rank-row:nth-child(2) {
     border-color: rgba(200, 220, 240, 0.20) !important;
 }
@@ -565,7 +567,7 @@
     }
 }
 
-/* ── MOBILE / PHANTOM (unchanged) ────────────────── */
+/* ── MOBILE / PHANTOM ────────────────────────────── */
 @media (max-width: 900px) {
     #rankingsOverlay .rankings-card { max-width: 96% !important; }
 }
@@ -841,6 +843,8 @@
     #rankingsOverlay .rankings-column-title,
     #rankingsOverlay .rankings-list > .rank-row:first-child,
     #rankingsOverlay .rankings-list > .rank-row:first-child::after,
+    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-score,
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2),
     #rankingsOverlay .rankings-column::after,
     #rankingsOverlay .rankings-body::before { animation: none !important; }
 }
@@ -893,7 +897,9 @@
 }
 
 /* =========================================================
-   v4.1 — DESKTOP EPIC DUAL-TAB (min-width: 1025px only)
+   v4.2 — DESKTOP EPIC DUAL-TAB (min-width: 1025px only)
+   #1 = SOLAR FLARE  (flowing gradient rim · pulsing aura · dual beam)
+   #2 = POLAR / PLATINUM (cool static edge · slow diagonal shimmer)
    ========================================================= */
 @media (min-width: 1025px) {
 
@@ -908,7 +914,7 @@
             linear-gradient(180deg, var(--bg-panel) 0%, rgba(0, 0, 0, 0.35) 100%) !important;
     }
 
-    /* ── HOLO HEADER — faster, wider sweep ── */
+    /* ── HOLO HEADER ── */
     #rankingsOverlay .rankings-header h3 {
         background: linear-gradient(100deg,
             var(--accent-cyan) 0%,
@@ -932,14 +938,12 @@
         100% { background-position: 260% 50%; }
     }
 
-    /* ── BODY: two flex tabs ── */
+    /* ── BODY / SEAM ── */
     #rankingsOverlay .rankings-body {
         display: flex !important;
         gap: 28px !important;
         position: relative !important;
     }
-
-    /* animated light-beam seam */
     #rankingsOverlay .rankings-body::before {
         content: '' !important;
         position: absolute !important;
@@ -983,7 +987,6 @@
     }
     #rankingsOverlay .rankings-column:hover { transform: translateY(-3px) !important; }
 
-    /* drifting scanlines */
     #rankingsOverlay .rankings-column::after {
         content: '' !important;
         position: absolute !important;
@@ -1003,8 +1006,6 @@
         from { background-position: 0 0; }
         to   { background-position: 0 120px; }
     }
-
-    /* soft corner glow */
     #rankingsOverlay .rankings-column::before {
         content: '' !important;
         position: absolute !important;
@@ -1038,12 +1039,8 @@
             0 20px 54px rgba(246, 140, 22, 0.10),
             0 18px 44px rgba(0, 0, 0, 0.5) !important;
     }
-    #rankingsOverlay .rankings-column:nth-child(1):hover {
-        border-color: rgba(1, 225, 234, 0.6) !important;
-    }
-    #rankingsOverlay .rankings-column:nth-child(2):hover {
-        border-color: rgba(246, 140, 22, 0.6) !important;
-    }
+    #rankingsOverlay .rankings-column:nth-child(1):hover { border-color: rgba(1, 225, 234, 0.6) !important; }
+    #rankingsOverlay .rankings-column:nth-child(2):hover { border-color: rgba(246, 140, 22, 0.6) !important; }
 
     #rankingsOverlay .rankings-column:first-child { padding-right: 20px !important; }
     #rankingsOverlay .rankings-column:last-child {
@@ -1051,9 +1048,7 @@
         border-left: 1px solid var(--border-default) !important;
     }
 
-    /* ════════════════════════════════════════════════
-       EPIC COLUMN TITLE — big / clean / glowing
-       ════════════════════════════════════════════════ */
+    /* ── EPIC COLUMN TITLE ── */
     #rankingsOverlay .rankings-column-title {
         margin: 0 -20px 18px !important;
         padding: 16px 20px 15px !important;
@@ -1070,17 +1065,8 @@
         animation: v4TitlePulse 3.2s ease-in-out infinite !important;
     }
     @keyframes v4TitlePulse {
-        0%, 100% {
-            text-shadow:
-                0 0 16px currentColor,
-                0 0 32px currentColor;
-        }
-        50% {
-            text-shadow:
-                0 0 26px currentColor,
-                0 0 54px currentColor,
-                0 0 88px currentColor;
-        }
+        0%, 100% { text-shadow: 0 0 16px currentColor, 0 0 32px currentColor; }
+        50%      { text-shadow: 0 0 26px currentColor, 0 0 54px currentColor, 0 0 88px currentColor; }
     }
     #rankingsOverlay .rankings-column-title::before {
         content: '' !important;
@@ -1112,73 +1098,151 @@
         transform: translateX(4px) scale(1.012) !important;
     }
 
-    /* ════════════════════════════════════════════════
-       HERO #1 — WILD ANIMATED RIM
-       ════════════════════════════════════════════════ */
+    /* ═══════════════════════════════════════════════════
+       #1 — SOLAR FLARE
+       ═══════════════════════════════════════════════════ */
     #rankingsOverlay .rankings-list > .rank-row:first-child {
         border: 2px solid transparent !important;
         border-radius: 16px !important;
         background:
-            linear-gradient(180deg, rgba(246, 187, 22, 0.13) 0%, rgba(246, 187, 22, 0.02) 46%, rgba(0, 0, 0, 0) 100%) padding-box,
+            linear-gradient(180deg, rgba(246, 187, 22, 0.14) 0%, rgba(246, 187, 22, 0.02) 46%, rgba(0, 0, 0, 0) 100%) padding-box,
             linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.012)) padding-box,
-            conic-gradient(from var(--v4-spin, 0deg),
-                #FFD27A 0deg,
-                #01e1ea 60deg,
-                #ff2ec4 120deg,
-                #FFD27A 180deg,
-                #ff8a00 240deg,
-                #01e1ea 300deg,
-                #FFD27A 360deg) border-box !important;
+            linear-gradient(115deg,
+                #FFD27A 0%,
+                #ffe9b8 8%,
+                #01e1ea 22%,
+                #ff2ec4 36%,
+                #FFD27A 50%,
+                #ff8a00 64%,
+                #01e1ea 78%,
+                #FFD27A 92%,
+                #FFD27A 100%) border-box !important;
+        background-size: 100% 100%, 100% 100%, 300% 100% !important;
+        background-position: 0 0, 0 0, 0% 50% !important;
         animation:
-            v4RimSpin 2.4s linear infinite,
-            v4HeroPulse 3s ease-in-out infinite !important;
-        box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.10),
-            inset 0 0 60px rgba(246, 187, 22, 0.06),
-            0 12px 44px rgba(0, 0, 0, 0.55) !important;
+            v5BorderFlow 6.5s linear infinite,
+            v5HeroAura 3.4s ease-in-out infinite !important;
     }
-    @keyframes v4RimSpin {
-        to { --v4-spin: 360deg; }
+    @keyframes v5BorderFlow {
+        from { background-position: 0 0, 0 0,   0% 50%; }
+        to   { background-position: 0 0, 0 0, 300% 50%; }
     }
-    @keyframes v4HeroPulse {
+    @keyframes v5HeroAura {
         0%, 100% {
             box-shadow:
                 inset 0 1px 0 rgba(255, 255, 255, 0.10),
                 inset 0 0 60px rgba(246, 187, 22, 0.06),
-                0 0 24px rgba(246, 187, 22, 0.18),
+                0 0 22px rgba(246, 187, 22, 0.20),
                 0 12px 44px rgba(0, 0, 0, 0.55);
         }
         50% {
             box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.14),
-                inset 0 0 90px rgba(246, 187, 22, 0.12),
-                0 0 56px rgba(246, 187, 22, 0.42),
+                inset 0 1px 0 rgba(255, 255, 255, 0.16),
+                inset 0 0 100px rgba(246, 187, 22, 0.14),
+                0 0 60px rgba(246, 187, 22, 0.48),
+                0 0 120px rgba(1, 225, 234, 0.14),
                 0 12px 44px rgba(0, 0, 0, 0.55);
         }
     }
 
-    /* hero top-bar: animated sweeping light beam */
+    /* dual-layer top beam — bright core + soft trailing glow */
     #rankingsOverlay .rankings-list > .rank-row:first-child::after {
         height: 3px !important;
         border-radius: 16px 16px 0 0 !important;
-        background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(255, 210, 122, 0.15) 20%,
-            #FFD27A 50%,
-            rgba(255, 210, 122, 0.15) 80%,
-            transparent 100%) !important;
-        background-size: 220% 100% !important;
-        box-shadow: 0 0 22px rgba(246, 187, 22, 0.75) !important;
-        animation: v4HeroSweep 2.6s ease-in-out infinite !important;
+        background:
+            linear-gradient(90deg,
+                transparent 0%,
+                #FFD27A 50%,
+                transparent 100%) 0 0 / 30% 100% no-repeat,
+            linear-gradient(90deg,
+                transparent 0%,
+                rgba(255, 210, 122, 0.35) 50%,
+                transparent 100%) 0 0 / 60% 100% no-repeat !important;
+        box-shadow: 0 0 22px rgba(246, 187, 22, 0.7) !important;
+        animation: v5BeamA 2.6s ease-in-out infinite, v5BeamB 4.2s ease-in-out infinite !important;
     }
-    @keyframes v4HeroSweep {
-        0%   { background-position: 220% 0; }
-        100% { background-position: -220% 0; }
+    @keyframes v5BeamA {
+        0%   { background-position: -40% 0, -40% 0; }
+        100% { background-position: 140% 0, 140% 0; }
     }
-}
+    @keyframes v5BeamB {
+        0%, 100% { opacity: 1; }
+        50%      { opacity: 0.55; }
+    }
 
-@property --v4-spin {
-    syntax: '<angle>';
-    inherits: false;
-    initial-value: 0deg;
+    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar,
+    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar-fallback {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            0 0 0 2px rgba(255, 210, 122, 0.35),
+            0 0 26px rgba(246, 187, 22, 0.45) !important;
+    }
+    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-score {
+        animation: v5ScoreGlow 3s ease-in-out infinite !important;
+    }
+    @keyframes v5ScoreGlow {
+        0%, 100% { text-shadow: 0 0 22px rgba(246, 187, 22, 0.35); }
+        50%      { text-shadow: 0 0 32px rgba(246, 187, 22, 0.75), 0 0 60px rgba(246, 187, 22, 0.35); }
+    }
+
+    /* ═══════════════════════════════════════════════════
+       #2 — POLAR / PLATINUM
+       ═══════════════════════════════════════════════════ */
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2) {
+        border: 1px solid rgba(190, 215, 245, 0.35) !important;
+        border-radius: 14px !important;
+        background:
+            linear-gradient(120deg,
+                transparent 0%,
+                transparent 42%,
+                rgba(200, 230, 255, 0.10) 50%,
+                transparent 58%,
+                transparent 100%) 0 0 / 220% 100% no-repeat,
+            linear-gradient(180deg, rgba(200, 225, 255, 0.055) 0%, rgba(120, 170, 220, 0.015) 55%, rgba(0, 0, 0, 0) 100%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.008)) !important;
+        box-shadow:
+            inset 0 1px 0 rgba(220, 235, 255, 0.14),
+            inset 0 -20px 40px rgba(120, 170, 220, 0.05),
+            0 6px 22px rgba(0, 0, 0, 0.4) !important;
+        animation: v5PolarShimmer 5.5s ease-in-out infinite !important;
+    }
+    @keyframes v5PolarShimmer {
+        0%   { background-position: 220% 0, 0 0, 0 0; }
+        60%  { background-position: -120% 0, 0 0, 0 0; }
+        100% { background-position: -120% 0, 0 0, 0 0; }
+    }
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2)::after {
+        top: 0 !important;
+        left: 12% !important;
+        right: 12% !important;
+        bottom: auto !important;
+        width: auto !important;
+        height: 1px !important;
+        border-radius: 0 !important;
+        background: linear-gradient(90deg,
+            transparent,
+            rgba(220, 240, 255, 0.9) 50%,
+            transparent) !important;
+        box-shadow: 0 0 10px rgba(180, 215, 255, 0.6) !important;
+    }
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2)::before {
+        color: #EAF2FF !important;
+        text-shadow: 0 0 12px rgba(180, 215, 255, 0.75) !important;
+    }
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2) .rank-avatar,
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2) .rank-avatar-fallback {
+        border-color: rgba(210, 230, 255, 0.48) !important;
+        color: #EAF2FF !important;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            0 0 14px rgba(160, 200, 255, 0.28) !important;
+    }
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2) .rank-name {
+        color: #EAF2FF !important;
+        text-shadow: 0 0 14px rgba(160, 200, 255, 0.35) !important;
+    }
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2) .rank-score {
+        color: #F2F7FF !important;
+        text-shadow: 0 0 18px rgba(160, 200, 255, 0.45) !important;
+    }
 }
