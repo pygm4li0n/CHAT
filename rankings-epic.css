@@ -1,21 +1,14 @@
 /* =========================================================
-   RANKINGS — CELL EDITION v3 (HARDENED · PREMIUM REVAMP)
-   Every selector is prefixed with #rankingsOverlay so it
-   beats any theme, any load order, any conflicting rule.
-
-   Structure / IDs / classes / behaviour: unchanged.
-   Only the visual presentation has been upgraded.
-   All colours still resolve from the host theme tokens,
-   so every existing theme stays fully supported.
+   RANKINGS — CELL EDITION v4.1 (EPIC · ENERGETIC · THINNER)
    ========================================================= */
 
 /* ── CARD ─────────────────────────────────────────── */
 #rankingsOverlay .rankings-card {
-    max-width: 1360px !important;
-    width: 94% !important;
-    min-height: 68vh !important;
+    max-width: 1180px !important;
+    width: 92% !important;
+    min-height: 66vh !important;
     max-height: 90vh !important;
-    padding: 30px 34px 28px !important;
+    padding: 24px 30px 26px !important;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0) 20%),
         linear-gradient(180deg, var(--bg-panel) 0%, rgba(0, 0, 0, 0.35) 100%) !important;
@@ -33,7 +26,6 @@
     text-align: left !important;
     isolation: isolate !important;
 }
-/* top energy line */
 #rankingsOverlay .rankings-card::before {
     content: '' !important;
     position: absolute !important;
@@ -48,7 +40,6 @@
     pointer-events: none !important;
     z-index: 3 !important;
 }
-/* circuit-board trace layer */
 #rankingsOverlay .rankings-card::after {
     content: '' !important;
     position: absolute !important;
@@ -62,7 +53,7 @@
     opacity: 0.9 !important;
 }
 
-/* ── HEADER — centered LEADERBOARD title ──────────── */
+/* ── HEADER ───────────────────────────────────────── */
 #rankingsOverlay .rankings-header {
     position: relative !important;
     z-index: 2 !important;
@@ -75,7 +66,6 @@
     border-bottom: 1px solid var(--border-subtle) !important;
     flex-shrink: 0 !important;
 }
-/* flanking hairlines */
 #rankingsOverlay .rankings-header::before,
 #rankingsOverlay .rankings-header::after {
     content: '' !important;
@@ -94,7 +84,7 @@
     font-size: 1.55rem !important;
     font-weight: 900 !important;
     letter-spacing: 0.52em !important;
-    margin: 0 -0.52em 0 0 !important;   /* trim trailing letter-spacing */
+    margin: 0 -0.52em 0 0 !important;
     text-transform: uppercase !important;
     line-height: 1 !important;
     white-space: nowrap !important;
@@ -155,9 +145,9 @@
     min-height: 0 !important;
     overflow: hidden !important;
 }
-#rankingsOverlay .rankings-column:first-child { padding-right: 30px !important; }
+#rankingsOverlay .rankings-column:first-child { padding-right: 26px !important; }
 #rankingsOverlay .rankings-column:last-child {
-    padding-left: 30px !important;
+    padding-left: 26px !important;
     border-left: 1px solid var(--border-subtle) !important;
 }
 
@@ -243,9 +233,7 @@
     50%      { opacity: 0.95; }
 }
 
-/* ═══════════════════════════════════════════════════
-   ROW — standard cell (desktop)
-   ═══════════════════════════════════════════════════ */
+/* ── ROW (standard cell) ──────────────────────────── */
 #rankingsOverlay .rankings-list > .rank-row {
     counter-increment: rank !important;
     display: grid !important;
@@ -270,7 +258,6 @@
         box-shadow 0.18s ease,
         transform 0.18s ease !important;
 }
-/* rank number */
 #rankingsOverlay .rankings-list > .rank-row::before {
     content: counter(rank, decimal-leading-zero) !important;
     display: flex !important;
@@ -285,7 +272,6 @@
     color: var(--text-muted) !important;
     transition: color 0.18s ease, text-shadow 0.18s ease !important;
 }
-/* left energy bar */
 #rankingsOverlay .rankings-list > .rank-row::after {
     content: '' !important;
     position: absolute !important;
@@ -430,9 +416,7 @@
         0 0 16px rgba(1, 225, 234, 0.22) !important;
 }
 
-/* ═══════════════════════════════════════════════════
-   #1 — HERO CARD (desktop)
-   ═══════════════════════════════════════════════════ */
+/* ── #1 HERO ──────────────────────────────────────── */
 #rankingsOverlay .rankings-list > .rank-row:first-child {
     grid-template-columns: 46px 66px minmax(0, 1fr) auto !important;
     gap: 18px !important;
@@ -461,7 +445,6 @@
         0 0 34px rgba(246, 187, 22, 0.12),
         0 12px 44px rgba(0, 0, 0, 0.55) !important;
 }
-/* hero rank numeral */
 #rankingsOverlay .rankings-list > .rank-row:first-child::before {
     font-size: 1.55rem !important;
     font-weight: 900 !important;
@@ -469,7 +452,6 @@
     color: #FFD27A !important;
     text-shadow: 0 0 22px rgba(246, 187, 22, 0.65) !important;
 }
-/* hero top shine instead of left bar */
 #rankingsOverlay .rankings-list > .rank-row:first-child::after {
     top: 0 !important;
     left: 0 !important;
@@ -481,7 +463,6 @@
     background: linear-gradient(90deg, transparent, #FFD27A 50%, transparent) !important;
     box-shadow: 0 0 16px rgba(246, 187, 22, 0.55) !important;
 }
-/* hero avatar */
 #rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar,
 #rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar-fallback {
     width: 66px !important;
@@ -496,7 +477,6 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.12),
         0 0 26px rgba(246, 187, 22, 0.18) !important;
 }
-/* hero text */
 #rankingsOverlay .rankings-list > .rank-row:first-child .rank-info { gap: 8px !important; }
 #rankingsOverlay .rankings-list > .rank-row:first-child .rank-name {
     font-size: 1.06rem !important;
@@ -512,7 +492,6 @@
     font-size: 0.64rem !important;
     color: var(--text-secondary) !important;
 }
-/* hero stats — stacked, right aligned */
 #rankingsOverlay .rankings-list > .rank-row:first-child .rank-stats {
     flex-direction: column !important;
     align-items: flex-end !important;
@@ -526,9 +505,7 @@
     text-shadow: 0 0 26px rgba(246, 187, 22, 0.35) !important;
 }
 
-/* ═══════════════════════════════════════════════════
-   #2 / #3 — restrained podium accents
-   ═══════════════════════════════════════════════════ */
+/* ── #2 / #3 PODIUM ──────────────────────────────── */
 #rankingsOverlay .rankings-list > .rank-row:nth-child(2) {
     border-color: rgba(200, 220, 240, 0.20) !important;
 }
@@ -565,13 +542,11 @@
 #rankingsOverlay .rankings-list > .rank-row:nth-child(3) .rank-name  { color: #FFB073 !important; }
 #rankingsOverlay .rankings-list > .rank-row:nth-child(3) .rank-score { color: #FFB073 !important; }
 
-/* ═══════════════════════════════════════════════════════════════
-   TABLET — narrow the gutters, keep two columns as long as we can
-   ═══════════════════════════════════════════════════════════════ */
+/* ── TABLET ──────────────────────────────────────── */
 @media (max-width: 1180px) {
-    #rankingsOverlay .rankings-card { padding: 26px 24px 24px !important; }
-    #rankingsOverlay .rankings-column:first-child { padding-right: 22px !important; }
-    #rankingsOverlay .rankings-column:last-child  { padding-left: 22px !important; }
+    #rankingsOverlay .rankings-card { padding: 22px 22px 22px !important; }
+    #rankingsOverlay .rankings-column:first-child { padding-right: 20px !important; }
+    #rankingsOverlay .rankings-column:last-child  { padding-left: 20px !important; }
 
     #rankingsOverlay .rankings-list > .rank-row:first-child {
         grid-template-columns: 40px 58px minmax(0, 1fr) auto !important;
@@ -590,9 +565,7 @@
     }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   MOBILE / PHANTOM — two stacked cards
-   ═══════════════════════════════════════════════════════════════ */
+/* ── MOBILE / PHANTOM (unchanged) ────────────────── */
 @media (max-width: 900px) {
     #rankingsOverlay .rankings-card { max-width: 96% !important; }
 }
@@ -667,7 +640,6 @@
         font-size: 0.78rem !important;
     }
 
-    /* Columns become separate cards */
     #rankingsOverlay .rankings-column {
         background: rgba(0, 0, 0, 0.28) !important;
         border: 1px solid var(--border-subtle) !important;
@@ -712,7 +684,6 @@
         max-height: none !important;
     }
 
-    /* 2-line row layout */
     #rankingsOverlay .rankings-list > .rank-row {
         display: grid !important;
         grid-template-columns: 20px 34px minmax(0, 1fr) auto !important;
@@ -776,7 +747,6 @@
         line-height: 1.15 !important;
     }
 
-    /* #1 hero collapses to a tighter variant on mobile */
     #rankingsOverlay .rankings-list > .rank-row:first-child {
         grid-template-columns: 26px 44px minmax(0, 1fr) auto !important;
         grid-template-areas:
@@ -817,7 +787,6 @@
         align-self: end !important;
     }
 
-    /* Podium accents on mobile */
     #rankingsOverlay .rankings-list > .rank-row:nth-child(2) {
         border-color: rgba(200, 220, 240, 0.42) !important;
     }
@@ -831,7 +800,6 @@
     }
 }
 
-/* Very small phones */
 @media (max-width: 420px) {
     #rankingsOverlay .rankings-card { padding: 12px 10px !important; }
     #rankingsOverlay .rankings-column { padding: 8px 8px 6px !important; }
@@ -864,13 +832,17 @@
     }
 }
 
-/* ═══════════════════════════════════════════════════
-   ACCESSIBILITY
-   ═══════════════════════════════════════════════════ */
+/* ── ACCESSIBILITY ───────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
     #rankingsOverlay .rank-row { transition: none !important; }
     #rankingsOverlay .rankings-empty { animation: none !important; }
     #rankingsOverlay .rankings-close-btn:hover { transform: none !important; }
+    #rankingsOverlay .rankings-header h3,
+    #rankingsOverlay .rankings-column-title,
+    #rankingsOverlay .rankings-list > .rank-row:first-child,
+    #rankingsOverlay .rankings-list > .rank-row:first-child::after,
+    #rankingsOverlay .rankings-column::after,
+    #rankingsOverlay .rankings-body::before { animation: none !important; }
 }
 
 #rankingsOverlay .rank-row:focus-visible,
@@ -880,12 +852,7 @@
     border-radius: 11px !important;
 }
 
-/* ═══════════════════════════════════════════════════
-   OPTIONAL — status badge styling
-   Only applies if your markup already includes a
-   .rank-badge element inside .rank-stats.
-   Safe to delete if you don't use badges.
-   ═══════════════════════════════════════════════════ */
+/* ── OPTIONAL BADGES ─────────────────────────────── */
 #rankingsOverlay .rank-badge {
     display: inline-flex !important;
     align-items: center !important;
@@ -926,53 +893,53 @@
 }
 
 /* =========================================================
-   v4 — DESKTOP EPIC DUAL-TAB REVAMP
-   Fires ONLY at min-width:1025px, i.e. strictly above every
-   phantom/mobile breakpoint above (which tops out at 1024px).
-   Nothing below is touched — phantom stays pixel-identical.
-
-   What changes: the two ranking lists stop being one card
-   split by a hairline and become two independent, glowing
-   "tab" panels sitting left and right, with a light-beam
-   seam between them, a holographic title, and an animated
-   rotating rim on the #1 hero row.
+   v4.1 — DESKTOP EPIC DUAL-TAB (min-width: 1025px only)
    ========================================================= */
 @media (min-width: 1025px) {
 
     #rankingsOverlay .rankings-card {
-        padding: 34px 40px 36px !important;
+        max-width: 1180px !important;
+        width: 92% !important;
+        padding: 24px 30px 26px !important;
         background:
-            radial-gradient(ellipse 120% 60% at 50% -10%, rgba(1, 225, 234, 0.06), transparent 55%),
+            radial-gradient(ellipse 120% 60% at 50% -10%, rgba(1, 225, 234, 0.07), transparent 55%),
+            radial-gradient(ellipse 100% 50% at 50% 110%, rgba(246, 140, 22, 0.05), transparent 60%),
             linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0) 20%),
             linear-gradient(180deg, var(--bg-panel) 0%, rgba(0, 0, 0, 0.35) 100%) !important;
     }
 
-    /* holographic, chromatic-edge title */
+    /* ── HOLO HEADER — faster, wider sweep ── */
     #rankingsOverlay .rankings-header h3 {
-        background: linear-gradient(100deg, var(--accent-cyan) 0%, var(--text-primary) 45%, var(--accent-orange) 100%) !important;
-        background-size: 220% 100% !important;
+        background: linear-gradient(100deg,
+            var(--accent-cyan) 0%,
+            var(--text-primary) 35%,
+            var(--accent-magenta) 55%,
+            var(--accent-orange) 75%,
+            var(--accent-cyan) 100%) !important;
+        background-size: 260% 100% !important;
         -webkit-background-clip: text !important;
         background-clip: text !important;
         -webkit-text-fill-color: transparent !important;
         color: transparent !important;
         text-shadow: none !important;
         filter:
-            drop-shadow(0 0 18px rgba(1, 225, 234, 0.35))
-            drop-shadow(0 0 30px rgba(246, 187, 22, 0.18)) !important;
-        animation: v4HoloSheen 7s ease-in-out infinite !important;
+            drop-shadow(0 0 18px rgba(1, 225, 234, 0.4))
+            drop-shadow(0 0 30px rgba(246, 187, 22, 0.22)) !important;
+        animation: v4HoloSheen 3.4s linear infinite !important;
     }
     @keyframes v4HoloSheen {
-        0%, 100% { background-position: 0% 50%; }
-        50%      { background-position: 100% 50%; }
+        0%   { background-position:   0% 50%; }
+        100% { background-position: 260% 50%; }
     }
 
-    /* body: two flex tabs instead of a joined grid */
+    /* ── BODY: two flex tabs ── */
     #rankingsOverlay .rankings-body {
         display: flex !important;
-        gap: 30px !important;
+        gap: 28px !important;
         position: relative !important;
     }
-    /* glowing seam / light-beam between the two tabs */
+
+    /* animated light-beam seam */
     #rankingsOverlay .rankings-body::before {
         content: '' !important;
         position: absolute !important;
@@ -982,21 +949,28 @@
         width: 1px !important;
         transform: translateX(-50%) !important;
         background: linear-gradient(180deg,
-            transparent,
+            transparent 0%,
             var(--accent-cyan) 18%,
-            var(--accent-magenta) 50%,
-            var(--accent-orange) 82%,
-            transparent) !important;
-        opacity: 0.4 !important;
+            var(--accent-magenta) 38%,
+            var(--accent-orange) 62%,
+            var(--accent-cyan) 82%,
+            transparent 100%) !important;
+        background-size: 100% 200% !important;
+        opacity: 0.6 !important;
         pointer-events: none !important;
         z-index: 1 !important;
+        animation: v4SeamFlow 5s linear infinite !important;
+    }
+    @keyframes v4SeamFlow {
+        0%   { background-position: 0 0; }
+        100% { background-position: 0 -200%; }
     }
 
-    /* each column: its own elevated tab-panel */
+    /* ── COLUMN PANELS ── */
     #rankingsOverlay .rankings-column {
         flex: 1 1 0 !important;
         position: relative !important;
-        padding: 0 22px 18px !important;
+        padding: 0 20px 18px !important;
         border-radius: 6px 18px 18px 18px !important;
         border: 1px solid var(--border-default) !important;
         background:
@@ -1009,7 +983,7 @@
     }
     #rankingsOverlay .rankings-column:hover { transform: translateY(-3px) !important; }
 
-    /* faint scanline texture inside each tab, kept behind content */
+    /* drifting scanlines */
     #rankingsOverlay .rankings-column::after {
         content: '' !important;
         position: absolute !important;
@@ -1018,11 +992,18 @@
         pointer-events: none !important;
         border-radius: inherit !important;
         background: repeating-linear-gradient(180deg,
-            rgba(255, 255, 255, 0.015) 0px,
-            rgba(255, 255, 255, 0.015) 1px,
+            rgba(255, 255, 255, 0.018) 0px,
+            rgba(255, 255, 255, 0.018) 1px,
             transparent 1px,
             transparent 3px) !important;
+        background-size: 100% 6px !important;
+        animation: v4Scan 12s linear infinite !important;
     }
+    @keyframes v4Scan {
+        from { background-position: 0 0; }
+        to   { background-position: 0 120px; }
+    }
+
     /* soft corner glow */
     #rankingsOverlay .rankings-column::before {
         content: '' !important;
@@ -1033,7 +1014,7 @@
         height: 75% !important;
         z-index: 0 !important;
         pointer-events: none !important;
-        background: radial-gradient(circle, rgba(255, 255, 255, 0.05), transparent 70%) !important;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.055), transparent 70%) !important;
     }
     #rankingsOverlay .rankings-column-title,
     #rankingsOverlay .rankings-list {
@@ -1058,67 +1039,144 @@
             0 18px 44px rgba(0, 0, 0, 0.5) !important;
     }
     #rankingsOverlay .rankings-column:nth-child(1):hover {
-        border-color: rgba(1, 225, 234, 0.55) !important;
+        border-color: rgba(1, 225, 234, 0.6) !important;
     }
     #rankingsOverlay .rankings-column:nth-child(2):hover {
-        border-color: rgba(246, 140, 22, 0.55) !important;
+        border-color: rgba(246, 140, 22, 0.6) !important;
     }
 
-    /* remove the old joined-card padding/border-left */
-    #rankingsOverlay .rankings-column:first-child { padding-right: 22px !important; }
+    #rankingsOverlay .rankings-column:first-child { padding-right: 20px !important; }
     #rankingsOverlay .rankings-column:last-child {
-        padding-left: 22px !important;
+        padding-left: 20px !important;
         border-left: 1px solid var(--border-default) !important;
     }
 
-    /* title becomes a raised flange across the top of its own tab */
+    /* ════════════════════════════════════════════════
+       EPIC COLUMN TITLE — big / clean / glowing
+       ════════════════════════════════════════════════ */
     #rankingsOverlay .rankings-column-title {
-        margin: 0 -22px 16px !important;
-        padding: 14px 22px 12px !important;
+        margin: 0 -20px 18px !important;
+        padding: 16px 20px 15px !important;
+        font-size: 1.05rem !important;
+        font-weight: 900 !important;
+        letter-spacing: 0.4em !important;
+        text-indent: 0.4em !important;
+        line-height: 1.1 !important;
         border-bottom: 1px solid var(--border-subtle) !important;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)) !important;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0)) !important;
+        text-shadow:
+            0 0 18px currentColor,
+            0 0 36px currentColor !important;
+        animation: v4TitlePulse 3.2s ease-in-out infinite !important;
+    }
+    @keyframes v4TitlePulse {
+        0%, 100% {
+            text-shadow:
+                0 0 16px currentColor,
+                0 0 32px currentColor;
+        }
+        50% {
+            text-shadow:
+                0 0 26px currentColor,
+                0 0 54px currentColor,
+                0 0 88px currentColor;
+        }
     }
     #rankingsOverlay .rankings-column-title::before {
         content: '' !important;
-        width: 7px !important;
-        height: 7px !important;
-        margin-right: 2px !important;
+        width: 9px !important;
+        height: 9px !important;
+        margin-right: 4px !important;
         border-radius: 2px !important;
         background: currentColor !important;
-        box-shadow: 0 0 10px currentColor !important;
+        box-shadow: 0 0 14px currentColor, 0 0 28px currentColor !important;
         transform: rotate(45deg) !important;
         flex-shrink: 0 !important;
     }
-    #rankingsOverlay .rankings-column-title::after { width: 40px !important; }
+    #rankingsOverlay .rankings-column-title::after {
+        width: 90px !important;
+        height: 3px !important;
+        box-shadow: 0 0 14px currentColor, 0 0 28px currentColor !important;
+    }
 
-    /* rows: a touch sharper + livelier hover */
+    /* ── ROWS ── */
     #rankingsOverlay .rankings-list > .rank-row {
         border-radius: 8px 12px 12px 8px !important;
+        transition:
+            background 0.14s ease,
+            border-color 0.14s ease,
+            box-shadow 0.14s ease,
+            transform 0.14s cubic-bezier(0.22, 1, 0.36, 1) !important;
     }
     #rankingsOverlay .rankings-list > .rank-row:hover {
-        transform: translateX(3px) scale(1.008) !important;
+        transform: translateX(4px) scale(1.012) !important;
     }
 
-    /* hero row: animated rotating rim light (falls back to a static
-       gold border on browsers without @property support) */
+    /* ════════════════════════════════════════════════
+       HERO #1 — WILD ANIMATED RIM
+       ════════════════════════════════════════════════ */
     #rankingsOverlay .rankings-list > .rank-row:first-child {
         border: 2px solid transparent !important;
         border-radius: 16px !important;
         background:
-            linear-gradient(180deg, rgba(246, 187, 22, 0.12) 0%, rgba(246, 187, 22, 0.02) 46%, rgba(0, 0, 0, 0) 100%) padding-box,
-            linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012)) padding-box,
+            linear-gradient(180deg, rgba(246, 187, 22, 0.13) 0%, rgba(246, 187, 22, 0.02) 46%, rgba(0, 0, 0, 0) 100%) padding-box,
+            linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.012)) padding-box,
             conic-gradient(from var(--v4-spin, 0deg),
-                rgba(246, 187, 22, 0.95),
-                rgba(255, 255, 255, 0.08) 30%,
-                rgba(246, 187, 22, 0.95) 60%,
-                rgba(255, 255, 255, 0.08) 90%,
-                rgba(246, 187, 22, 0.95)) border-box !important;
-        animation: v4RimSpin 5s linear infinite !important;
+                #FFD27A 0deg,
+                #01e1ea 60deg,
+                #ff2ec4 120deg,
+                #FFD27A 180deg,
+                #ff8a00 240deg,
+                #01e1ea 300deg,
+                #FFD27A 360deg) border-box !important;
+        animation:
+            v4RimSpin 2.4s linear infinite,
+            v4HeroPulse 3s ease-in-out infinite !important;
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.10),
+            inset 0 0 60px rgba(246, 187, 22, 0.06),
+            0 12px 44px rgba(0, 0, 0, 0.55) !important;
     }
     @keyframes v4RimSpin {
         to { --v4-spin: 360deg; }
     }
+    @keyframes v4HeroPulse {
+        0%, 100% {
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.10),
+                inset 0 0 60px rgba(246, 187, 22, 0.06),
+                0 0 24px rgba(246, 187, 22, 0.18),
+                0 12px 44px rgba(0, 0, 0, 0.55);
+        }
+        50% {
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.14),
+                inset 0 0 90px rgba(246, 187, 22, 0.12),
+                0 0 56px rgba(246, 187, 22, 0.42),
+                0 12px 44px rgba(0, 0, 0, 0.55);
+        }
+    }
+
+    /* hero top-bar: animated sweeping light beam */
+    #rankingsOverlay .rankings-list > .rank-row:first-child::after {
+        height: 3px !important;
+        border-radius: 16px 16px 0 0 !important;
+        background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 210, 122, 0.15) 20%,
+            #FFD27A 50%,
+            rgba(255, 210, 122, 0.15) 80%,
+            transparent 100%) !important;
+        background-size: 220% 100% !important;
+        box-shadow: 0 0 22px rgba(246, 187, 22, 0.75) !important;
+        animation: v4HeroSweep 2.6s ease-in-out infinite !important;
+    }
+    @keyframes v4HeroSweep {
+        0%   { background-position: 220% 0; }
+        100% { background-position: -220% 0; }
+    }
 }
+
 @property --v4-spin {
     syntax: '<angle>';
     inherits: false;
