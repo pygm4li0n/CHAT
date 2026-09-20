@@ -12,7 +12,7 @@
    • Joined date derived from messages.created_at (truest signal)
    • Ghost users (chatted, no profile row) still render a card
    • Clickable usernames with hover underline + "VIEW PROFILE" hint
-   • v2: big left-aligned avatar + right-aligned identity column
+   • v2: big left-aligned avatar + centered identity column
    ============================================================ */
 (function () {
     'use strict';
@@ -161,9 +161,9 @@
         + '}'
         + '.msn-profile-close:active{transform:rotate(90deg) scale(.96);}'
 
-        /* ── HEADER: big avatar left · identity right ── */
+        /* ── HEADER: avatar left · identity centered in the remaining space ── */
         + '.msn-profile-head{'
-        +   'position:relative;display:flex;align-items:center;gap:20px;'
+        +   'position:relative;display:flex;align-items:center;gap:18px;'
         +   'padding:4px 0 18px;margin-bottom:16px;'
         +   'border-bottom:1px solid rgba(35,50,97,.55);'
         + '}'
@@ -173,27 +173,27 @@
         +   'opacity:.45;pointer-events:none;'
         + '}'
 
-        /* Avatar — twice the old size, anchored left */
-        + '.msn-profile-avatar-wrap{position:relative;width:168px;height:168px;flex:0 0 auto;}'
+        /* Avatar — reduced 10%, anchored left */
+        + '.msn-profile-avatar-wrap{position:relative;width:152px;height:152px;flex:0 0 auto;}'
         + '.msn-profile-avatar{'
         +   'width:100%;height:100%;border-radius:50%;background:var(--bg-elevated,#151b2d);'
         +   'border:2px solid var(--accent-cyan,#00f0ff);overflow:hidden;display:flex;'
-        +   'align-items:center;justify-content:center;font-size:3.4rem;font-weight:800;color:#fff;'
+        +   'align-items:center;justify-content:center;font-size:3.05rem;font-weight:800;color:#fff;'
         +   'letter-spacing:.02em;line-height:1;'
         +   'box-shadow:0 0 0 6px rgba(0,240,255,.05),0 0 32px var(--accent-cyan,rgba(0,240,255,.35));'
         + '}'
         + '.msn-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;}'
         + '.msn-profile-status-dot{'
-        +   'position:absolute;bottom:9px;right:9px;width:22px;height:22px;border-radius:50%;'
-        +   'background:var(--text-muted,#64748b);border:4px solid var(--bg-panel,#111827);'
+        +   'position:absolute;bottom:7px;right:7px;width:20px;height:20px;border-radius:50%;'
+        +   'background:var(--text-muted,#64748b);border:3px solid var(--bg-panel,#111827);'
         +   'transition:background .25s ease,box-shadow .25s ease;'
         + '}'
         + '.msn-profile-status-dot.online{background:#4ade80;box-shadow:0 0 10px #4ade80,0 0 22px rgba(74,222,128,.55);}'
 
-        /* Identity column — everything left-aligned, tight stack */
+        /* Identity column — centered horizontally + vertically in remaining space */
         + '.msn-profile-identity{'
         +   'flex:1 1 auto;min-width:0;display:flex;flex-direction:column;'
-        +   'align-items:flex-start;gap:7px;'
+        +   'align-items:center;justify-content:center;text-align:center;gap:7px;'
         + '}'
         + '.msn-profile-username{'
         +   'margin:0;font-size:1.5rem;font-weight:800;letter-spacing:.01em;line-height:1.12;'
@@ -380,10 +380,10 @@
         + '@media (max-width:480px){'
         +   '.msn-profile-overlay{padding:12px;}'
         +   '.msn-profile-card{max-width:100%;padding:20px 16px 14px;border-radius:16px;max-height:92vh;}'
-        +   '.msn-profile-head{gap:14px;padding:2px 0 14px;margin-bottom:14px;}'
-        +   '.msn-profile-avatar-wrap{width:106px;height:106px;}'
-        +   '.msn-profile-avatar{font-size:2.35rem;}'
-        +   '.msn-profile-status-dot{width:16px;height:16px;border-width:3px;bottom:4px;right:4px;}'
+        +   '.msn-profile-head{gap:12px;padding:2px 0 14px;margin-bottom:14px;}'
+        +   '.msn-profile-avatar-wrap{width:95px;height:95px;}'
+        +   '.msn-profile-avatar{font-size:2.1rem;}'
+        +   '.msn-profile-status-dot{width:15px;height:15px;border-width:3px;bottom:4px;right:4px;}'
         +   '.msn-profile-identity{gap:5px;}'
         +   '.msn-profile-username{font-size:1.12rem;}'
         +   '.msn-profile-signature{font-size:.76rem;}'
@@ -674,7 +674,7 @@
 
         bodyEl.innerHTML = ''
 
-            /* ── Header: BIG avatar on the left, identity on the right ── */
+            /* ── Header: avatar left · identity centered in remaining space ── */
             + '<div class="msn-profile-head">'
             +   '<div class="msn-profile-avatar-wrap">'
             +     '<div class="msn-profile-avatar">' + avatarHTML(data) + '</div>'
