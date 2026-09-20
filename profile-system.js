@@ -12,6 +12,7 @@
    • Joined date derived from messages.created_at (truest signal)
    • Ghost users (chatted, no profile row) still render a card
    • Clickable usernames with hover underline + "VIEW PROFILE" hint
+   • v2: big left-aligned avatar + right-aligned identity column
    ============================================================ */
 (function () {
     'use strict';
@@ -121,7 +122,7 @@
         + '}'
         + '.msn-profile-overlay.open{opacity:1;pointer-events:auto;}'
         + '.msn-profile-card{'
-        +   'position:relative;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;overflow-x:hidden;'
+        +   'position:relative;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;overflow-x:hidden;'
         +   'padding:24px 22px 18px;'
         +   'background:linear-gradient(180deg,rgba(20,26,40,.97) 0%,rgba(10,14,24,.985) 100%);'
         +   'border:1px solid var(--border-default,#233261);border-radius:var(--radius-xl,22px);'
@@ -142,47 +143,70 @@
         +   'opacity:.75;pointer-events:none;'
         + '}'
 
-        /* Close button */
+        /* ── Close button (rotates on hover) ── */
         + '.msn-profile-close{'
         +   'position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:8px;'
         +   'border:1px solid var(--border-default,#233261);background:var(--bg-input,#111827);'
         +   'color:var(--text-secondary,#94a3b8);cursor:pointer;display:flex;align-items:center;'
-        +   'justify-content:center;font-size:.85rem;transition:all .22s ease;z-index:3;'
+        +   'justify-content:center;font-size:.85rem;line-height:1;z-index:3;'
+        +   'transform:rotate(0deg) scale(1);'
+        +   'transition:transform .38s cubic-bezier(.16,1,.3,1),'
+        +               'border-color .22s ease,color .22s ease,box-shadow .22s ease;'
         + '}'
-        + '.msn-profile-close:hover{'
+        + '.msn-profile-close:hover,.msn-profile-close:focus-visible{'
+        +   'outline:none;'
         +   'border-color:var(--accent-red,#ff5c7c);color:var(--accent-red,#ff5c7c);'
-        +   'transform:rotate(90deg);box-shadow:0 0 12px rgba(255,92,124,.4);'
+        +   'transform:rotate(90deg) scale(1.08);'
+        +   'box-shadow:0 0 14px rgba(255,92,124,.45);'
+        + '}'
+        + '.msn-profile-close:active{transform:rotate(90deg) scale(.96);}'
+
+        /* ── HEADER: big avatar left · identity right ── */
+        + '.msn-profile-head{'
+        +   'position:relative;display:flex;align-items:center;gap:20px;'
+        +   'padding:4px 0 18px;margin-bottom:16px;'
+        +   'border-bottom:1px solid rgba(35,50,97,.55);'
+        + '}'
+        + '.msn-profile-head::after{'
+        +   'content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;'
+        +   'background:linear-gradient(90deg,var(--accent-cyan,#00f0ff) 0%,transparent 65%);'
+        +   'opacity:.45;pointer-events:none;'
         + '}'
 
-        /* Avatar block */
-        + '.msn-profile-avatar-wrap{position:relative;width:92px;height:92px;margin:4px auto 12px;}'
+        /* Avatar — twice the old size, anchored left */
+        + '.msn-profile-avatar-wrap{position:relative;width:168px;height:168px;flex:0 0 auto;}'
         + '.msn-profile-avatar{'
         +   'width:100%;height:100%;border-radius:50%;background:var(--bg-elevated,#151b2d);'
         +   'border:2px solid var(--accent-cyan,#00f0ff);overflow:hidden;display:flex;'
-        +   'align-items:center;justify-content:center;font-size:2rem;font-weight:800;color:#fff;'
-        +   'box-shadow:0 0 0 4px rgba(0,240,255,.05),0 0 22px var(--accent-cyan,rgba(0,240,255,.35));'
+        +   'align-items:center;justify-content:center;font-size:3.4rem;font-weight:800;color:#fff;'
+        +   'letter-spacing:.02em;line-height:1;'
+        +   'box-shadow:0 0 0 6px rgba(0,240,255,.05),0 0 32px var(--accent-cyan,rgba(0,240,255,.35));'
         + '}'
         + '.msn-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;}'
         + '.msn-profile-status-dot{'
-        +   'position:absolute;bottom:3px;right:3px;width:15px;height:15px;border-radius:50%;'
-        +   'background:var(--text-muted,#64748b);border:3px solid var(--bg-panel,#111827);'
+        +   'position:absolute;bottom:9px;right:9px;width:22px;height:22px;border-radius:50%;'
+        +   'background:var(--text-muted,#64748b);border:4px solid var(--bg-panel,#111827);'
         +   'transition:background .25s ease,box-shadow .25s ease;'
         + '}'
-        + '.msn-profile-status-dot.online{background:#4ade80;box-shadow:0 0 8px #4ade80,0 0 18px rgba(74,222,128,.55);}'
+        + '.msn-profile-status-dot.online{background:#4ade80;box-shadow:0 0 10px #4ade80,0 0 22px rgba(74,222,128,.55);}'
 
-        /* Identity block */
+        /* Identity column — everything left-aligned, tight stack */
+        + '.msn-profile-identity{'
+        +   'flex:1 1 auto;min-width:0;display:flex;flex-direction:column;'
+        +   'align-items:flex-start;gap:7px;'
+        + '}'
         + '.msn-profile-username{'
-        +   'text-align:center;font-size:1.25rem;font-weight:800;letter-spacing:.02em;'
-        +   'margin:0 0 4px;color:var(--text-primary,#fff);'
-        +   'text-shadow:0 0 12px var(--accent-cyan,rgba(0,240,255,.35));word-break:break-word;'
+        +   'margin:0;font-size:1.5rem;font-weight:800;letter-spacing:.01em;line-height:1.12;'
+        +   'color:var(--text-primary,#fff);word-break:break-word;'
+        +   'text-shadow:0 0 14px var(--accent-cyan,rgba(0,240,255,.3));'
         + '}'
         + '.msn-profile-signature{'
-        +   'text-align:center;font-size:.82rem;color:var(--text-secondary,#94a3b8);'
-        +   'font-style:italic;margin:0 0 6px;line-height:1.4;word-break:break-word;min-height:1.15em;'
+        +   'margin:0;font-size:.84rem;color:var(--text-secondary,#94a3b8);'
+        +   'font-style:italic;line-height:1.45;word-break:break-word;min-height:1.2em;'
         + '}'
         + '.msn-profile-meta{'
-        +   'text-align:center;font-size:.64rem;color:var(--text-muted,#64748b);'
-        +   'letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin:0 0 18px;'
+        +   'margin:0;font-size:.6rem;color:var(--text-muted,#64748b);'
+        +   'letter-spacing:.14em;text-transform:uppercase;font-weight:700;'
         + '}'
 
         /* HUD stats — 3 columns (Level / XP / Messages) */
@@ -355,10 +379,15 @@
         /* Mobile */
         + '@media (max-width:480px){'
         +   '.msn-profile-overlay{padding:12px;}'
-        +   '.msn-profile-card{max-width:100%;padding:20px 14px 14px;border-radius:16px;max-height:92vh;}'
-        +   '.msn-profile-avatar-wrap{width:78px;height:78px;margin-bottom:10px;}'
-        +   '.msn-profile-avatar{font-size:1.7rem;}'
-        +   '.msn-profile-username{font-size:1.1rem;}'
+        +   '.msn-profile-card{max-width:100%;padding:20px 16px 14px;border-radius:16px;max-height:92vh;}'
+        +   '.msn-profile-head{gap:14px;padding:2px 0 14px;margin-bottom:14px;}'
+        +   '.msn-profile-avatar-wrap{width:106px;height:106px;}'
+        +   '.msn-profile-avatar{font-size:2.35rem;}'
+        +   '.msn-profile-status-dot{width:16px;height:16px;border-width:3px;bottom:4px;right:4px;}'
+        +   '.msn-profile-identity{gap:5px;}'
+        +   '.msn-profile-username{font-size:1.12rem;}'
+        +   '.msn-profile-signature{font-size:.76rem;}'
+        +   '.msn-profile-meta{font-size:.53rem;letter-spacing:.1em;}'
         +   '.msn-profile-hud{gap:4px;padding:10px 4px;margin-bottom:12px;}'
         +   '.msn-hud-value{font-size:.94rem;}'
         +   '.msn-hud-label{font-size:.5rem;letter-spacing:.1em;}'
@@ -644,14 +673,20 @@
         var showStreakRow = isSelf || streak > 0;
 
         bodyEl.innerHTML = ''
-            + '<div class="msn-profile-avatar-wrap">'
-            +   '<div class="msn-profile-avatar">' + avatarHTML(data) + '</div>'
-            +   '<span class="msn-profile-status-dot' + (online ? ' online' : '') + '" '
-            +       'title="' + (online ? 'Online' : 'Offline') + '"></span>'
+
+            /* ── Header: BIG avatar on the left, identity on the right ── */
+            + '<div class="msn-profile-head">'
+            +   '<div class="msn-profile-avatar-wrap">'
+            +     '<div class="msn-profile-avatar">' + avatarHTML(data) + '</div>'
+            +     '<span class="msn-profile-status-dot' + (online ? ' online' : '') + '" '
+            +         'title="' + (online ? 'Online' : 'Offline') + '"></span>'
+            +   '</div>'
+            +   '<div class="msn-profile-identity">'
+            +     '<h2 class="msn-profile-username">' + esc(data.username) + '</h2>'
+            +     '<p class="msn-profile-signature">' + (data.signature ? esc(data.signature) : '') + '</p>'
+            +     '<div class="msn-profile-meta">◆ Joined ' + esc(fmtDate(data.created_at)) + '</div>'
+            +   '</div>'
             + '</div>'
-            + '<h2 class="msn-profile-username">' + esc(data.username) + '</h2>'
-            + '<p class="msn-profile-signature">' + (data.signature ? esc(data.signature) : '') + '</p>'
-            + '<div class="msn-profile-meta">◆ Joined ' + esc(fmtDate(data.created_at)) + '</div>'
 
             // HUD — 3 stats: Level / XP / Messages
             + '<div class="msn-profile-hud">'
