@@ -733,6 +733,7 @@
    – Hide the pencil (kept in DOM so Edit Profile still works)
    – Avatar 80px (25% bigger than 64)
    – Hover: VIEW PROFILE overlay INSIDE the avatar circle only
+   – Overlay uses ::before so theme's ::after (specular) stays intact
    – Info column rebalanced for larger avatar
 ═════════════════════════════════════════════════════ */
 @media (min-width: 769px) {
@@ -759,8 +760,10 @@
         border-radius: 50% !important;
     }
 
-    /* ── VIEW PROFILE overlay — lives INSIDE the avatar circle ── */
-    .sidebar-user-profile-big .big-avatar::after {
+    /* ── VIEW PROFILE overlay — lives INSIDE the avatar circle ──
+       Uses ::before so the theme's ::after (specular highlight)
+       stays intact. z-index: 6 lifts it above that highlight. */
+    .sidebar-user-profile-big .big-avatar::before {
         content: 'VIEW\A PROFILE';
         white-space: pre;
         position: absolute !important;
@@ -769,25 +772,27 @@
         align-items: center !important;
         justify-content: center !important;
         text-align: center !important;
-        background: rgba(5, 8, 16, 0.82) !important;
+        padding: 0 6px !important;
+        box-sizing: border-box !important;
+        background: rgba(5, 8, 16, 0.88) !important;
         backdrop-filter: blur(4px) !important;
         -webkit-backdrop-filter: blur(4px) !important;
         color: var(--accent-cyan, #00f0ff) !important;
         font-family: var(--font-mono, monospace) !important;
-        font-size: 0.5rem !important;
-        font-weight: 800 !important;
-        letter-spacing: 0.12em !important;
-        line-height: 1.35 !important;
-        text-indent: 0.12em !important;
-        text-shadow: 0 0 8px var(--accent-cyan, rgba(0, 240, 255, .7)) !important;
+        font-size: 0.55rem !important;
+        font-weight: 900 !important;
+        letter-spacing: 0.08em !important;
+        line-height: 1.25 !important;
+        text-transform: uppercase !important;
+        text-shadow: 0 0 10px var(--accent-cyan, rgba(0, 240, 255, .9)) !important;
         opacity: 0 !important;
         pointer-events: none !important;
         transition: opacity 0.2s ease !important;
-        z-index: 5 !important;
+        z-index: 6 !important;
         border-radius: 50% !important;
     }
-    .sidebar-user-profile-big .big-avatar:hover::after,
-    .sidebar-user-profile-big .big-avatar:focus-visible::after {
+    .sidebar-user-profile-big .big-avatar:hover::before,
+    .sidebar-user-profile-big .big-avatar:focus-visible::before {
         opacity: 1 !important;
     }
 
@@ -836,7 +841,7 @@
         display: none !important;
     }
 
-    /* ── Kill the old pill + full-block overlay on the container ── */
+    /* ── Kill any leftover overlay on the container itself ── */
     .sidebar-user-profile-big::before,
     .sidebar-user-profile-big::after {
         content: none !important;
