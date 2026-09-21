@@ -1909,24 +1909,40 @@
         presenceChannel
         .on('presence', { event:'sync' }, () => {
                 const state = presenceChannel.presenceState();
-                onlineUsers.clear();
-                const seen = new Set();
+
+                const flat = [];
                 Object.keys(state).forEach(key => {
                     const presences = state[key];
                     if (!presences || presences.length === 0) return;
                     const p = presences[0];
-                    const uname = p.username || key.split('::')[0] || 'Unknown';
-                    const wallet = (p.wallet || '').trim();
-                    const dedupeKey = wallet ? ('w:' + wallet) : ('u:' + uname);
-                    if (seen.has(dedupeKey)) return;
-                    seen.add(dedupeKey);
-                    onlineUsers.set(key, {
-                        username: uname,
+                    flat.push({
+                        key: key,
+                        username: p.username || key.split('::')[0] || 'Unknown',
                         client_id: p.client_id || '',
-                        wallet: wallet,
+                        wallet: (p.wallet || '').trim(),
                         online_at: p.online_at || ''
                     });
                 });
+
+                onlineUsers.clear();
+                const seenWallets = new Set();
+                const seenUsernames = new Set();
+
+                flat.forEach(u => {
+                    if (u.wallet && seenWallets.has(u.wallet)) return;
+                    if (seenUsernames.has(u.username)) return;
+
+                    if (u.wallet) seenWallets.add(u.wallet);
+                    seenUsernames.add(u.username);
+
+                    onlineUsers.set(u.key, {
+                        username: u.username,
+                        client_id: u.client_id,
+                        wallet: u.wallet,
+                        online_at: u.online_at
+                    });
+                });
+
                 updateSidebarUI();
                 setConnection('connected');
             })
@@ -1938,8 +1954,8 @@
 
                 let dup = false;
                 onlineUsers.forEach(u => {
-                    if (wallet && u.wallet === wallet) dup = true;
-                    else if (!wallet && u.username === uname) dup = true;
+                    if (wallet && u.wallet && u.wallet === wallet) dup = true;
+                    if (u.username === uname) dup = true;
                 });
                 if (dup) return;
 
@@ -2153,8 +2169,11 @@
             }
         });
         sidebarUsers.innerHTML = html || '<div class="no-users-sidebar">No one else online</div>';
-        onlineCountNumber.textContent = onlineUsers.size;
-        if (sidebarActiveUsersCount) sidebarActiveUsersCount.textContent = onlineUsers.size;
+        onlineCountNumber.textContent = onlineUsers.size;        const uniqueForCount = new Set();
+        onlineUsers.forEach(u => uniqueForCount.add(u.username));
+        const onlineCount = uniqueForCount.size;
+        onlineCountNumber.textContent = onlineCount;
+        if (sidebarActiveUsersCount) sidebarActiveUsersCount.textContent = onlineCount;
 
         sidebarUsers.querySelectorAll('.sidebar-user-item').forEach(item => {
             const userName = item.getAttribute('data-username');
