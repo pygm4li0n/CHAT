@@ -586,6 +586,15 @@
     if (!document.getElementById('rankingsBtn'))      console.warn('[msn] rankingsBtn missing');
     if (!document.getElementById('sidebarThemeBtn'))  console.warn('[msn] sidebarThemeBtn missing');
 
+       // ═══ Shared event bus (used by Sections 1–3 below) ═══
+    const _walletChangeSubs = [];
+    function onWalletChange(fn) { _walletChangeSubs.push(fn); }
+    function _emitWalletChange(addr) {
+        for (const fn of _walletChangeSubs) {
+            try { fn(addr); } catch (e) { console.warn('[wallet-change sub]', e); }
+        }
+    }
+
     let currentRequestData = null;
 
     const MOD_WALLET = 'GKpgaSMUeUPD2AjXb9eiXsbQ1qm6YfGrYY6hHvNgqNJc';
@@ -808,6 +817,8 @@
 
         checkIfModWallet();
         updateChatAccessibility();
+
+        _emitWalletChange(connected ? addr : null);
     }
 
     function createTokenListContainer() {
@@ -3052,4 +3063,471 @@
         });
     }
     init();
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 1 — TOKEN CA PILL
+   Injects a copy-able contract address pill next to the header
+   token tracker. Desktop only (CSS hides on mobile).
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+    'use strict';
+
+    const CA = '6imhRyMYu5xoGJ5W7yveymB5o5yfyAvXxveozWpbU5ix';
+    const SHORT = CA.slice(0, 4) + '…' + CA.slice(-4);
+
+    function injectStyles() {
+        if (document.getElementById('token-ca-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'token-ca-styles';
+        style.textContent =
+            '.token-ca .ca-copy{display:inline-flex;align-items:center;' +
+            'justify-content:center;width:1.35em;height:1.35em;line-height:1;' +
+            'text-align:center;flex:0 0 auto;}';
+        document.head.appendChild(style);
+    }
+
+    function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text);
+        }
+        return new Promise((resolve, reject) => {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                resolve();
+            } catch (e) { reject(e); }
+        });
+    }
+
+    function inject() {
+        const center = document.querySelector('.header-center');
+        if (!center || center.querySelector('.token-ca')) return;
+
+        injectStyles();
+
+        const el = document.createElement('div');
+        el.className = 'token-ca';
+        el.setAttribute('role', 'button');
+        el.setAttribute('tabindex', '0');
+        el.setAttribute('title', 'Click to copy contract address');
+        el.innerHTML =
+            '<span class="ca-label">CA</span>' +
+            '<span class="ca-value">' + SHORT + '</span>' +
+            '<span class="ca-copy">📋</span>';
+
+        function flashCopied() {
+            el.classList.add('copied');
+            const icon = el.querySelector('.ca-copy');
+            if (icon) icon.textContent = '✅';
+            setTimeout(() => {
+                el.classList.remove('copied');
+                if (icon) icon.textContent = '📋';
+            }, 1500);
+        }
+        function doCopy() {
+            copyText(CA).then(flashCopied).catch(err => {
+                console.warn('[token-ca] copy failed', err);
+                try { window.prompt('Copy the contract address:', CA); } catch (e) {}
+            });
+        }
+
+        el.addEventListener('click', doCopy);
+        el.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doCopy(); }
+        });
+
+        center.appendChild(el);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', inject);
+    } else {
+        inject();
+    }
+    const mo = new MutationObserver(inject);
+    document.addEventListener('DOMContentLoaded', () => {
+        const center = document.querySelector('.header-center');
+        if (center) mo.observe(center, { childList: true });
+    });
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 2 — XP BADGE + DUAL LEADERBOARDS
+   Uses shared: supabase, getBadge, getWalletAddress, showSuccess,
+                onWalletChange
+   Exposes: window.addXP (called by sendMessage), window.MSN.rankings
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  function badgeFromName(name) {
+    const n = String(name || '').trim().toLowerCase();
+    if (n === 'whale')   return { name: 'Whale',   emoji: '🐋' };
+    if (n === 'dolphin') return { name: 'Dolphin', emoji: '🐬' };
+    if (n === 'crab')    return { name: 'Crab',    emoji: '🦀' };
+    return { name: 'Shrimp', emoji: '🦐' };
+  }
+
+  function esc(t) {
+    return String(t).replace(/[&<>"']/g, m =>
+      ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[m]));
+  }
+  function xpForLevel(L) { return L <= 1 ? 0 : 25 * (L - 1) * L; }
+  function levelFromXp(xp) {
+    if (!xp || xp < 50) return 1;
+    return Math.max(1, Math.floor((1 + Math.sqrt(1 + (xp * 4 / 25))) / 2));
+  }
+
+  function updateLevelBadge(level, xp, inLevel, needed) {
+    const el = document.getElementById('sidebarBigLevel');
+    if (!el) return;
+    if (!level || level < 1) { el.textContent = ''; el.classList.add('hidden'); return; }
+    if (inLevel == null || needed == null) {
+      const a = xpForLevel(level), b = xpForLevel(level + 1);
+      inLevel = (xp || 0) - a; needed = b - a;
+    }
+    el.textContent = `⭐ Lv.${level}  (${inLevel}/${needed})`;
+    el.classList.remove('hidden');
+  }
+
+  let lastWallet = null;
+  async function loadXp(wallet) {
+    if (!wallet) { updateLevelBadge(null, 0); return; }
+    try {
+      const { data, error } = await supabase.rpc('get_xp_by_wallet', { p_wallet: wallet });
+      if (!error && data && data.length) {
+        const row = Array.isArray(data) ? data[0] : data;
+        updateLevelBadge(row.level || levelFromXp(row.xp || 0), row.xp, row.in_level, row.needed);
+        return;
+      }
+    } catch {}
+    try {
+      const { data, error } = await supabase.from('profiles').select('xp')
+        .eq('wallet_address', wallet).limit(1).maybeSingle();
+      if (error || !data) { updateLevelBadge(null, 0); return; }
+      const xp = Number(data.xp || 0);
+      updateLevelBadge(levelFromXp(xp), xp);
+    } catch (e) { console.warn('[xp] load error:', e); }
+  }
+
+  function openRankings() {
+    const overlay = document.getElementById('rankingsOverlay');
+    if (!overlay) { console.error('[rankings] #rankingsOverlay missing'); return; }
+    overlay.classList.remove('hidden');
+    refreshBoth();
+  }
+  function closeRankings() {
+    const overlay = document.getElementById('rankingsOverlay');
+    if (overlay) overlay.classList.add('hidden');
+  }
+
+  document.addEventListener('click', e => {
+    const t = e.target;
+    if (t && t.closest) {
+      if (t.closest('#rankingsBtn')) {
+        e.preventDefault(); e.stopPropagation(); openRankings(); return;
+      }
+      if (t.closest('#rankingsCloseBtn')) {
+        e.preventDefault(); e.stopPropagation(); closeRankings(); return;
+      }
+    }
+    const overlay = document.getElementById('rankingsOverlay');
+    if (overlay && t === overlay) closeRankings();
+  }, true);
+
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    const overlay = document.getElementById('rankingsOverlay');
+    if (overlay && !overlay.classList.contains('hidden')) closeRankings();
+  });
+
+  function cacheBust(url, row) {
+    if (!url) return url;
+    const tag = row.xp != null ? row.xp
+              : (row.token_balance != null ? row.token_balance : Date.now());
+    return url + (url.indexOf('?') === -1 ? '?' : '&') + 'v=' + encodeURIComponent(String(tag));
+  }
+  function avatarHTML(row) {
+    let url = row.avatar_url || row.avatar || row.profile_pic || row.profile_pic_url || row.pfp || null;
+    if (url && !/^https?:\/\//i.test(url) && url.indexOf('/') !== -1) {
+      url = 'https://uxrpjfsouwxnlcbhjilz.supabase.co/storage/v1/object/public/' +
+            url.replace(/^\/+/, '');
+    }
+    if (url) url = cacheBust(url, row);
+    const initial = String(row.username || '?').trim().charAt(0).toUpperCase() || '?';
+    if (url) return '<img class="rank-avatar" src="' + esc(url) + '" alt="" loading="lazy" data-initial="' + esc(initial) + '">';
+    return '<div class="rank-avatar rank-avatar-fallback">' + esc(initial) + '</div>';
+  }
+  function fixBrokenAvatars(container) {
+    container.querySelectorAll('img.rank-avatar').forEach(img => {
+      img.addEventListener('error', () => {
+        const d = document.createElement('div');
+        d.className = 'rank-avatar rank-avatar-fallback';
+        d.textContent = img.dataset.initial || '?';
+        img.replaceWith(d);
+      }, { once: true });
+    });
+  }
+
+  async function loadHolders() {
+    const el = document.getElementById('holdersLeaderboard');
+    if (!el) return;
+    try {
+      const { data, error } = await supabase.rpc('get_holders_leaderboard', { p_limit: 10 });
+      if (error) {
+        console.error('[rankings] holders RPC error:', error);
+        el.innerHTML = '<div class="rankings-empty">Error loading</div>';
+        return;
+      }
+      if (!data || !data.length) {
+        el.innerHTML = '<div class="rankings-empty">No holders yet</div>';
+        return;
+      }
+      el.innerHTML = data.map(row => {
+        const tier = badgeFromName(row.holder_tier);
+        const bal  = Number(row.token_balance || 0).toLocaleString();
+        return '<div class="rank-row">' +
+          avatarHTML(row) +
+          '<div class="rank-info">' +
+            '<div class="rank-name">' + esc(row.username || 'anon') + '</div>' +
+            '<div class="rank-meta"><span class="rank-level">' + tier.emoji + ' ' + esc(tier.name.toUpperCase()) + '</span></div>' +
+          '</div>' +
+          '<div class="rank-stats"><span class="rank-score">' + bal + '</span></div>' +
+        '</div>';
+      }).join('');
+      fixBrokenAvatars(el);
+    } catch (e) {
+      console.error('[rankings] loadHolders threw:', e);
+      el.innerHTML = '<div class="rankings-empty">Error loading</div>';
+    }
+  }
+
+  async function loadActivity() {
+    const el = document.getElementById('activityLeaderboard');
+    if (!el) return;
+    try {
+      const { data, error } = await supabase.rpc('get_activity_leaderboard', { p_limit: 50 });
+      if (error) {
+        console.error('[rankings] activity RPC error:', error);
+        el.innerHTML = '<div class="rankings-empty">Error loading</div>';
+        return;
+      }
+      if (!data || !data.length) {
+        el.innerHTML = '<div class="rankings-empty">No activity yet</div>';
+        return;
+      }
+      const rows = data.slice().sort((a, b) => Number(b.xp || 0) - Number(a.xp || 0));
+      el.innerHTML = rows.map(row => {
+        const xp    = Number(row.xp || 0);
+        const level = Number(row.level) || levelFromXp(xp);
+        const today = Number(row.xp_today || 0);
+        return '<div class="rank-row">' +
+          avatarHTML(row) +
+          '<div class="rank-info">' +
+            '<div class="rank-name">' + esc(row.username || 'anon') + '</div>' +
+            '<div class="rank-meta">' +
+              '<span class="rank-level">LVL ' + level + '</span>' +
+              (today > 0 ? '<span class="rank-detail">+' + today + ' today</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="rank-stats"><span class="rank-score">' + xp.toLocaleString() + ' XP</span></div>' +
+        '</div>';
+      }).join('');
+      fixBrokenAvatars(el);
+    } catch (e) {
+      console.error('[rankings] loadActivity threw:', e);
+      el.innerHTML = '<div class="rankings-empty">Error loading</div>';
+    }
+  }
+
+  function refreshBoth() { loadHolders(); loadActivity(); }
+
+  window.addXP = async function (messageId) {
+    if (!messageId) return null;
+    const w = getWalletAddress();
+    if (!w) return null;
+    try {
+      const { data, error } = await supabase.rpc('add_xp', { p_wallet: w, p_message_id: messageId });
+      if (error || !data || data.error) return null;
+      if (data.granted > 0) {
+        const lvl = data.level || levelFromXp(data.xp || 0);
+        updateLevelBadge(lvl, data.xp, data.in_level, data.needed);
+      }
+      if (data.leveled_up) showSuccess(`🎉 Level ${data.level} reached!`);
+      return data;
+    } catch (e) { console.warn('[xp] add_xp error:', e); return null; }
+  };
+
+  onWalletChange(addr => {
+    if (addr && addr !== lastWallet) { lastWallet = addr; loadXp(addr); }
+    else if (!addr && lastWallet) { lastWallet = null; updateLevelBadge(null, 0); }
+  });
+
+  setTimeout(() => {
+    const w = getWalletAddress();
+    if (w) { lastWallet = w; loadXp(w); }
+  }, 500);
+
+  window.MSN = window.MSN || {};
+  window.MSN.rankings = { open: openRankings, close: closeRankings, refresh: refreshBoth };
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 3 — WALLET DAILY LOGIN STREAK
+   Uses shared: supabase, solanaConnection, TOKEN_MINT_ADDRESS,
+                getWalletAddress, updateUserRank, showSuccess,
+                onWalletChange
+   Owns: #sidebarStreakDisplay, #streakFires, #streakOverflow
+   Does NOT touch #sidebarBigRank (script.js's updateUserRank owns it).
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+    'use strict';
+
+    let lastTrackedWallet = null;
+    let streakToastTimeout = null;
+
+    function getCachedWallet() {
+        try { return localStorage.getItem('msn_cached_wallet'); } catch (e) { return null; }
+    }
+
+    function getOrCreateStreakToast() {
+        let el = document.getElementById('streakToast');
+        if (el) return el;
+        el = document.createElement('div');
+        el.id = 'streakToast';
+        el.className = 'streak-toast';
+        document.body.appendChild(el);
+        return el;
+    }
+    function showStreakToast(msg) {
+        const el = getOrCreateStreakToast();
+        el.textContent = msg;
+        el.classList.remove('visible');
+        void el.offsetWidth;
+        el.classList.add('visible');
+        clearTimeout(streakToastTimeout);
+        streakToastTimeout = setTimeout(() => el.classList.remove('visible'), 6500);
+    }
+
+    const MAX_FIRES = 7;
+    function updateStreakBadge(streak) {
+        const container  = document.getElementById('sidebarStreakDisplay');
+        const firesEl    = document.getElementById('streakFires');
+        const overflowEl = document.getElementById('streakOverflow');
+        if (!container || !firesEl || !overflowEl) return;
+
+        if (!streak || streak <= 0) { container.classList.add('hidden'); return; }
+        container.classList.remove('hidden');
+
+        const filled = Math.min(streak, MAX_FIRES);
+        let html = '';
+        for (let i = 0; i < MAX_FIRES; i++) {
+            html += `<span class="fire-slot ${i < filled ? 'fire-filled' : 'fire-empty'}">🔥</span>`;
+        }
+        firesEl.innerHTML = html;
+
+        if (streak > MAX_FIRES) {
+            overflowEl.textContent = `× ${streak}`;
+            overflowEl.classList.remove('hidden');
+        } else {
+            overflowEl.textContent = '';
+            overflowEl.classList.add('hidden');
+        }
+    }
+
+    async function fetchWalletBalance(wallet) {
+        try {
+            const pubkey = new solanaWeb3.PublicKey(wallet);
+            const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(pubkey, {
+                programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+            });
+            let balance = 0;
+            for (const acc of tokenAccounts.value) {
+                const info = acc.account.data.parsed.info;
+                if (info.mint === TOKEN_MINT_ADDRESS) {
+                    balance += parseFloat(info.tokenAmount.uiAmountString);
+                }
+            }
+            return balance;
+        } catch (err) {
+            console.warn('[streak] balance fetch failed:', err);
+            return null;
+        }
+    }
+
+    async function trackDailyLogin(wallet) {
+        try {
+            const { data, error } = await supabase.rpc('track_daily_login_wallet', { p_wallet: wallet });
+            if (error) { console.warn('[streak] tracking failed:', error); return; }
+            if (!data || !data.streak) return;
+
+            updateStreakBadge(data.streak);
+
+            if (!data.already_logged) {
+                showStreakToast(data.streak === 1
+                    ? '🔥 Day 1 login streak!'
+                    : `🔥 Day ${data.streak} login streak!`);
+            }
+        } catch (err) { console.error('[streak] tracking error:', err); }
+    }
+
+    async function refreshWalletBalance(wallet) {
+        const balance = await fetchWalletBalance(wallet);
+        if (balance === null) return;
+        updateUserRank(balance);   // shared with script.js — single writer
+        try {
+            await supabase.rpc('update_wallet_balance', { p_wallet: wallet, p_balance: balance });
+        } catch (e) { /* ignore */ }
+    }
+
+    function handleWallet(wallet) {
+        if (!wallet) {
+            if (lastTrackedWallet) {
+                lastTrackedWallet = null;
+                updateStreakBadge(0);
+            }
+            return;
+        }
+        if (wallet === lastTrackedWallet) return;
+        lastTrackedWallet = wallet;
+        trackDailyLogin(wallet);
+        refreshWalletBalance(wallet);
+    }
+
+    onWalletChange(handleWallet);
+
+    setTimeout(() => {
+        const w = getWalletAddress() || getCachedWallet();
+        if (w) handleWallet(w);
+    }, 800);
+
+    function attachResetListener() {
+        const resetBtn = document.getElementById('modResetLoginBtn');
+        if (!resetBtn || resetBtn.dataset.listenerAttached) return;
+        resetBtn.dataset.listenerAttached = 'true';
+        resetBtn.addEventListener('click', async () => {
+            if (!confirm('⚠️ Reset ALL wallet streaks and cached balances to zero?')) return;
+            try {
+                const { error } = await supabase.rpc('reset_login_tracking');
+                if (error) throw error;
+                showStreakToast('✅ All wallet data reset to zero.');
+                lastTrackedWallet = null;
+                updateStreakBadge(0);
+            } catch (err) {
+                console.error('[streak] reset failed:', err);
+                showStreakToast('❌ Failed to reset: ' + err.message);
+            }
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attachResetListener);
+    } else {
+        attachResetListener();
+    }
 })();
