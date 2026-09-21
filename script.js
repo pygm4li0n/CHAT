@@ -2897,47 +2897,19 @@
                 updatePhantomUI();
                 fetchAndDisplayAllTokens();
             } else {
-                                provider.connect({ onlyIfTrusted: true })
-                    .then(async (resp) => {
-                        phantomWalletPublicKey = resp.publicKey;
-                        phantomConnected = true;
-                        updatePhantomUI();
-                        fetchAndDisplayAllTokens();
-
-                        // ⚑ If we're stuck on the identity overlay but the wallet
-                        //   actually has a profile, load it now.
-                        if (!username && nameOverlay && !nameOverlay.classList.contains('hidden')) {
-                            const addr = phantomWalletPublicKey.toBase58();
-                            const p = await loadProfileByWallet(addr);
-                            if (p && p.username) {
-                                username = p.username;
-                                localStorage.setItem(STORAGE_KEY_NAME, username);
-                                localStorage.setItem(LAST_USERNAME_KEY, username);
-
-                                avatarCache[username] = p.avatar_url || null;
-                                currentAvatarUrl = p.avatar_url || null;
-                                if (sidebarBigAvatar) {
-                                    if (p.avatar_url) sidebarBigAvatar.innerHTML = `<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover;">`;
-                                    else sidebarBigAvatar.innerHTML = (username[0] || '?').toUpperCase();
-                                }
-                                if (sidebarBigName) sidebarBigName.textContent = username;
-                                userBalances[username] = p.token_balance || 0;
-                                updateUserRank(userBalances[username]);
-
-                                nameOverlay.classList.add('hidden');
-                                inputAreaBar.classList.remove('hidden');
-                                setReplyingTo(null);
-                                switchTab('public');
-                                await updateSidebarUI();
-                                await loadMessages();
-                                subscribeToRealtime();
-                                setupPresence();
-                                setupTypingChannel();
-                                updateChatAccessibility();
-                            }
-                        }
-                    })
-                    .catch(() => { /* not trusted */ });
+                // ⚑ AWAIT the trusted reconnect so the wallet-first lookup
+                //   below sees the real address. Without this await, init()
+                //   runs past this block while the promise is still pending
+                //   and decides there's no wallet — showing the overlay.
+                try {
+                    const resp = await provider.connect({ onlyIfTrusted: true });
+                    phantomWalletPublicKey = resp.publicKey;
+                    phantomConnected = true;
+                    updatePhantomUI();
+                    fetchAndDisplayAllTokens();
+                } catch (e) {
+                    // Not trusted / Phantom locked → overlay path handles it
+                }
             }
         }
 
