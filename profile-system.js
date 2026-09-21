@@ -822,8 +822,9 @@
             if (sideName) { e.preventDefault(); e.stopPropagation(); openProfile(sideName); return; }
         }
 
-        var bigAvatar = t.closest('.sidebar-user-profile-big .big-avatar, .sidebar-user-profile-big .big-name');
-        if (bigAvatar) {
+                // Whole profile block is now clickable (pencil excluded so Edit still fires)
+        var bigBlock = t.closest('.sidebar-user-profile-big');
+        if (bigBlock && !t.closest('.edit-profile-btn, #sidebarChangeNameBtn')) {
             var me = getSelfUsername();
             if (me) { e.preventDefault(); e.stopPropagation(); openProfile(me); return; }
         }
