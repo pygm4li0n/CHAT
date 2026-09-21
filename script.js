@@ -945,6 +945,27 @@
         }
     }
 
+        function bumpMessagesCount() {
+        const wallet = getWalletAddress();
+        if (!wallet) return;
+        (async () => {
+            try {
+                const { error: rpcErr } = await supabase.rpc('increment_messages_count', { p_wallet: wallet });
+                if (!rpcErr) return;
+            } catch (e) { /* RPC missing — fall through */ }
+            try {
+                const { data } = await supabase.from('profiles')
+                    .select('messages_count').eq('wallet_address', wallet).maybeSingle();
+                const next = ((data && data.messages_count) || 0) + 1;
+                await supabase.from('profiles')
+                    .update({ messages_count: next })
+                    .eq('wallet_address', wallet);
+            } catch (e) {
+                console.warn('[msg-count] bump failed:', e);
+            }
+        })();
+    }
+
     async function fetchAndDisplayAllTokens() {
         if (!phantomWalletPublicKey) return;
         try {
@@ -2470,8 +2491,9 @@
             clearAttachedImage();
             stopTyping();
             startCooldown(modCooldownSeconds);
-            if (window.addXP && inserted?.id) window.addXP(inserted.id);
+        if (window.addXP && inserted?.id) window.addXP(inserted.id);
             autoScroll = true;
+            if (!isPrivate) bumpMessagesCount();
         } catch (err) {
             showError('Send failed: ' + err.message);
         } finally {
