@@ -1,9 +1,22 @@
 <!DOCTYPE html>
-<html lang="en" class="booting">
+<html lang="en" class="booting msn-booting">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Meme Social Network // MSN</title>
+
+    <!-- ═══════════════════════════════════════════════════════
+         ⚑ BOOTING FAILSAFE — must run first
+         Marks <html> as booting so the app stays hidden until
+         loading-screen.js reveals it. If the loader never fires,
+         this 10s timer reveals the app anyway (never lock out).
+    ═══════════════════════════════════════════════════════ -->
+    <script>
+        document.documentElement.classList.add('msn-booting');
+        setTimeout(function () {
+            document.documentElement.classList.remove('msn-booting');
+        }, 10000);
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,7 +50,7 @@
     <link rel="stylesheet" href="theme-merged.css">
 
     <!-- Other app stylesheets -->
-    <link rel="stylesheet" href="mobile-sidebar.css">
+    <link rel="stylesheet" href="mobile-sidebar.css?v=3">
     <link rel="stylesheet" href="rankings-epic.css">
 
     <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
@@ -114,6 +127,12 @@
     </style>
 </head>
 <body>
+    <!-- ═══════════════════════════════════════════════════════
+         ⚑ BOOT SEQUENCE — must be first in <body>
+         Injects the loading overlay before anything renders.
+    ═══════════════════════════════════════════════════════ -->
+    <script src="loading-screen.js?v=4"></script>
+
     <canvas id="particleCanvas"></canvas>
 
     <div class="overlay-full hidden" id="nameOverlay">
@@ -348,9 +367,9 @@
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
     <script src="https://unpkg.com/@solana/spl-token@latest/lib/index.iife.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=69"></script>
+    <script src="script.js?v=70"></script>
     <script src="app-extras.js?v=1"></script>
-    <script src="profile-system.js"></script>
+    <script src="profile-system.js?v=7"></script>
     <script src="rank-badge-fix.js"></script>
 
     <script>
