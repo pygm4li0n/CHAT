@@ -886,6 +886,24 @@
     }
 
     async function upsertProfile({ username: uname, avatar_url, token_balance }) {
+    async function loadProfileByWallet(wallet) {
+        if (!wallet) return null;
+        try {
+            const { data, error } = await supabase.from('profiles')
+                .select('*')
+                .eq('wallet_address', wallet)
+                .maybeSingle();
+            if (error) {
+                console.warn('[profile] wallet lookup error:', error.message);
+                return null;
+            }
+            return data || null;
+        } catch (e) {
+            console.warn('[profile] wallet lookup failed:', e);
+            return null;
+        }
+    }
+
         const wallet = getWalletAddress();
         if (!wallet) {
             return { data: null, error: { message: 'no_wallet' } };
@@ -2887,37 +2905,38 @@
 
         inputAreaBar.classList.add('hidden');
 
-        if(username) {
-            let profile = null;
-            const walletForRead = getWalletAddress();
-            if (walletForRead) {
-                const { data } = await supabase.from('profiles')
-                    .select('avatar_url, token_balance, wallet_address, username')
-                    .eq('wallet_address', walletForRead)
-                    .maybeSingle();
-                profile = data;
-                if (profile?.username && profile.username !== username) {
-                    username = profile.username;
-                    localStorage.setItem(STORAGE_KEY_NAME, username);
-                }
-            } else {
-                const { data } = await supabase.from('profiles')
-                    .select('avatar_url, token_balance, wallet_address')
-                    .eq('username', username)
-                    .maybeSingle();
-                profile = data;
-            }
+                // ⚑ WALLET-FIRST: profile is looked up by wallet, not by cached username
+        const connectedWallet = getWalletAddress();
+        let profile = null;
 
+        if (connectedWallet) {
+            profile = await loadProfileByWallet(connectedWallet);
+            if (profile && profile.username) {
+                username = profile.username;
+                localStorage.setItem(STORAGE_KEY_NAME, username);
+                localStorage.setItem(LAST_USERNAME_KEY, username);
+            }
+        }
+
+        if (!profile && !connectedWallet && username) {
+            const { data } = await supabase.from('profiles')
+                .select('*')
+                .eq('username', username)
+                .maybeSingle();
+            profile = data;
+        }
+
+        if (username && profile) {
             await loadAcceptedChatsFromDB();
 
-            if(profile && profile.avatar_url) {
+            if(profile.avatar_url) {
                 avatarCache[username] = profile.avatar_url;
                 currentAvatarUrl = profile.avatar_url;
                 if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;">`;
             } else {
                 if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = (username[0]||'?').toUpperCase();
             }
-            if (profile && profile.wallet_address) {
+            if (profile.wallet_address) {
                 userBalances[username] = profile.token_balance || 0;
                 updateUserRank(userBalances[username]);
             } else {
@@ -2954,16 +2973,12 @@
             // ⚑ Boot sequence complete — release the loading screen
             try { document.dispatchEvent(new CustomEvent('msn:app-ready')); } catch (e) {}
         } else {
-            const lastUsername = localStorage.getItem(LAST_USERNAME_KEY);
+        const lastUsername = localStorage.getItem(LAST_USERNAME_KEY);
             const walletForLast = getWalletAddress();
             let lastProfile = null;
 
             if (walletForLast) {
-                const { data } = await supabase.from('profiles')
-                    .select('avatar_url, username')
-                    .eq('wallet_address', walletForLast)
-                    .maybeSingle();
-                lastProfile = data;
+                lastProfile = await loadProfileByWallet(walletForLast);
                 if (lastProfile?.username) {
                     nameInput.value = lastProfile.username;
                 } else if (lastUsername) {
