@@ -727,3 +727,109 @@
         border-radius: inherit !important;
     }
 }
+
+/* ═════════════════════════════════════════════════════
+   ⚑ DESKTOP PROFILE REVAMP (≥769px)
+   – Hide the pencil (kept in DOM so Edit Profile still works)
+   – Cleaner hierarchy: avatar | name/rank/level/status
+   – Hover: full-block overlay "VIEW PROFILE" on obscured bg
+   – Kill the small pill hint on the big profile block
+═════════════════════════════════════════════════════ */
+@media (min-width: 769px) {
+
+    /* ── Container ── */
+    .sidebar-user-profile-big {
+        position: relative !important;
+        cursor: pointer !important;
+        gap: 14px !important;
+        padding: 18px 16px 16px !important;
+        overflow: hidden !important;
+    }
+
+    /* ── Avatar ── */
+    .sidebar-user-profile-big .big-avatar {
+        width: 64px !important;
+        height: 64px !important;
+        font-size: 1.5rem !important;
+        border-width: 2px !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* ── Info column ── */
+    .sidebar-user-profile-big .big-info {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+        min-width: 0 !important;
+        flex: 1 1 auto !important;
+    }
+
+    .sidebar-user-profile-big .big-name {
+        font-size: 1.15rem !important;
+        line-height: 1.15 !important;
+        letter-spacing: 0.02em !important;
+        margin: 0 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    .sidebar-user-profile-big .big-rank,
+    .sidebar-user-profile-big .big-level {
+        display: inline-block !important;
+        font-size: 0.68rem !important;
+        padding: 2px 9px !important;
+        margin: 2px 4px 0 0 !important;
+        line-height: 1.2 !important;
+        letter-spacing: 0.05em !important;
+        vertical-align: middle !important;
+        align-self: flex-start !important;
+    }
+
+    .sidebar-user-profile-big .big-status {
+        font-size: 0.76rem !important;
+        gap: 5px !important;
+        margin-top: 2px !important;
+        color: var(--text-secondary) !important;
+    }
+
+    /* ── Hide pencil (desktop only) ── */
+    .sidebar-user-profile-big .edit-profile-btn,
+    .sidebar-user-profile-big #sidebarChangeNameBtn {
+        display: none !important;
+    }
+
+    /* ── Kill the small pill hint on the big profile block ── */
+    .sidebar-user-profile-big::before {
+        content: none !important;
+        display: none !important;
+    }
+
+    /* ── Full-block hover overlay: "VIEW PROFILE" ── */
+    .sidebar-user-profile-big::after {
+        content: 'VIEW PROFILE';
+        position: absolute !important;
+        inset: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: rgba(5, 8, 16, 0.78) !important;
+        backdrop-filter: blur(6px) !important;
+        -webkit-backdrop-filter: blur(6px) !important;
+        color: var(--accent-cyan, #00f0ff) !important;
+        font-family: var(--font-mono, monospace) !important;
+        font-size: 0.72rem !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.28em !important;
+        text-indent: 0.28em !important;
+        text-transform: uppercase !important;
+        text-shadow: 0 0 12px var(--accent-cyan, rgba(0,240,255,.7)) !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transition: opacity 0.22s ease !important;
+        z-index: 8 !important;
+    }
+    .sidebar-user-profile-big:hover::after {
+        opacity: 1 !important;
+    }
+}
