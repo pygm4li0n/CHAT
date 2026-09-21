@@ -491,7 +491,7 @@
     }
 
     /* ── Data fetch ───────────────────────────────────────── */
-    async function fetchProfileData(username, isSelf) {
+   async function fetchProfileData(username, isSelf) {
         var sb = getSB();
         if (!sb) return { error: 'no-supabase' };
 
@@ -509,10 +509,8 @@
             hasProfile: false
         };
 
-        /* ── 1. Try profile row ──
-           Column is updated_at in this schema, not created_at. */
-        var richSel = 'username, avatar_url, wallet_address, xp, level, messages_count, '
-                    + 'current_streak, signature, updated_at';
+        /* Only columns that actually exist in this schema */
+        var richSel = 'username, avatar_url, wallet_address, xp, messages_count, updated_at';
         var minSel  = 'username, avatar_url, wallet_address, xp';
 
         var profile = null;
@@ -532,25 +530,24 @@
             out.hasProfile     = true;
             out.avatar_url     = profile.avatar_url || null;
             out.wallet_address = profile.wallet_address || null;
-            out.signature      = profile.signature || '';
             out.xp             = Number(profile.xp || 0);
-            out.level          = Number(profile.level || levelFromXp(out.xp));
+            out.level          = levelFromXp(out.xp);
             out.messages_count = Number(profile.messages_count || 0);
         }
 
-        /* ── 2. Messages-derived data (works for ANY user who chatted) ── */
+        /* ── Message count fallback — ONLY for other users ──
+           Self always reads the wallet-keyed column, so a rename
+           can never zero out your own count. */
+        if (!isSelf && !out.messages_count) {
+            try {
+                var mc = await sb.from('messages')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('username', username);
+                if (typeof mc.count === 'number') out.messages_count = mc.count;
+            } catch (e) { /* ignore */ }
+        }
 
-        // Message count
-        try {
-            var mc = await sb.from('messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('username', username);
-            if (typeof mc.count === 'number' && !out.messages_count) {
-                out.messages_count = mc.count;
-            }
-        } catch (e) { /* ignore */ }
-
-        // Joined date — earliest message is the truest join signal
+        /* ── Joined date — earliest message is the truest signal ── */
         try {
             var fm = await sb.from('messages')
                 .select('created_at')
@@ -562,34 +559,30 @@
             }
         } catch (e) { /* ignore */ }
 
-        // Fallback to profiles.updated_at if no message history at all
         if (!out.created_at && profile && profile.updated_at) {
             out.created_at = profile.updated_at;
         }
 
-        /* ── 3. Ghost user? (chatted but no profile row) ── */
+        /* ── Ghost user? ── */
         if (!out.hasProfile && !out.created_at) {
             return { error: 'not-found' };
         }
 
-        /* ── 4. Streak resolution ──
-           SELF: live DOM from the tracking system
-           OTHER: profiles column, then wallet_streaks via RPC */
+        /* ── Streak ──
+           SELF: read live DOM (source of truth = tracking system)
+           OTHER: RPC reads wallet_streaks.login_streak */
         if (isSelf) {
             out.current_streak = readSelfStreakFromDOM();
-        } else {
-            out.current_streak = Number((profile && profile.current_streak) || 0);
-            if (!out.current_streak && out.wallet_address) {
-                try {
-                    var sr = await sb.rpc('get_streak_by_wallet', { p_wallet: out.wallet_address });
-                    if (!sr.error && typeof sr.data === 'number') {
-                        out.current_streak = sr.data;
-                    }
-                } catch (e) { /* RPC may not exist yet */ }
-            }
+        } else if (out.wallet_address) {
+            try {
+                var sr = await sb.rpc('get_streak_by_wallet', { p_wallet: out.wallet_address });
+                if (!sr.error && typeof sr.data === 'number') {
+                    out.current_streak = sr.data;
+                }
+            } catch (e) { /* RPC may not exist yet */ }
         }
 
-        /* ── 5. Achievements (if table exists) ── */
+        /* ── Achievements ── */
         try {
             var ac = await sb.from('user_achievements')
                 .select('achievement_code, unlocked_at')
