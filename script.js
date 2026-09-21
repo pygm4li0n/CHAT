@@ -484,6 +484,7 @@
     let phantomWalletPublicKey = null;
     let phantomConnected = false;
     let hasTokenAccess = false;
+    let isConnecting = false;
 
     let avatarCache = {};
     let userBalances = {};
@@ -1005,6 +1006,9 @@
     }
 
     async function connectPhantom() {
+        if (isConnecting) return false;
+        isConnecting = true;
+        try {
         const provider = getPhantomProvider();
         if (!provider) {
             showError('Phantom wallet not installed. Please install it from phantom.app');
@@ -1050,11 +1054,11 @@
             } else if (!raw) {
                 friendly = 'Could not connect Phantom';
             }
-            showError(friendly);
+        showError(friendly);
             return false;
         }
+        } finally { isConnecting = false; }
     }
-
     function disconnectPhantom() {
         const provider = getPhantomProvider();
         if (provider && phantomConnected) provider.disconnect().catch(console.warn);
@@ -2883,6 +2887,10 @@
                 });
 
                 provider.on?.('connect', () => {
+                    // Skip if we're mid-connect — our own connect flow sets up
+                    // state after the promise resolves. Prevents handleWalletChange
+                    // from running twice and flickering the input bar.
+                    if (isConnecting) return;
                     handleWalletChange(provider.publicKey || null);
                 });
 
@@ -2898,9 +2906,11 @@
                 fetchAndDisplayAllTokens();
             } else {
                 // ⚑ AWAIT the trusted reconnect so the wallet-first lookup
-                //   below sees the real address. Without this await, init()
-                //   runs past this block while the promise is still pending
-                //   and decides there's no wallet — showing the overlay.
+                //   below sees the real address. Set isConnecting so the
+                //   provider 'connect' event listener doesn't double-run
+                //   handleWalletChange (which was causing the input bar
+                //   to flicker on page load).
+                isConnecting = true;
                 try {
                     const resp = await provider.connect({ onlyIfTrusted: true });
                     phantomWalletPublicKey = resp.publicKey;
@@ -2909,6 +2919,8 @@
                     fetchAndDisplayAllTokens();
                 } catch (e) {
                     // Not trusted / Phantom locked → overlay path handles it
+                } finally {
+                    isConnecting = false;
                 }
             }
         }
