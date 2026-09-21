@@ -11,6 +11,10 @@
      4. remove html.msn-booting → app fades in
      5. fade out the loader
 
+   Animations are forced with !important + transform-only
+   keyframes so they always play. MIN_DISPLAY guarantees at
+   least one full spin cycle even if the app loads instantly.
+
    Load BEFORE script.js — injects itself as first body child.
    ============================================================ */
 (function () {
@@ -23,6 +27,8 @@
     var REVEAL_DELAY = 800;   // dwell after ready before reveal
     var FADE_DURATION = 500;
     var MAX_WAIT = 12000;     // hard timeout — never sticks
+    var MIN_DISPLAY = 2800;   // always show at least one full spin cycle
+    var MOUNT_TIME = Date.now();
 
     var LOGO_URL = 'https://i.postimg.cc/fbZCV8sQ/Chat-GPT-Image-20-sept-2026-23-51-47.png';
     var LOGO_FALLBACK = 'https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png';
@@ -68,38 +74,38 @@
         +   'border:1px solid rgba(0,240,255,0.14);pointer-events:none;'
         + '}'
         + '.msn-boot-ring::before{'
-        +   'content:"";position:absolute;inset:-1px;border-radius:50%;'
-        +   'border:2px solid transparent;'
-        +   'border-top-color:var(--accent-cyan, #00f0ff);'
-        +   'border-right-color:rgba(0,240,255,0.5);'
-        +   'filter:drop-shadow(0 0 8px var(--accent-cyan, #00f0ff));'
-        +   'animation:msnBootSpin 2.4s linear infinite;'
+        +   'content:""!important;position:absolute!important;inset:-1px!important;border-radius:50%!important;'
+        +   'border:2px solid transparent!important;'
+        +   'border-top-color:var(--accent-cyan, #00f0ff)!important;'
+        +   'border-right-color:rgba(0,240,255,0.5)!important;'
+        +   'filter:drop-shadow(0 0 8px var(--accent-cyan, #00f0ff))!important;'
+        +   'animation:msnRingCW 2.4s linear infinite!important;'
+        +   'will-change:transform!important;'
+        +   'transform-origin:center center!important;'
         + '}'
         + '.msn-boot-ring::after{'
-        +   'content:"";position:absolute;inset:18px;border-radius:50%;'
-        +   'border:1px dashed rgba(0,240,255,0.22);'
-        +   'animation:msnBootSpinRev 9s linear infinite;'
+        +   'content:""!important;position:absolute!important;inset:18px!important;border-radius:50%!important;'
+        +   'border:1px dashed rgba(0,240,255,0.22)!important;'
+        +   'animation:msnRingCCW 9s linear infinite!important;'
+        +   'will-change:transform!important;'
+        +   'transform-origin:center center!important;'
         + '}'
-        + '@keyframes msnBootSpin{to{transform:rotate(360deg);}}'
-        + '@keyframes msnBootSpinRev{to{transform:rotate(-360deg);}}'
+        + '@keyframes msnRingCW{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}'
+        + '@keyframes msnRingCCW{from{transform:rotate(0deg);}to{transform:rotate(-360deg);}}'
 
-        /* Logo — pulsing glow */
+        /* Logo — pulsing glow (transform-only so it always runs) */
         + '.msn-boot-logo{'
-        +   'position:relative;z-index:2;'
-        +   'max-width:240px;width:56%;height:auto;'
-        +   'display:block;'
-        +   'filter:drop-shadow(0 0 16px var(--accent-cyan, #00f0ff)) drop-shadow(0 0 34px rgba(0,240,255,0.4));'
-        +   'animation:msnBootPulse 2s ease-in-out infinite;'
+        +   'position:relative!important;z-index:2!important;'
+        +   'max-width:240px!important;width:56%!important;height:auto!important;'
+        +   'display:block!important;'
+        +   'filter:drop-shadow(0 0 16px var(--accent-cyan, #00f0ff)) drop-shadow(0 0 34px rgba(0,240,255,0.4))!important;'
+        +   'animation:msnLogoPulse 2s ease-in-out infinite!important;'
+        +   'will-change:transform!important;'
+        +   'transform-origin:center center!important;'
         + '}'
-        + '@keyframes msnBootPulse{'
-        +   '0%,100%{'
-        +     'filter:drop-shadow(0 0 16px var(--accent-cyan, #00f0ff)) drop-shadow(0 0 34px rgba(0,240,255,0.4));'
-        +     'transform:scale(1);'
-        +   '}'
-        +   '50%{'
-        +     'filter:drop-shadow(0 0 26px var(--accent-cyan, #00f0ff)) drop-shadow(0 0 56px rgba(0,240,255,0.65));'
-        +     'transform:scale(1.04);'
-        +   '}'
+        + '@keyframes msnLogoPulse{'
+        +   '0%,100%{transform:scale(1);}'
+        +   '50%{transform:scale(1.05);}'
         + '}'
 
         /* Text fallback if both logo URLs fail */
@@ -110,7 +116,7 @@
         +   'letter-spacing:0.4em;text-indent:0.4em;'
         +   'color:var(--accent-cyan, #00f0ff);text-transform:uppercase;'
         +   'text-shadow:0 0 16px var(--accent-cyan, #00f0ff),0 0 34px rgba(0,240,255,0.5);'
-        +   'animation:msnBootPulse 2s ease-in-out infinite;'
+        +   'animation:msnLogoPulse 2s ease-in-out infinite;'
         + '}'
 
         /* ═══════════════════════════════════════════════════
@@ -205,13 +211,16 @@
     function complete() {
         if (done) return;
         done = true;
+        // ⚑ Enforce MIN_DISPLAY so the spin + pulse always play a full cycle
+        var elapsed = Date.now() - MOUNT_TIME;
+        var waitForMin = Math.max(0, MIN_DISPLAY - elapsed);
+        var totalDelay = waitForMin + REVEAL_DELAY;
         setTimeout(function () {
             settleApp();
-            // Second settle pass one frame later — catches late scroll drift
             requestAnimationFrame(function () { settleApp(); });
             revealApp();
             setTimeout(hide, 200);
-        }, REVEAL_DELAY);
+        }, totalDelay);
     }
 
     function hide() {
@@ -225,6 +234,7 @@
 
     /* ── Boot ────────────────────────────────────────────── */
     injectOverlay();
+    MOUNT_TIME = Date.now();   // ⚑ stamp real mount time
 
     /* Hard timeout — always releases even if every signal fails */
     setTimeout(function () { complete(); }, MAX_WAIT);
