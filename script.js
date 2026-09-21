@@ -2773,6 +2773,9 @@
                 privateChatUserDisp.textContent = savedActiveChat;
                 messageInput.placeholder = 'Type a message...';
             }
+
+            // ⚑ Boot sequence complete — release the loading screen
+            try { document.dispatchEvent(new CustomEvent('msn:app-ready')); } catch (e) {}
         } else {
             const lastUsername = localStorage.getItem(LAST_USERNAME_KEY);
             const walletForLast = getWalletAddress();
@@ -2809,6 +2812,9 @@
             hideOverlayMessage();
             nameInput.focus();
             subscribeToRealtime();
+
+            // ⚑ Boot sequence complete — release the loading screen
+            try { document.dispatchEvent(new CustomEvent('msn:app-ready')); } catch (e) {}
         }
         document.addEventListener('visibilitychange', () => {
             if(document.visibilityState==='visible' && !isConnected && username) fullReconnect();
