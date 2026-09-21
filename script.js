@@ -2803,10 +2803,9 @@
                         sidebarBigRank.textContent = '';
                         sidebarBigRank.classList.add('hidden');
                     }
-                    if (sidebarBigLevel) {
-                        sidebarBigLevel.textContent = '';
-                        sidebarBigLevel.classList.add('hidden');
-                    }
+                    // ⚑ Do NOT clear sidebarBigLevel — app-extras.js owns it.
+                    //   Clearing here races with its polling loop and blanks
+                    //   the badge on cold start.
                     const tokenList = document.getElementById('walletTokenList');
                     if (tokenList) tokenList.innerHTML = '';
                     inputAreaBar.classList.add('hidden');
