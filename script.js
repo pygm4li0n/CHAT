@@ -891,11 +891,24 @@
             return { data: null, error: { message: 'no_wallet' } };
         }
         try {
-            const payload = { wallet_address: wallet };
+            const payload = {};
             if (uname !== undefined) payload.username = uname;
             if (avatar_url !== undefined) payload.avatar_url = avatar_url;
             if (token_balance !== undefined) payload.token_balance = token_balance;
-            return await supabase.from('profiles').upsert(payload, { onConflict: 'wallet_address' });
+
+            const { data: existing } = await supabase.from('profiles')
+                .select('wallet_address')
+                .eq('wallet_address', wallet)
+                .maybeSingle();
+
+            if (existing) {
+                return await supabase.from('profiles')
+                    .update(payload)
+                    .eq('wallet_address', wallet);
+            } else {
+                return await supabase.from('profiles')
+                    .insert({ ...payload, wallet_address: wallet });
+            }
         } catch (err) {
             console.warn('upsertProfile failed:', err);
             return { data: null, error: err };
