@@ -885,7 +885,6 @@
         sidebarBigRank.classList.remove('hidden');
     }
 
-    async function upsertProfile({ username: uname, avatar_url, token_balance }) {
     async function loadProfileByWallet(wallet) {
         if (!wallet) return null;
         try {
@@ -904,6 +903,7 @@
         }
     }
 
+    async function upsertProfile({ username: uname, avatar_url, token_balance }) {
         const wallet = getWalletAddress();
         if (!wallet) {
             return { data: null, error: { message: 'no_wallet' } };
