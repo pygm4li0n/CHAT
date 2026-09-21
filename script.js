@@ -2733,25 +2733,20 @@
         const provider = getPhantomProvider();
         if (provider) {
             // ⚑ Re-evaluate mod status whenever the wallet changes
-            try {
-                provider.on?.('disconnect', () => {
-                    checkIfModWallet();
-                });
-
-                provider.on?.('connect', () => {
-                    checkIfModWallet();
-                });
-
-                provider.on?.('accountChanged', async (newPublicKey) => {
+        try {
+                // ⚑ ONE handler for every wallet change (disconnect / connect / swap).
+                //   Guarantees the old user's identity can never leak into the new wallet.
+                async function handleWalletChange(newPublicKey) {
                     const newAddr = newPublicKey ? newPublicKey.toBase58() : '';
                     const oldAddr = phantomWalletPublicKey ? phantomWalletPublicKey.toBase58() : '';
                     if (newAddr === oldAddr) return;
 
-                    // Update wallet state
+                    // 1. Update wallet state
                     phantomWalletPublicKey = newPublicKey || null;
                     phantomConnected = !!newPublicKey;
+                    hasTokenAccess = false;
 
-                    // Drop the old user's presence immediately — sidebar clears
+                    // 2. Drop presence immediately — old user stops broadcasting
                     try {
                         if (presenceChannel) {
                             await presenceChannel.untrack();
@@ -2760,13 +2755,38 @@
                         }
                     } catch (e) { /* ignore */ }
                     onlineUsers.clear();
-                    updateSidebarUI();
 
-                    if (phantomConnected) {
-                        updatePhantomUI();
+                    // 3. Wipe EVERY user-scoped cache
+                    avatarCache = {};
+                    userBalances = {};
+                    currentAvatarUrl = null;
+                    pendingImageUrl = null;
+                    knownMessageIds.clear();
+                    username = '';
+                    try { localStorage.removeItem(STORAGE_KEY_NAME); } catch (e) {}
+
+                    // 4. Reset every visible surface
+                    if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = '?';
+                    if (sidebarBigName) sidebarBigName.textContent = 'You';
+                    if (sidebarBigRank) {
+                        sidebarBigRank.textContent = '';
+                        sidebarBigRank.classList.add('hidden');
+                    }
+                    if (sidebarBigLevel) {
+                        sidebarBigLevel.textContent = '';
+                        sidebarBigLevel.classList.add('hidden');
+                    }
+                    const tokenList = document.getElementById('walletTokenList');
+                    if (tokenList) tokenList.innerHTML = '';
+                    inputAreaBar.classList.add('hidden');
+
+                    // 5. Refresh wallet UI
+                    updatePhantomUI();
+
+                    // 6. If a new wallet is connected, load its profile
+                    if (phantomConnected && newAddr) {
                         fetchAndDisplayAllTokens();
 
-                        // Re-read profile for the NEW wallet
                         try {
                             const { data } = await supabase.from('profiles')
                                 .select('username, avatar_url, token_balance')
@@ -2774,7 +2794,6 @@
                                 .maybeSingle();
 
                             if (data && data.username) {
-                                // Restore the correct identity for this wallet
                                 username = data.username;
                                 localStorage.setItem(STORAGE_KEY_NAME, username);
                                 localStorage.setItem(LAST_USERNAME_KEY, username);
@@ -2782,23 +2801,27 @@
                                 avatarCache[username] = data.avatar_url || null;
                                 currentAvatarUrl = data.avatar_url || null;
                                 if (sidebarBigAvatar) {
-                                    if (data.avatar_url) sidebarBigAvatar.innerHTML = `<img src="${data.avatar_url}" style="width:100%;height:100%;object-fit:cover;">`;
-                                    else sidebarBigAvatar.innerHTML = (username[0] || '?').toUpperCase();
+                                    if (data.avatar_url) {
+                                        sidebarBigAvatar.innerHTML = `<img src="${data.avatar_url}" style="width:100%;height:100%;object-fit:cover;">`;
+                                    } else {
+                                        sidebarBigAvatar.innerHTML = (username[0] || '?').toUpperCase();
+                                    }
                                 }
                                 if (sidebarBigName) sidebarBigName.textContent = username;
-
                                 userBalances[username] = data.token_balance || 0;
                                 updateUserRank(userBalances[username]);
 
+                                inputAreaBar.classList.remove('hidden');
+                                nameOverlay.classList.add('hidden');
+                                setReplyingTo(null);
+                                setActivePrivateChat(null);
+                                switchTab('public');
+                                await updateSidebarUI();
                                 setupPresence();
                                 setupTypingChannel();
-                                await updateSidebarUI();
                             } else {
-                                // Wallet has no profile → back to identity overlay
-                                username = '';
-                                localStorage.removeItem(STORAGE_KEY_NAME);
-                                inputAreaBar.classList.add('hidden');
                                 nameOverlay.classList.remove('hidden');
+                                hideOverlayMessage();
                                 nameInput.value = '';
                                 nameInput.focus();
                             }
@@ -2806,12 +2829,24 @@
                             console.warn('[wallet-change] profile lookup failed:', e);
                         }
                     } else {
-                        updatePhantomUI();
-                        onlineUsers.clear();
-                        updateSidebarUI();
+                        nameOverlay.classList.remove('hidden');
+                        hideOverlayMessage();
+                        nameInput.value = '';
                     }
 
                     checkIfModWallet();
+                }
+
+                provider.on?.('disconnect', () => {
+                    handleWalletChange(null);
+                });
+
+                provider.on?.('connect', () => {
+                    handleWalletChange(provider.publicKey || null);
+                });
+
+                provider.on?.('accountChanged', (publicKey) => {
+                    handleWalletChange(publicKey || null);
                 });
             } catch (e) { /* ignore */ }
 
