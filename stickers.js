@@ -25,7 +25,8 @@
        ══════════════════════════════════════════════════════ */
     var STICKERS = [
         { key: 'WIF', url: 'https://i.postimg.cc/yNHdMQMf/Chat-GPT-Image-21-sept-2026-09-05-17-p-m-(1).png' },
-        { key: 'MSN-MODE', url: 'https://i.postimg.cc/tJgCdDJB/Chat-GPT-Image-21-sept-2026-09-05-12-p-m-(2).png' }
+        { key: 'MSN-MODE', url: 'https://i.postimg.cc/tJgCdDJB/Chat-GPT-Image-21-sept-2026-09-05-12-p-m-(2).png' },
+        { key: 'COOL', url: 'https://i.postimg.cc/fyGT9rqf/Chat-GPT-Image-22-sept-2026-07-26-36-p-m-(1).png' }
     ];
 
     var GRID_SLOTS = 16;   // 4 × 4
