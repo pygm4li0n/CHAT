@@ -3,21 +3,14 @@
    ────────────────────────────────────────────────────────────
    Load AFTER script.js:
 
-     <script src="stickers.js?v=1"></script>
+     <script src="stickers.js?v=2"></script>
 
    • Adds a ✨ button to the left of the image button
-   • Opens a picker with your sticker pack
-   • Sends the sticker as a normal message with the marker
-     __sticker:KEY__ in the message column — no schema changes
-   • A MutationObserver rewrites the DOM of any sticker message
-     so it renders WITHOUT the bubble container — just the image
-     floating on the chat background
+   • Picker pops up anchored to the button
+   • Stickers sent as plain messages with marker __sticker:KEY__
+   • Renders without bubble — just the image floating on chat
 
-   Future hooks:
-     window.MSNStickers.canSend = async (key) => boolean
-       — set this to gate stickers by wallet rank/token holding
-
-   Replace STICKERS below with your own URLs when ready.
+   Future: window.MSNStickers.canSend = async (key) => boolean
    ============================================================ */
 (function () {
     'use strict';
@@ -28,28 +21,11 @@
 
     /* ══════════════════════════════════════════════════════
        STICKER PACK
-       Replace url: '' with your image URLs. Keep the key
-       short/lowercase — it's what's stored in the message.
+       Add more entries here as you upload them.
+       Keep key short/lowercase — it's stored in the message.
        ══════════════════════════════════════════════════════ */
-
-    function placeholder(label, bg) {
-        var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">' +
-                  '<rect width="120" height="120" rx="18" fill="' + bg + '"/>' +
-                  '<text x="60" y="62" font-family="system-ui,sans-serif" font-size="56" ' +
-                  'font-weight="900" fill="#fff" text-anchor="middle" ' +
-                  'dominant-baseline="middle">' + label + '</text></svg>';
-        return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-    }
-
     var STICKERS = [
-        { key: 'party',   url: placeholder('1', '#f43f5e') },
-        { key: 'fire',    url: placeholder('2', '#f97316') },
-        { key: 'thumbs',  url: placeholder('3', '#eab308') },
-        { key: 'heart',   url: placeholder('4', '#22c55e') },
-        { key: 'laugh',   url: placeholder('5', '#06b6d4') },
-        { key: 'sad',     url: placeholder('6', '#3b82f6') },
-        { key: 'wave',    url: placeholder('7', '#a855f7') },
-        { key: 'rocket',  url: placeholder('8', '#ec4899') }
+        { key: 'meme1', url: 'https://i.postimg.cc/yNHdMQMf/Chat-GPT-Image-21-sept-2026-09-05-17-p-m-(1).png' }
     ];
 
     var MARKER_RE = /^__sticker:([a-zA-Z0-9_\-]+)__$/;
@@ -115,7 +91,7 @@
         return null;
     }
 
-    /* ── transform an already-rendered message into a sticker ─ */
+    /* ── transform a rendered message into a sticker ─────── */
     function transformMessage(wrapper) {
         if (!wrapper || wrapper.getAttribute(DATA_ATTR) === '1') return;
         var bubble = wrapper.querySelector('.msg-bubble');
@@ -149,7 +125,6 @@
             }
         }
 
-        // Rewrite reply preview text if it points at a sticker
         var rText = bubble.querySelector('.reply-ref-block .r-text');
         if (rText && rText.textContent.indexOf('__sticker:') !== -1) {
             rText.textContent = '"🖼️ Sticker"';
@@ -191,7 +166,6 @@
         containers.forEach(scanContainer);
     }
 
-    // Rewrite the reply indicator bar so it doesn't show the raw marker
     function watchReplyPreview() {
         var el = document.getElementById('replyPreviewDisp');
         if (!el) { setTimeout(watchReplyPreview, 500); return; }
@@ -210,33 +184,34 @@
             '.input-area-bar { position: relative; }',
             '.btn-upload-img.sticker-btn { font-size: 1.1rem; }',
 
+            /* Picker anchored above the button itself */
             '.sticker-picker {',
             '  position: absolute;',
-            '  bottom: calc(100% + 8px);',
-            '  left: 12px; right: 12px;',
+            '  bottom: calc(100% + 10px);',
+            '  width: 260px;',
             '  padding: 12px;',
             '  background: linear-gradient(180deg, rgba(20,26,40,.98) 0%, rgba(10,14,24,.99) 100%);',
             '  border: 1px solid var(--border-default, #233261);',
             '  border-radius: 12px;',
             '  box-shadow: 0 12px 40px rgba(0,0,0,.75), 0 0 24px var(--accent-cyan, rgba(0,240,255,.15));',
             '  z-index: 60;',
-            '  max-height: 260px;',
+            '  max-height: 300px;',
             '  overflow-y: auto;',
             '  animation: stickerPickerIn .22s cubic-bezier(.16,1,.3,1);',
             '}',
             '.sticker-picker.hidden { display: none; }',
             '@keyframes stickerPickerIn {',
-            '  from { opacity: 0; transform: translateY(6px); }',
-            '  to   { opacity: 1; transform: translateY(0); }',
+            '  from { opacity: 0; transform: translateY(6px) scale(.98); }',
+            '  to   { opacity: 1; transform: translateY(0) scale(1); }',
             '}',
             '.sticker-picker-grid {',
             '  display: grid;',
-            '  grid-template-columns: repeat(4, 1fr);',
+            '  grid-template-columns: repeat(3, 1fr);',
             '  gap: 8px;',
             '}',
             '.sticker-item {',
             '  aspect-ratio: 1 / 1;',
-            '  padding: 6px;',
+            '  padding: 4px;',
             '  border-radius: 10px;',
             '  background: rgba(255,255,255,.03);',
             '  border: 1px solid var(--border-default, #233261);',
@@ -252,6 +227,7 @@
             '}',
             '.sticker-item:active { transform: scale(.95); }',
 
+            /* Sticker message — no bubble, just the image */
             '.msg-wrapper.sticker-msg .msg-bubble {',
             '  background: transparent !important;',
             '  border: none !important;',
@@ -264,25 +240,25 @@
             '.msg-wrapper.sticker-msg .msg-bubble::after { content: none !important; display: none !important; }',
             '.msg-wrapper.sticker-msg .msg-image-wrap {',
             '  margin-top: 4px;',
-            '  max-width: 180px;',
+            '  max-width: 200px;',
             '  border-radius: 8px;',
             '  background: transparent; border: none; box-shadow: none;',
             '  cursor: pointer;',
             '  transition: transform .2s ease;',
             '}',
             '.msg-wrapper.sticker-msg .msg-image-wrap img {',
-            '  width: 100%; height: auto; max-height: 180px;',
+            '  width: 100%; height: auto; max-height: 200px;',
             '  object-fit: contain; display: block;',
             '  filter: drop-shadow(0 4px 12px rgba(0,0,0,.5));',
             '}',
             '.msg-wrapper.sticker-msg .msg-image-wrap:hover { box-shadow: none; transform: translateY(-2px); }',
 
             '@media (max-width: 480px) {',
-            '  .sticker-picker { max-height: 220px; padding: 10px; }',
+            '  .sticker-picker { width: 220px; max-height: 240px; padding: 10px; }',
             '  .sticker-picker-grid { gap: 6px; }',
-            '  .sticker-item { padding: 4px; border-radius: 8px; }',
-            '  .msg-wrapper.sticker-msg .msg-image-wrap { max-width: 140px; }',
-            '  .msg-wrapper.sticker-msg .msg-image-wrap img { max-height: 140px; }',
+            '  .sticker-item { padding: 3px; border-radius: 8px; }',
+            '  .msg-wrapper.sticker-msg .msg-image-wrap { max-width: 150px; }',
+            '  .msg-wrapper.sticker-msg .msg-image-wrap img { max-height: 150px; }',
             '}'
         ].join('\n');
         var tag = document.createElement('style');
@@ -292,10 +268,12 @@
     }
 
     /* ── button + picker injection ───────────────────────── */
+    var pickerEl = null;
+
     function injectButtonAndPicker() {
         if (document.getElementById('stickerBtn')) return;
         var inputRow = document.querySelector('.input-row-wrap');
-        if (!inputRow) { return; }
+        if (!inputRow) return;
 
         var btn = document.createElement('button');
         btn.className = 'btn-upload-img sticker-btn';
@@ -315,27 +293,50 @@
 
         var inputArea = document.getElementById('inputAreaBar');
         if (!inputArea) return;
-        var picker = document.createElement('div');
-        picker.id = 'stickerPicker';
-        picker.className = 'sticker-picker hidden';
-        picker.innerHTML = '<div class="sticker-picker-grid" id="stickerPickerGrid"></div>';
-        inputArea.appendChild(picker);
+        pickerEl = document.createElement('div');
+        pickerEl.id = 'stickerPicker';
+        pickerEl.className = 'sticker-picker hidden';
+        pickerEl.innerHTML = '<div class="sticker-picker-grid" id="stickerPickerGrid"></div>';
+        inputArea.appendChild(pickerEl);
 
         btn.addEventListener('click', function (e) { e.stopPropagation(); togglePicker(); });
-        picker.addEventListener('click', function (e) {
+        pickerEl.addEventListener('click', function (e) {
             var item = e.target.closest('.sticker-item');
             if (!item) return;
             e.stopPropagation();
             sendSticker(item.getAttribute('data-key'));
         });
         document.addEventListener('click', function (e) {
-            if (picker.classList.contains('hidden')) return;
+            if (!pickerEl || pickerEl.classList.contains('hidden')) return;
             if (e.target.closest('#stickerPicker') || e.target.closest('#stickerBtn')) return;
             closePicker();
         });
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') closePicker();
         });
+    }
+
+    /* Position the picker directly above the sticker button */
+    function positionPicker() {
+        if (!pickerEl) return;
+        var btn = document.getElementById('stickerBtn');
+        var inputArea = document.getElementById('inputAreaBar');
+        if (!btn || !inputArea) return;
+
+        var btnRect = btn.getBoundingClientRect();
+        var areaRect = inputArea.getBoundingClientRect();
+
+        // Left edge of the picker aligned with the button's left edge
+        var left = btnRect.left - areaRect.left;
+
+        // Clamp so it doesn't overflow the right edge of the input area
+        var pickerWidth = pickerEl.offsetWidth || 260;
+        var maxLeft = areaRect.width - pickerWidth - 8;
+        if (left > maxLeft) left = maxLeft;
+        if (left < 8) left = 8;
+
+        pickerEl.style.left = left + 'px';
+        pickerEl.style.right = 'auto';
     }
 
     function renderPicker() {
@@ -349,31 +350,32 @@
         grid.dataset.built = '1';
     }
     function openPicker() {
-        var p = document.getElementById('stickerPicker');
-        if (!p) return;
+        if (!pickerEl) return;
         renderPicker();
-        p.classList.remove('hidden');
+        pickerEl.classList.remove('hidden');
+        positionPicker();
     }
     function closePicker() {
-        var p = document.getElementById('stickerPicker');
-        if (p) p.classList.add('hidden');
+        if (pickerEl) pickerEl.classList.add('hidden');
     }
     function togglePicker() {
-        var p = document.getElementById('stickerPicker');
-        if (!p) return;
-        if (p.classList.contains('hidden')) openPicker(); else closePicker();
+        if (!pickerEl) return;
+        if (pickerEl.classList.contains('hidden')) openPicker(); else closePicker();
     }
+
+    window.addEventListener('resize', function () {
+        if (pickerEl && !pickerEl.classList.contains('hidden')) positionPicker();
+    });
 
     /* ── send ────────────────────────────────────────────── */
     async function sendSticker(key) {
         if (!key) return;
 
-        // Future hook for rank/token gating
         if (typeof window.MSNStickers.canSend === 'function') {
             try {
                 var allowed = await window.MSNStickers.canSend(key);
                 if (!allowed) return;
-            } catch (e) { /* ignore */ }
+            } catch (e) {}
         }
 
         var sb = getSB();
@@ -407,7 +409,7 @@
                 var wallet = getWalletAddress();
                 if (wallet) {
                     try { await sb.rpc('increment_messages_count', { p_wallet: wallet }); }
-                    catch (e) { /* RPC optional */ }
+                    catch (e) {}
                 }
             }
             closePicker();
@@ -429,7 +431,6 @@
     } else {
         boot();
     }
-    // Retries — input row might not exist yet on first pass
     setTimeout(injectButtonAndPicker, 800);
     setTimeout(injectButtonAndPicker, 2000);
 
@@ -438,12 +439,12 @@
         stickers: STICKERS,
         open: openPicker,
         close: closePicker,
-        canSend: null,   // override with async (key) => boolean
+        canSend: null,
         refresh: function () {
             scanContainer(document.getElementById('publicMessagesContainer'));
             scanContainer(document.getElementById('privateMessagesContainer'));
         }
     };
 
-    console.log('[stickers] loaded — ' + STICKERS.length + ' stickers');
+    console.log('[stickers] loaded — ' + STICKERS.length + ' sticker(s)');
 })();
