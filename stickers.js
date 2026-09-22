@@ -1,14 +1,15 @@
 /* ============================================================
-   stickers.js — MSN Sticker Pack (drop-in)  ·  v3
+   stickers.js — MSN Sticker Pack (drop-in)  ·  v4
    ────────────────────────────────────────────────────────────
    Load AFTER script.js:
 
-     <script src="stickers.js?v=3"></script>
+     <script src="stickers.js?v=4"></script>
 
    • ✨ button injects left of the image button
    • Picker pops UP from the button with a caret
-   • Stickers sent as plain messages with marker __sticker:KEY__
-   • Renders without bubble — just the image floating on chat
+   • Compact grid of small previews — many per row
+   • Click a sticker → sends immediately
+   • Sticker messages render without bubble (just the image)
    ============================================================ */
 (function () {
     'use strict';
@@ -177,25 +178,25 @@
             '.input-area-bar { position: relative !important; }',
             '.btn-upload-img.sticker-btn { font-size: 1.1rem; }',
 
-            /* Picker pops UP from the button */
+            /* Picker — compact, pops UP from the button */
             '.sticker-picker {',
             '  position: absolute;',
             '  bottom: calc(100% + 12px);',
             '  transform-origin: bottom center;',
-            '  width: 260px;',
-            '  padding: 12px;',
+            '  width: 296px;',
+            '  padding: 10px;',
             '  background: linear-gradient(180deg, rgba(20,26,40,.98) 0%, rgba(10,14,24,.99) 100%);',
             '  border: 1px solid var(--border-default, #233261);',
-            '  border-radius: 12px;',
-            '  box-shadow: 0 12px 40px rgba(0,0,0,.75), 0 0 24px var(--accent-cyan, rgba(0,240,255,.15));',
+            '  border-radius: 14px;',
+            '  box-shadow: 0 12px 40px rgba(0,0,0,.75), 0 0 24px var(--accent-cyan, rgba(0,240,255,.18));',
             '  z-index: 60;',
-            '  max-height: 300px;',
+            '  max-height: 280px;',
             '  overflow-y: auto;',
-            '  animation: stickerPickerIn .26s cubic-bezier(.16,1,.3,1);',
+            '  overflow-x: hidden;',
+            '  animation: stickerPickerIn .24s cubic-bezier(.16,1,.3,1);',
             '}',
             '.sticker-picker.hidden { display: none !important; }',
 
-            /* Caret at the bottom of the picker, aligned with the button */
             '.sticker-picker::after {',
             '  content: "";',
             '  position: absolute;',
@@ -211,32 +212,52 @@
             '}',
 
             '@keyframes stickerPickerIn {',
-            '  from { opacity: 0; transform: translateY(8px) scale(.96); }',
+            '  from { opacity: 0; transform: translateY(8px) scale(.94); }',
             '  to   { opacity: 1; transform: translateY(0) scale(1); }',
             '}',
 
+            /* Grid — many small previews per row */
             '.sticker-picker-grid {',
             '  display: grid;',
-            '  grid-template-columns: repeat(3, 1fr);',
-            '  gap: 8px;',
+            '  grid-template-columns: repeat(5, 1fr);',
+            '  gap: 6px;',
             '}',
             '.sticker-item {',
             '  aspect-ratio: 1 / 1;',
-            '  padding: 4px;',
-            '  border-radius: 10px;',
+            '  padding: 3px;',
+            '  border-radius: 8px;',
             '  background: rgba(255,255,255,.03);',
-            '  border: 1px solid var(--border-default, #233261);',
+            '  border: 1px solid rgba(35,50,97,.55);',
             '  cursor: pointer;',
             '  display: flex; align-items: center; justify-content: center;',
-            '  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;',
+            '  transition: transform .14s ease, border-color .14s ease, box-shadow .14s ease, background .14s ease;',
+            '  overflow: hidden;',
+            '  min-width: 0;',
             '}',
-            '.sticker-item img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }',
+            '.sticker-item img {',
+            '  width: 100%; height: 100%;',
+            '  object-fit: contain;',
+            '  display: block; pointer-events: none;',
+            '  transition: transform .14s ease;',
+            '}',
             '.sticker-item:hover {',
             '  border-color: var(--accent-cyan, #00f0ff);',
-            '  box-shadow: 0 0 12px var(--accent-cyan, rgba(0,240,255,.35));',
+            '  background: rgba(0,240,255,.06);',
+            '  box-shadow: 0 0 10px var(--accent-cyan, rgba(0,240,255,.4));',
             '  transform: translateY(-2px);',
             '}',
-            '.sticker-item:active { transform: scale(.95); }',
+            '.sticker-item:hover img { transform: scale(1.08); }',
+            '.sticker-item:active { transform: scale(.92); }',
+
+            /* Empty state */
+            '.sticker-picker-empty {',
+            '  grid-column: 1 / -1;',
+            '  padding: 20px 8px;',
+            '  text-align: center;',
+            '  color: var(--text-muted, #64748b);',
+            '  font-family: var(--font-mono, monospace);',
+            '  font-size: .68rem; letter-spacing: .2em; text-transform: uppercase;',
+            '}',
 
             /* Sticker message — no bubble, just the image */
             '.msg-wrapper.sticker-msg .msg-bubble {',
@@ -265,9 +286,9 @@
             '.msg-wrapper.sticker-msg .msg-image-wrap:hover { box-shadow: none; transform: translateY(-2px); }',
 
             '@media (max-width: 480px) {',
-            '  .sticker-picker { width: 220px; max-height: 240px; padding: 10px; }',
-            '  .sticker-picker-grid { gap: 6px; }',
-            '  .sticker-item { padding: 3px; border-radius: 8px; }',
+            '  .sticker-picker { width: 240px; max-height: 240px; padding: 8px; }',
+            '  .sticker-picker-grid { grid-template-columns: repeat(4, 1fr); gap: 5px; }',
+            '  .sticker-item { padding: 2px; border-radius: 6px; }',
             '  .msg-wrapper.sticker-msg .msg-image-wrap { max-width: 150px; }',
             '  .msg-wrapper.sticker-msg .msg-image-wrap img { max-height: 150px; }',
             '}'
@@ -337,7 +358,7 @@
         var btnRect = btn.getBoundingClientRect();
         var areaRect = inputArea.getBoundingClientRect();
 
-        var pickerWidth = pickerEl.offsetWidth || 260;
+        var pickerWidth = pickerEl.offsetWidth || 296;
         var btnCenter = (btnRect.left + btnRect.width / 2) - areaRect.left;
         var left = btnCenter - pickerWidth / 2;
 
@@ -357,7 +378,13 @@
 
     function renderPicker() {
         var grid = document.getElementById('stickerPickerGrid');
-        if (!grid || grid.dataset.built === '1') return;
+        if (!grid) return;
+        // Always rebuild — cheap, and stays in sync if STICKERS changes at runtime
+        if (STICKERS.length === 0) {
+            grid.innerHTML = '<div class="sticker-picker-empty">No stickers yet</div>';
+            grid.dataset.built = '1';
+            return;
+        }
         grid.innerHTML = STICKERS.map(function (s) {
             return '<button type="button" class="sticker-item" data-key="' + escAttr(s.key) + '" title="' + escAttr(s.key) + '">' +
                    '<img src="' + escAttr(s.url) + '" alt="' + escAttr(s.key) + '" loading="lazy">' +
