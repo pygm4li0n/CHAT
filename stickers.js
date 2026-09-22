@@ -1,16 +1,14 @@
 /* ============================================================
-   stickers.js — MSN Sticker Pack (drop-in)
+   stickers.js — MSN Sticker Pack (drop-in)  ·  v3
    ────────────────────────────────────────────────────────────
    Load AFTER script.js:
 
-     <script src="stickers.js?v=2"></script>
+     <script src="stickers.js?v=3"></script>
 
-   • Adds a ✨ button to the left of the image button
-   • Picker pops up anchored to the button
+   • ✨ button injects left of the image button
+   • Picker pops UP from the button with a caret
    • Stickers sent as plain messages with marker __sticker:KEY__
    • Renders without bubble — just the image floating on chat
-
-   Future: window.MSNStickers.canSend = async (key) => boolean
    ============================================================ */
 (function () {
     'use strict';
@@ -19,11 +17,6 @@
     var SUPABASE_URL = 'https://uxrpjfsouwxnlcbhjilz.supabase.co';
     var SUPABASE_ANON_KEY = 'sb_publishable_cLeBoHrdvg1b7WlnyJ-oVQ_6skjHc_H';
 
-    /* ══════════════════════════════════════════════════════
-       STICKER PACK
-       Add more entries here as you upload them.
-       Keep key short/lowercase — it's stored in the message.
-       ══════════════════════════════════════════════════════ */
     var STICKERS = [
         { key: 'meme1', url: 'https://i.postimg.cc/yNHdMQMf/Chat-GPT-Image-21-sept-2026-09-05-17-p-m-(1).png' }
     ];
@@ -181,13 +174,14 @@
     function injectStyles() {
         if (document.getElementById('msn-sticker-styles')) return;
         var css = [
-            '.input-area-bar { position: relative; }',
+            '.input-area-bar { position: relative !important; }',
             '.btn-upload-img.sticker-btn { font-size: 1.1rem; }',
 
-            /* Picker anchored above the button itself */
+            /* Picker pops UP from the button */
             '.sticker-picker {',
             '  position: absolute;',
-            '  bottom: calc(100% + 10px);',
+            '  bottom: calc(100% + 12px);',
+            '  transform-origin: bottom center;',
             '  width: 260px;',
             '  padding: 12px;',
             '  background: linear-gradient(180deg, rgba(20,26,40,.98) 0%, rgba(10,14,24,.99) 100%);',
@@ -197,13 +191,30 @@
             '  z-index: 60;',
             '  max-height: 300px;',
             '  overflow-y: auto;',
-            '  animation: stickerPickerIn .22s cubic-bezier(.16,1,.3,1);',
+            '  animation: stickerPickerIn .26s cubic-bezier(.16,1,.3,1);',
             '}',
-            '.sticker-picker.hidden { display: none; }',
+            '.sticker-picker.hidden { display: none !important; }',
+
+            /* Caret at the bottom of the picker, aligned with the button */
+            '.sticker-picker::after {',
+            '  content: "";',
+            '  position: absolute;',
+            '  left: var(--caret-x, 20px);',
+            '  bottom: -7px;',
+            '  width: 12px;',
+            '  height: 12px;',
+            '  background: rgba(10,14,24,.99);',
+            '  border-right: 1px solid var(--border-default, #233261);',
+            '  border-bottom: 1px solid var(--border-default, #233261);',
+            '  transform: rotate(45deg);',
+            '  pointer-events: none;',
+            '}',
+
             '@keyframes stickerPickerIn {',
-            '  from { opacity: 0; transform: translateY(6px) scale(.98); }',
+            '  from { opacity: 0; transform: translateY(8px) scale(.96); }',
             '  to   { opacity: 1; transform: translateY(0) scale(1); }',
             '}',
+
             '.sticker-picker-grid {',
             '  display: grid;',
             '  grid-template-columns: repeat(3, 1fr);',
@@ -316,7 +327,7 @@
         });
     }
 
-    /* Position the picker directly above the sticker button */
+    /* Position the picker above the sticker button + align the caret */
     function positionPicker() {
         if (!pickerEl) return;
         var btn = document.getElementById('stickerBtn');
@@ -326,17 +337,22 @@
         var btnRect = btn.getBoundingClientRect();
         var areaRect = inputArea.getBoundingClientRect();
 
-        // Left edge of the picker aligned with the button's left edge
-        var left = btnRect.left - areaRect.left;
-
-        // Clamp so it doesn't overflow the right edge of the input area
         var pickerWidth = pickerEl.offsetWidth || 260;
+        var btnCenter = (btnRect.left + btnRect.width / 2) - areaRect.left;
+        var left = btnCenter - pickerWidth / 2;
+
         var maxLeft = areaRect.width - pickerWidth - 8;
         if (left > maxLeft) left = maxLeft;
         if (left < 8) left = 8;
 
         pickerEl.style.left = left + 'px';
         pickerEl.style.right = 'auto';
+
+        // Caret points at the button's center
+        var caretX = btnCenter - left - 6;
+        if (caretX < 12) caretX = 12;
+        if (caretX > pickerWidth - 24) caretX = pickerWidth - 24;
+        pickerEl.style.setProperty('--caret-x', caretX + 'px');
     }
 
     function renderPicker() {
