@@ -1,11 +1,13 @@
 /* ============================================================
-   stickers.js — MSN Sticker Pack  ·  v5
+   stickers.js — MSN Sticker Pack  ·  v6
    ────────────────────────────────────────────────────────────
-     <script src="stickers.js?v=5"></script>
+     <script src="stickers.js?v=7"></script>
 
    • ✨ button left of the image button
    • Picker is position:fixed on <body> — no clipping possible
-   • Pop-up grid of small previews, click to send
+   • 4×4 grid of clean rounded-square thumbnails
+   • Empty slots show a placeholder — grid is always 16 cells
+   • Click a sticker → sends instantly + jumps to bottom
    • Sticker messages render without bubble
    ============================================================ */
 (function () {
@@ -15,9 +17,16 @@
     var SUPABASE_URL = 'https://uxrpjfsouwxnlcbhjilz.supabase.co';
     var SUPABASE_ANON_KEY = 'sb_publishable_cLeBoHrdvg1b7WlnyJ-oVQ_6skjHc_H';
 
+    /* ══════════════════════════════════════════════════════
+       STICKER PACK — add as many as you want.
+       The grid is always 4×4 (16 slots). Extras fill in
+       order; empty slots show a placeholder.
+       ══════════════════════════════════════════════════════ */
     var STICKERS = [
         { key: 'meme1', url: 'https://i.postimg.cc/yNHdMQMf/Chat-GPT-Image-21-sept-2026-09-05-17-p-m-(1).png' }
     ];
+
+    var GRID_SLOTS = 16;   // 4 × 4
 
     var MARKER_RE = /^__sticker:([a-zA-Z0-9_\-]+)__$/;
     var DATA_ATTR = 'data-sticker-rendered';
@@ -174,17 +183,16 @@
         var css = [
             '.btn-upload-img.sticker-btn { font-size: 1.1rem; }',
 
-            /* Picker — fixed on body, no clipping */
             '.sticker-picker {',
             '  position: fixed !important;',
             '  z-index: 999999 !important;',
-            '  padding: 10px !important;',
+            '  padding: 12px !important;',
             '  background: linear-gradient(180deg, rgba(20,26,40,.99) 0%, rgba(10,14,24,.995) 100%) !important;',
             '  border: 1px solid var(--border-default, #233261) !important;',
-            '  border-radius: 14px !important;',
-            '  box-shadow: 0 12px 40px rgba(0,0,0,.8), 0 0 24px var(--accent-cyan, rgba(0,240,255,.18)) !important;',
-            '  width: 296px !important;',
-            '  max-height: 320px !important;',
+            '  border-radius: 16px !important;',
+            '  box-shadow: 0 12px 40px rgba(0,0,0,.8), 0 0 24px var(--accent-cyan, rgba(0,240,255,.2)) !important;',
+            '  width: 336px !important;',
+            '  max-height: 400px !important;',
             '  overflow-y: auto !important;',
             '  overflow-x: hidden !important;',
             '  box-sizing: border-box !important;',
@@ -210,39 +218,55 @@
 
             '.sticker-picker-grid {',
             '  display: grid !important;',
-            '  grid-template-columns: repeat(5, 1fr) !important;',
-            '  gap: 6px !important;',
+            '  grid-template-columns: repeat(4, 1fr) !important;',
+            '  grid-template-rows: repeat(4, 1fr) !important;',
+            '  gap: 8px !important;',
             '}',
+
             '.sticker-item {',
             '  aspect-ratio: 1 / 1;',
-            '  padding: 3px;',
-            '  border-radius: 8px;',
-            '  background: rgba(255,255,255,.03);',
-            '  border: 1px solid rgba(35,50,97,.55);',
+            '  padding: 4px;',
+            '  border-radius: 12px;',
+            '  background: rgba(255,255,255,.035);',
+            '  border: 1px solid rgba(35,50,97,.6);',
             '  cursor: pointer;',
             '  display: flex; align-items: center; justify-content: center;',
-            '  transition: transform .14s ease, border-color .14s ease, box-shadow .14s ease, background .14s ease;',
-            '  overflow: hidden; min-width: 0;',
+            '  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;',
+            '  overflow: hidden; min-width: 0; box-sizing: border-box;',
             '}',
-            '.sticker-item img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }',
+            '.sticker-item img {',
+            '  width: 100%; height: 100%;',
+            '  object-fit: contain;',
+            '  display: block; pointer-events: none;',
+            '  transition: transform .16s ease;',
+            '  border-radius: 8px;',
+            '}',
             '.sticker-item:hover {',
             '  border-color: var(--accent-cyan, #00f0ff);',
-            '  background: rgba(0,240,255,.06);',
-            '  box-shadow: 0 0 10px var(--accent-cyan, rgba(0,240,255,.4));',
+            '  background: rgba(0,240,255,.07);',
+            '  box-shadow: 0 0 14px var(--accent-cyan, rgba(0,240,255,.45));',
             '  transform: translateY(-2px);',
             '}',
-            '.sticker-item:active { transform: scale(.92); }',
+            '.sticker-item:hover img { transform: scale(1.06); }',
+            '.sticker-item:active { transform: scale(.94); }',
 
-            '.sticker-picker-empty {',
-            '  grid-column: 1 / -1;',
-            '  padding: 20px 8px;',
-            '  text-align: center;',
+            '.sticker-item.sticker-empty {',
+            '  border-style: dashed !important;',
+            '  border-color: rgba(35,50,97,.45) !important;',
+            '  background: rgba(255,255,255,.015) !important;',
+            '  cursor: default;',
+            '  pointer-events: none;',
+            '  opacity: .55;',
+            '}',
+            '.sticker-item.sticker-empty::before {',
+            '  content: "·";',
             '  color: var(--text-muted, #64748b);',
-            '  font-family: var(--font-mono, monospace);',
-            '  font-size: .68rem; letter-spacing: .2em; text-transform: uppercase;',
+            '  font-size: 1.4rem;',
+            '  font-weight: 900;',
+            '  line-height: 1;',
+            '  opacity: .6;',
             '}',
 
-            /* Sticker messages */
             '.msg-wrapper.sticker-msg .msg-bubble {',
             '  background: transparent !important;',
             '  border: none !important;',
@@ -255,25 +279,25 @@
             '.msg-wrapper.sticker-msg .msg-bubble::after { content: none !important; display: none !important; }',
             '.msg-wrapper.sticker-msg .msg-image-wrap {',
             '  margin-top: 4px;',
-            '  max-width: 200px;',
-            '  border-radius: 8px;',
+            '  max-width: 260px;',
+            '  border-radius: 10px;',
             '  background: transparent; border: none; box-shadow: none;',
             '  cursor: pointer;',
             '  transition: transform .2s ease;',
             '}',
             '.msg-wrapper.sticker-msg .msg-image-wrap img {',
-            '  width: 100%; height: auto; max-height: 200px;',
+            '  width: 100%; height: auto; max-height: 260px;',
             '  object-fit: contain; display: block;',
             '  filter: drop-shadow(0 4px 12px rgba(0,0,0,.5));',
             '}',
             '.msg-wrapper.sticker-msg .msg-image-wrap:hover { box-shadow: none; transform: translateY(-2px); }',
 
             '@media (max-width: 480px) {',
-            '  .sticker-picker { width: 240px !important; max-height: 240px !important; padding: 8px !important; }',
-            '  .sticker-picker-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 5px !important; }',
-            '  .sticker-item { padding: 2px; border-radius: 6px; }',
-            '  .msg-wrapper.sticker-msg .msg-image-wrap { max-width: 150px; }',
-            '  .msg-wrapper.sticker-msg .msg-image-wrap img { max-height: 150px; }',
+            '  .sticker-picker { width: 280px !important; max-height: 340px !important; padding: 10px !important; }',
+            '  .sticker-picker-grid { gap: 6px !important; }',
+            '  .sticker-item { padding: 3px; border-radius: 10px; }',
+            '  .msg-wrapper.sticker-msg .msg-image-wrap { max-width: 190px; }',
+            '  .msg-wrapper.sticker-msg .msg-image-wrap img { max-height: 190px; }',
             '}'
         ].join('\n');
         var tag = document.createElement('style');
@@ -306,7 +330,6 @@
             else inputRow.appendChild(btn);
         }
 
-        /* Picker lives on <body> — nothing can clip it */
         pickerEl = document.createElement('div');
         pickerEl.id = 'stickerPicker';
         pickerEl.className = 'sticker-picker';
@@ -316,7 +339,7 @@
 
         btn.addEventListener('click', function (e) { e.stopPropagation(); togglePicker(); });
         pickerEl.addEventListener('click', function (e) {
-            var item = e.target.closest('.sticker-item');
+            var item = e.target.closest('.sticker-item:not(.sticker-empty)');
             if (!item) return;
             e.stopPropagation();
             sendSticker(item.getAttribute('data-key'));
@@ -330,7 +353,6 @@
             if (e.key === 'Escape') closePicker();
         });
 
-        // Reposition on scroll / resize if open
         window.addEventListener('resize', function () {
             if (pickerEl && pickerEl.style.display !== 'none') positionPicker();
         });
@@ -339,19 +361,17 @@
         }, true);
     }
 
-    /* Position: fixed — anchored above the ✨ button */
     function positionPicker() {
         if (!pickerEl) return;
         var btn = document.getElementById('stickerBtn');
         if (!btn) return;
 
         var btnRect = btn.getBoundingClientRect();
-        var pickerWidth = pickerEl.offsetWidth || 296;
-        var pickerHeight = pickerEl.offsetHeight || 200;
+        var pickerWidth = pickerEl.offsetWidth || 336;
+        var pickerHeight = pickerEl.offsetHeight || 380;
 
         var margin = 8;
         var vw = window.innerWidth;
-        var vh = window.innerHeight;
 
         var left = btnRect.left + btnRect.width / 2 - pickerWidth / 2;
         var top = btnRect.top - pickerHeight - 12;
@@ -359,15 +379,11 @@
         if (left < margin) left = margin;
         if (left + pickerWidth > vw - margin) left = vw - pickerWidth - margin;
 
-        // Not enough room above → flip below
-        if (top < margin) {
-            top = btnRect.bottom + 12;
-        }
+        if (top < margin) top = btnRect.bottom + 12;
 
         pickerEl.style.left = left + 'px';
         pickerEl.style.top = top + 'px';
 
-        // Caret aligned with button's center
         var caretX = btnRect.left + btnRect.width / 2 - left - 6;
         if (caretX < 12) caretX = 12;
         if (caretX > pickerWidth - 24) caretX = pickerWidth - 24;
@@ -377,22 +393,27 @@
     function renderPicker() {
         var grid = document.getElementById('stickerPickerGrid');
         if (!grid) return;
-        if (STICKERS.length === 0) {
-            grid.innerHTML = '<div class="sticker-picker-empty">No stickers yet</div>';
-            return;
+
+        var cells = [];
+        var i;
+        for (i = 0; i < STICKERS.length && i < GRID_SLOTS; i++) {
+            var s = STICKERS[i];
+            cells.push(
+                '<button type="button" class="sticker-item" data-key="' + escAttr(s.key) + '" title="' + escAttr(s.key) + '">' +
+                  '<img src="' + escAttr(s.url) + '" alt="' + escAttr(s.key) + '" loading="lazy">' +
+                '</button>'
+            );
         }
-        grid.innerHTML = STICKERS.map(function (s) {
-            return '<button type="button" class="sticker-item" data-key="' + escAttr(s.key) + '" title="' + escAttr(s.key) + '">' +
-                   '<img src="' + escAttr(s.url) + '" alt="' + escAttr(s.key) + '" loading="lazy">' +
-                   '</button>';
-        }).join('');
+        for (; i < GRID_SLOTS; i++) {
+            cells.push('<div class="sticker-item sticker-empty" aria-hidden="true"></div>');
+        }
+        grid.innerHTML = cells.join('');
     }
 
     function openPicker() {
         if (!pickerEl) return;
         renderPicker();
         pickerEl.style.display = 'block';
-        // measure after display so offsetWidth/Height are correct
         void pickerEl.offsetWidth;
         positionPicker();
     }
@@ -439,6 +460,14 @@
         try {
             var res = await sb.from(table).insert([payload]).select().single();
             if (res.error) throw res.error;
+
+            // ⚑ Local echo — render immediately in sender's own chat
+            try {
+                document.dispatchEvent(new CustomEvent('msn:render-local-message', {
+                    detail: { message: res.data, isPrivate: isPrivate }
+                }));
+            } catch (e) { /* ignore */ }
+
             if (window.addXP && res.data && res.data.id) {
                 try { window.addXP(res.data.id); } catch (e) {}
             }
@@ -483,5 +512,5 @@
         }
     };
 
-    console.log('[stickers] v5 loaded — ' + STICKERS.length + ' sticker(s)');
+    console.log('[stickers] v6 loaded — ' + STICKERS.length + ' sticker(s), ' + GRID_SLOTS + ' slots');
 })();
