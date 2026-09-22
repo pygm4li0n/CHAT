@@ -1,15 +1,12 @@
 /* ============================================================
-   stickers.js — MSN Sticker Pack (drop-in)  ·  v4
+   stickers.js — MSN Sticker Pack  ·  v5
    ────────────────────────────────────────────────────────────
-   Load AFTER script.js:
+     <script src="stickers.js?v=5"></script>
 
-     <script src="stickers.js?v=4"></script>
-
-   • ✨ button injects left of the image button
-   • Picker pops UP from the button with a caret
-   • Compact grid of small previews — many per row
-   • Click a sticker → sends immediately
-   • Sticker messages render without bubble (just the image)
+   • ✨ button left of the image button
+   • Picker is position:fixed on <body> — no clipping possible
+   • Pop-up grid of small previews, click to send
+   • Sticker messages render without bubble
    ============================================================ */
 (function () {
     'use strict';
@@ -85,7 +82,7 @@
         return null;
     }
 
-    /* ── transform a rendered message into a sticker ─────── */
+    /* ── transform rendered message into sticker ─────────── */
     function transformMessage(wrapper) {
         if (!wrapper || wrapper.getAttribute(DATA_ATTR) === '1') return;
         var bubble = wrapper.querySelector('.msg-bubble');
@@ -175,52 +172,46 @@
     function injectStyles() {
         if (document.getElementById('msn-sticker-styles')) return;
         var css = [
-            '.input-area-bar { position: relative !important; }',
             '.btn-upload-img.sticker-btn { font-size: 1.1rem; }',
 
-            /* Picker — compact, pops UP from the button */
+            /* Picker — fixed on body, no clipping */
             '.sticker-picker {',
-            '  position: absolute;',
-            '  bottom: calc(100% + 12px);',
-            '  transform-origin: bottom center;',
-            '  width: 296px;',
-            '  padding: 10px;',
-            '  background: linear-gradient(180deg, rgba(20,26,40,.98) 0%, rgba(10,14,24,.99) 100%);',
-            '  border: 1px solid var(--border-default, #233261);',
-            '  border-radius: 14px;',
-            '  box-shadow: 0 12px 40px rgba(0,0,0,.75), 0 0 24px var(--accent-cyan, rgba(0,240,255,.18));',
-            '  z-index: 60;',
-            '  max-height: 280px;',
-            '  overflow-y: auto;',
-            '  overflow-x: hidden;',
-            '  animation: stickerPickerIn .24s cubic-bezier(.16,1,.3,1);',
+            '  position: fixed !important;',
+            '  z-index: 999999 !important;',
+            '  padding: 10px !important;',
+            '  background: linear-gradient(180deg, rgba(20,26,40,.99) 0%, rgba(10,14,24,.995) 100%) !important;',
+            '  border: 1px solid var(--border-default, #233261) !important;',
+            '  border-radius: 14px !important;',
+            '  box-shadow: 0 12px 40px rgba(0,0,0,.8), 0 0 24px var(--accent-cyan, rgba(0,240,255,.18)) !important;',
+            '  width: 296px !important;',
+            '  max-height: 320px !important;',
+            '  overflow-y: auto !important;',
+            '  overflow-x: hidden !important;',
+            '  box-sizing: border-box !important;',
+            '  animation: stickerPickerIn .22s cubic-bezier(.16,1,.3,1);',
+            '  will-change: transform, opacity;',
             '}',
-            '.sticker-picker.hidden { display: none !important; }',
-
             '.sticker-picker::after {',
             '  content: "";',
             '  position: absolute;',
             '  left: var(--caret-x, 20px);',
             '  bottom: -7px;',
-            '  width: 12px;',
-            '  height: 12px;',
-            '  background: rgba(10,14,24,.99);',
+            '  width: 12px; height: 12px;',
+            '  background: rgba(10,14,24,.995);',
             '  border-right: 1px solid var(--border-default, #233261);',
             '  border-bottom: 1px solid var(--border-default, #233261);',
             '  transform: rotate(45deg);',
             '  pointer-events: none;',
             '}',
-
             '@keyframes stickerPickerIn {',
             '  from { opacity: 0; transform: translateY(8px) scale(.94); }',
             '  to   { opacity: 1; transform: translateY(0) scale(1); }',
             '}',
 
-            /* Grid — many small previews per row */
             '.sticker-picker-grid {',
-            '  display: grid;',
-            '  grid-template-columns: repeat(5, 1fr);',
-            '  gap: 6px;',
+            '  display: grid !important;',
+            '  grid-template-columns: repeat(5, 1fr) !important;',
+            '  gap: 6px !important;',
             '}',
             '.sticker-item {',
             '  aspect-ratio: 1 / 1;',
@@ -231,25 +222,17 @@
             '  cursor: pointer;',
             '  display: flex; align-items: center; justify-content: center;',
             '  transition: transform .14s ease, border-color .14s ease, box-shadow .14s ease, background .14s ease;',
-            '  overflow: hidden;',
-            '  min-width: 0;',
+            '  overflow: hidden; min-width: 0;',
             '}',
-            '.sticker-item img {',
-            '  width: 100%; height: 100%;',
-            '  object-fit: contain;',
-            '  display: block; pointer-events: none;',
-            '  transition: transform .14s ease;',
-            '}',
+            '.sticker-item img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }',
             '.sticker-item:hover {',
             '  border-color: var(--accent-cyan, #00f0ff);',
             '  background: rgba(0,240,255,.06);',
             '  box-shadow: 0 0 10px var(--accent-cyan, rgba(0,240,255,.4));',
             '  transform: translateY(-2px);',
             '}',
-            '.sticker-item:hover img { transform: scale(1.08); }',
             '.sticker-item:active { transform: scale(.92); }',
 
-            /* Empty state */
             '.sticker-picker-empty {',
             '  grid-column: 1 / -1;',
             '  padding: 20px 8px;',
@@ -259,7 +242,7 @@
             '  font-size: .68rem; letter-spacing: .2em; text-transform: uppercase;',
             '}',
 
-            /* Sticker message — no bubble, just the image */
+            /* Sticker messages */
             '.msg-wrapper.sticker-msg .msg-bubble {',
             '  background: transparent !important;',
             '  border: none !important;',
@@ -286,8 +269,8 @@
             '.msg-wrapper.sticker-msg .msg-image-wrap:hover { box-shadow: none; transform: translateY(-2px); }',
 
             '@media (max-width: 480px) {',
-            '  .sticker-picker { width: 240px; max-height: 240px; padding: 8px; }',
-            '  .sticker-picker-grid { grid-template-columns: repeat(4, 1fr); gap: 5px; }',
+            '  .sticker-picker { width: 240px !important; max-height: 240px !important; padding: 8px !important; }',
+            '  .sticker-picker-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 5px !important; }',
             '  .sticker-item { padding: 2px; border-radius: 6px; }',
             '  .msg-wrapper.sticker-msg .msg-image-wrap { max-width: 150px; }',
             '  .msg-wrapper.sticker-msg .msg-image-wrap img { max-height: 150px; }',
@@ -323,13 +306,13 @@
             else inputRow.appendChild(btn);
         }
 
-        var inputArea = document.getElementById('inputAreaBar');
-        if (!inputArea) return;
+        /* Picker lives on <body> — nothing can clip it */
         pickerEl = document.createElement('div');
         pickerEl.id = 'stickerPicker';
-        pickerEl.className = 'sticker-picker hidden';
+        pickerEl.className = 'sticker-picker';
+        pickerEl.style.display = 'none';
         pickerEl.innerHTML = '<div class="sticker-picker-grid" id="stickerPickerGrid"></div>';
-        inputArea.appendChild(pickerEl);
+        document.body.appendChild(pickerEl);
 
         btn.addEventListener('click', function (e) { e.stopPropagation(); togglePicker(); });
         pickerEl.addEventListener('click', function (e) {
@@ -339,38 +322,53 @@
             sendSticker(item.getAttribute('data-key'));
         });
         document.addEventListener('click', function (e) {
-            if (!pickerEl || pickerEl.classList.contains('hidden')) return;
+            if (!pickerEl || pickerEl.style.display === 'none') return;
             if (e.target.closest('#stickerPicker') || e.target.closest('#stickerBtn')) return;
             closePicker();
         });
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') closePicker();
         });
+
+        // Reposition on scroll / resize if open
+        window.addEventListener('resize', function () {
+            if (pickerEl && pickerEl.style.display !== 'none') positionPicker();
+        });
+        window.addEventListener('scroll', function () {
+            if (pickerEl && pickerEl.style.display !== 'none') positionPicker();
+        }, true);
     }
 
-    /* Position the picker above the sticker button + align the caret */
+    /* Position: fixed — anchored above the ✨ button */
     function positionPicker() {
         if (!pickerEl) return;
         var btn = document.getElementById('stickerBtn');
-        var inputArea = document.getElementById('inputAreaBar');
-        if (!btn || !inputArea) return;
+        if (!btn) return;
 
         var btnRect = btn.getBoundingClientRect();
-        var areaRect = inputArea.getBoundingClientRect();
-
         var pickerWidth = pickerEl.offsetWidth || 296;
-        var btnCenter = (btnRect.left + btnRect.width / 2) - areaRect.left;
-        var left = btnCenter - pickerWidth / 2;
+        var pickerHeight = pickerEl.offsetHeight || 200;
 
-        var maxLeft = areaRect.width - pickerWidth - 8;
-        if (left > maxLeft) left = maxLeft;
-        if (left < 8) left = 8;
+        var margin = 8;
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+
+        var left = btnRect.left + btnRect.width / 2 - pickerWidth / 2;
+        var top = btnRect.top - pickerHeight - 12;
+
+        if (left < margin) left = margin;
+        if (left + pickerWidth > vw - margin) left = vw - pickerWidth - margin;
+
+        // Not enough room above → flip below
+        if (top < margin) {
+            top = btnRect.bottom + 12;
+        }
 
         pickerEl.style.left = left + 'px';
-        pickerEl.style.right = 'auto';
+        pickerEl.style.top = top + 'px';
 
-        // Caret points at the button's center
-        var caretX = btnCenter - left - 6;
+        // Caret aligned with button's center
+        var caretX = btnRect.left + btnRect.width / 2 - left - 6;
         if (caretX < 12) caretX = 12;
         if (caretX > pickerWidth - 24) caretX = pickerWidth - 24;
         pickerEl.style.setProperty('--caret-x', caretX + 'px');
@@ -379,10 +377,8 @@
     function renderPicker() {
         var grid = document.getElementById('stickerPickerGrid');
         if (!grid) return;
-        // Always rebuild — cheap, and stays in sync if STICKERS changes at runtime
         if (STICKERS.length === 0) {
             grid.innerHTML = '<div class="sticker-picker-empty">No stickers yet</div>';
-            grid.dataset.built = '1';
             return;
         }
         grid.innerHTML = STICKERS.map(function (s) {
@@ -390,25 +386,23 @@
                    '<img src="' + escAttr(s.url) + '" alt="' + escAttr(s.key) + '" loading="lazy">' +
                    '</button>';
         }).join('');
-        grid.dataset.built = '1';
     }
+
     function openPicker() {
         if (!pickerEl) return;
         renderPicker();
-        pickerEl.classList.remove('hidden');
+        pickerEl.style.display = 'block';
+        // measure after display so offsetWidth/Height are correct
+        void pickerEl.offsetWidth;
         positionPicker();
     }
     function closePicker() {
-        if (pickerEl) pickerEl.classList.add('hidden');
+        if (pickerEl) pickerEl.style.display = 'none';
     }
     function togglePicker() {
         if (!pickerEl) return;
-        if (pickerEl.classList.contains('hidden')) openPicker(); else closePicker();
+        if (pickerEl.style.display === 'none') openPicker(); else closePicker();
     }
-
-    window.addEventListener('resize', function () {
-        if (pickerEl && !pickerEl.classList.contains('hidden')) positionPicker();
-    });
 
     /* ── send ────────────────────────────────────────────── */
     async function sendSticker(key) {
@@ -489,5 +483,5 @@
         }
     };
 
-    console.log('[stickers] loaded — ' + STICKERS.length + ' sticker(s)');
+    console.log('[stickers] v5 loaded — ' + STICKERS.length + ' sticker(s)');
 })();
