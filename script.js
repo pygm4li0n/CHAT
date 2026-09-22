@@ -2525,6 +2525,30 @@
             .subscribe();
     }
 
+     // ⚑ Local echo — stickers.js (and anything else) can ask script.js to
+    //   render a message immediately, without waiting for the realtime round trip.
+    //   renderMessage() dedupes via knownMessageIds so a later realtime
+    //   INSERT of the same row won't duplicate.
+    //
+    //   Always forces scroll-to-bottom since this only fires on the user's own send.
+    document.addEventListener('msn:render-local-message', function (e) {
+        try {
+            var detail = e.detail || {};
+            var msg = detail.message;
+            if (!msg || !msg.id) return;
+            var isPrivate = !!detail.isPrivate;
+
+            autoScroll = true;
+            renderMessage(msg, isPrivate, true);
+
+            var c = isPrivate ? privateContainer : publicContainer;
+            scrollContainerToBottom(c);
+            requestAnimationFrame(function () { scrollContainerToBottom(c); });
+        } catch (err) {
+            console.warn('[local-echo] render failed:', err);
+        }
+    });
+
     async function fullReconnect() {
         refreshBtn.classList.add('spinning');
         setConnection('connecting');
