@@ -1,12 +1,13 @@
 /* ============================================================
-   stickers.js — MSN Sticker Pack  ·  v6
+   stickers.js — MSN Sticker Pack  ·  v7
    ────────────────────────────────────────────────────────────
-     <script src="stickers.js?v=7"></script>
+     <script src="stickers.js?v=8"></script>
 
    • ✨ button left of the image button
    • Picker is position:fixed on <body> — no clipping possible
    • 4×4 grid of clean rounded-square thumbnails
    • Empty slots show a placeholder — grid is always 16 cells
+   • No scrollbar until sticker count exceeds the grid
    • Click a sticker → sends instantly + jumps to bottom
    • Sticker messages render without bubble
    ============================================================ */
@@ -168,7 +169,9 @@
     }
 
     function watchReplyPreview() {
-        var el = document.getElementById('replyPreviewDisp');
+        var el = document.getElementById('replyPreviewDel');
+        // fallback: use replyPreviewDisp since replyPreviewDel doesn't exist
+        el = document.getElementById('replyPreviewDisp');
         if (!el) { setTimeout(watchReplyPreview, 500); return; }
         var fix = function () {
             var t = el.textContent || '';
@@ -184,6 +187,7 @@
         var css = [
             '.btn-upload-img.sticker-btn { font-size: 1.1rem; }',
 
+            /* Picker — no fixed height, no scrollbar by default */
             '.sticker-picker {',
             '  position: fixed !important;',
             '  z-index: 999999 !important;',
@@ -193,13 +197,22 @@
             '  border-radius: 16px !important;',
             '  box-shadow: 0 12px 40px rgba(0,0,0,.8), 0 0 24px var(--accent-cyan, rgba(0,240,255,.2)) !important;',
             '  width: 336px !important;',
+            '  box-sizing: border-box !important;',
+            '  overflow: visible !important;',
+            '  animation: stickerPickerIn .22s cubic-bezier(.16,1,.3,1);',
+            '  will-change: transform, opacity;',
+            '  scrollbar-width: none !important;',
+            '  -ms-overflow-style: none !important;',
+            '}',
+            '.sticker-picker::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }',
+
+            /* Only scroll when stickers exceed the base grid */
+            '.sticker-picker.sticker-picker-scrollable {',
             '  max-height: 400px !important;',
             '  overflow-y: auto !important;',
             '  overflow-x: hidden !important;',
-            '  box-sizing: border-box !important;',
-            '  animation: stickerPickerIn .22s cubic-bezier(.16,1,.3,1);',
-            '  will-change: transform, opacity;',
             '}',
+
             '.sticker-picker::after {',
             '  content: "";',
             '  position: absolute;',
@@ -220,7 +233,6 @@
             '.sticker-picker-grid {',
             '  display: grid !important;',
             '  grid-template-columns: repeat(4, 1fr) !important;',
-            '  grid-template-rows: repeat(4, 1fr) !important;',
             '  gap: 8px !important;',
             '}',
 
@@ -294,7 +306,8 @@
             '.msg-wrapper.sticker-msg .msg-image-wrap:hover { box-shadow: none; transform: translateY(-2px); }',
 
             '@media (max-width: 480px) {',
-            '  .sticker-picker { width: 280px !important; max-height: 340px !important; padding: 10px !important; }',
+            '  .sticker-picker { width: 280px !important; padding: 10px !important; }',
+            '  .sticker-picker.sticker-picker-scrollable { max-height: 340px !important; }',
             '  .sticker-picker-grid { gap: 6px !important; }',
             '  .sticker-item { padding: 3px; border-radius: 10px; }',
             '  .msg-wrapper.sticker-msg .msg-image-wrap { max-width: 190px; }',
@@ -409,6 +422,11 @@
             cells.push('<div class="sticker-item sticker-empty" aria-hidden="true"></div>');
         }
         grid.innerHTML = cells.join('');
+
+        // Only scroll when sticker count exceeds the base grid
+        if (pickerEl) {
+            pickerEl.classList.toggle('sticker-picker-scrollable', STICKERS.length > GRID_SLOTS);
+        }
     }
 
     function openPicker() {
@@ -513,5 +531,5 @@
         }
     };
 
-    console.log('[stickers] v6 loaded — ' + STICKERS.length + ' sticker(s), ' + GRID_SLOTS + ' slots');
+    console.log('[stickers] v7 loaded — ' + STICKERS.length + ' sticker(s), ' + GRID_SLOTS + ' slots');
 })();
