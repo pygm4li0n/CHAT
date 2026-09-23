@@ -860,3 +860,156 @@ button.send-btn-main:disabled { background: var(--bg-secondary); box-shadow: non
 @media (min-width: 769px) {
     .sidebar-theme-btn { display: none; }
 }
+
+/* ═════════════════════════════════════════════════════
+   HEADER CENTER — unified single-unit container
+   Replaces the two-floating-pills look.
+   Desktop only (.header-center is hidden on mobile).
+═════════════════════════════════════════════════════ */
+.header-center {
+    display: inline-flex !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    height: 40px !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    border-radius: 10px !important;
+    background: var(--bg-elevated, rgba(255,255,255,0.04)) !important;
+    border: 1px solid var(--border-default, rgba(255,255,255,0.10)) !important;
+    overflow: hidden !important;
+    transition: border-color .18s ease, box-shadow .18s ease !important;
+}
+.header-center:hover {
+    border-color: var(--accent-cyan, #01E1EA) !important;
+    box-shadow: 0 0 14px var(--border-glow, rgba(1,225,234,0.35)) !important;
+}
+
+/* ── Segments (tracker + CA) — no own border/bg, just fill the row ── */
+.header-center .token-tracker,
+.header-center .token-ca {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 0 14px !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--text-primary, #fff) !important;
+    font-family: var(--font-mono, monospace) !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    gap: 8px !important;
+    transition: background .15s ease !important;
+}
+
+/* ── Divider between the two segments ── */
+.header-center .token-tracker + .token-ca {
+    border-left: 1px solid var(--border-default, rgba(255,255,255,0.10)) !important;
+}
+
+/* ── Per-segment hover (soft fill, no border shift) ── */
+.header-center .token-tracker:hover,
+.header-center .token-ca:hover {
+    background: rgba(255,255,255,0.05) !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
+
+/* ═══════ TOKEN TRACKER internals ═══════ */
+.header-center .token-tracker .token-logo {
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    flex-shrink: 0 !important;
+}
+.header-center .token-tracker .token-name {
+    font-size: 0.72rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: var(--text-primary, #fff) !important;
+    max-width: 90px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+.header-center .token-tracker .token-price {
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    font-variant-numeric: tabular-nums !important;
+    color: var(--text-primary, #fff) !important;
+}
+.header-center .token-tracker .token-change {
+    font-size: 0.68rem !important;
+    font-weight: 800 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-variant-numeric: tabular-nums !important;
+    line-height: 1 !important;
+}
+.header-center .token-tracker .token-change.positive {
+    color: #4ade80 !important;
+    background: rgba(74,222,128,0.12) !important;
+}
+.header-center .token-tracker .token-change.negative {
+    color: #ef4444 !important;
+    background: rgba(239,68,68,0.12) !important;
+}
+
+/* ═══════ CA PILL internals ═══════ */
+.header-center .token-ca {
+    cursor: pointer !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+.header-center .token-ca .ca-label {
+    font-size: 0.6rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.14em !important;
+    line-height: 1 !important;
+    padding: 3px 6px !important;
+    border-radius: 4px !important;
+    color: var(--accent-cyan, #01E1EA) !important;
+    background: rgba(1,225,234,0.10) !important;
+    border: 1px solid rgba(1,225,234,0.35) !important;
+}
+.header-center .token-ca .ca-value {
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    font-variant-numeric: tabular-nums !important;
+    letter-spacing: 0.02em !important;
+}
+.header-center .token-ca .ca-copy {
+    width: 1.2em !important;
+    height: 1.2em !important;
+    font-size: 0.85rem !important;
+    opacity: 0.65 !important;
+    transition: opacity .15s ease !important;
+}
+.header-center .token-ca:hover .ca-copy,
+.header-center .token-ca:focus-visible .ca-copy {
+    opacity: 1 !important;
+}
+
+/* ── Copied flash state — keep the whole container glowing ── */
+.header-center .token-ca.copied {
+    background: rgba(74,222,128,0.10) !important;
+}
+.header-center .token-ca.copied .ca-copy {
+    opacity: 1 !important;
+}
+
+/* ── Remove the standalone glow overrides for tokens-ca ── */
+.header-center .token-ca:hover {
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
