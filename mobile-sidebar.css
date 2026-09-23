@@ -848,3 +848,47 @@
         display: none !important;
     }
 }
+
+/* ═════════════════════════════════════════════════════
+   ⚑ DESKTOP — wallet moves from header to sidebar
+   footer (matches mobile layout) + refresh button removed
+═════════════════════════════════════════════════════ */
+@media (min-width: 769px) {
+
+    /* Hide the header wallet display on desktop */
+    .header-right #walletAddress,
+    .header-right .wallet-address {
+        display: none !important;
+    }
+
+    /* Hide the refresh button on desktop */
+    .header-right #refreshBtn {
+        display: none !important;
+    }
+
+    /* Sidebar footer — wallet shows on the right */
+    .sidebar-footer {
+        justify-content: space-between !important;
+        gap: 10px !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .sidebar-footer .wallet-address {
+        display: inline-block !important;
+        font-size: 0.75rem !important;
+        flex: 0 1 auto !important;
+        margin-left: auto !important;
+        max-width: 145px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        text-align: right !important;
+        color: var(--text-secondary, #94a3b8) !important;
+    }
+
+    /* Don't reserve space when nothing's connected */
+    .sidebar-footer .wallet-address:empty {
+        display: none !important;
+        margin-left: 0 !important;
+    }
+}
