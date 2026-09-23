@@ -29,7 +29,7 @@
         { key: 'COOL', url: 'https://i.postimg.cc/fyGT9rqf/Chat-GPT-Image-22-sept-2026-07-26-36-p-m-(1).png' },
         { key: 'MONEY', url: 'https://i.postimg.cc/mr1zpJK8/image.png' },
         { key: 'KING', url: 'https://i.postimg.cc/Ss0XBVpr/King-(1).png' },
-        { key: 'LOL', url: 'https://i.postimg.cc/g0LXtQ1g/LOL.png' },
+        { key: 'LOL', url: 'https://i.postimg.cc/DZDjPDJV/LOL-(1).png' },
         { key: 'LOVE', url: 'https://i.postimg.cc/qRftPQd2/LOVE.png' },
         { key: 'MAD', url: 'https://i.postimg.cc/pTN9wktB/MAD.png' },
         { key: 'SLEEP', url: 'https://i.postimg.cc/zBmLsp1F/SLEEP.png' },
