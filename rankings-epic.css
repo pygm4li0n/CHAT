@@ -1,13 +1,18 @@
 /* =========================================================
-   RANKINGS — CELL EDITION v5.0  ·  "GOLD & PLATINUM"
+   RANKINGS — CELL EDITION v5.1  ·  "SOFT METAL"
    ---------------------------------------------------------
-   #1  GOLDEN    · metallic gold rim · breathing aura · sweep beam
+   #1  GOLDEN    · warm gold rim · soft aura · slow sweep beam
    #2  PLATINUM  · plated chrome edge · slow diagonal shimmer
    #3  BRONZE    · quiet, restrained
    ---------------------------------------------------------
    Fully theme-aware — dark AND light.
-   Every colour resolves through local tokens, so nothing
-   hard-codes white-on-white or black-on-black any more.
+   Calmer palette · better contrast · no visual scrollbar.
+   Exactly 10 slots per column — placeholders fill the gap.
+   ---------------------------------------------------------
+   NOTE (JS side, already wired in the companion script):
+   · pad each .rankings-list to 10 real+placeholder rows
+   · placeholder row = <div class="rank-row is-placeholder">
+   · toggle .is-scrollable on the list when it overflows
    ========================================================= */
 
 
@@ -18,118 +23,118 @@
     color-scheme: dark;
 
     /* — ink (defers to the app's own text vars when present) — */
-    --rk-ink-1: var(--text-primary,   #edf3fb);
-    --rk-ink-2: var(--text-secondary, rgba(237, 243, 251, .74));
-    --rk-ink-3: var(--text-muted,     rgba(237, 243, 251, .46));
+    --rk-ink-1: var(--text-primary,   #e9eef6);
+    --rk-ink-2: var(--text-secondary, rgba(233, 238, 246, .78));
+    --rk-ink-3: var(--text-muted,     rgba(233, 238, 246, .55));
 
     /* — lines — */
-    --rk-line-1: var(--border-subtle,  rgba(255, 255, 255, .10));
-    --rk-line-2: var(--border-default, rgba(255, 255, 255, .18));
+    --rk-line-1: var(--border-subtle,  rgba(255, 255, 255, .075));
+    --rk-line-2: var(--border-default, rgba(255, 255, 255, .14));
 
     /* — surfaces — */
-    --rk-surface-1: rgba(255, 255, 255, .030);
-    --rk-surface-2: rgba(255, 255, 255, .055);
-    --rk-inset:     rgba(255, 255, 255, .06);
-    --rk-shade:     rgba(0, 0, 0, .34);
-    --rk-scroll:    rgba(255, 255, 255, .12);
+    --rk-surface-1: rgba(255, 255, 255, .026);
+    --rk-surface-2: rgba(255, 255, 255, .048);
+    --rk-inset:     rgba(255, 255, 255, .05);
+    --rk-shade:     rgba(0, 0, 0, .28);
+    --rk-scroll:    rgba(255, 255, 255, .10);
 
-    --rk-shadow:      0 40px 120px rgba(0, 0, 0, .85);
-    --rk-row-shadow:  0 8px 26px rgba(0, 0, 0, .45);
-    --rk-hero-shadow: 0 12px 44px rgba(0, 0, 0, .55);
+    --rk-panel-bg: var(--bg-panel, #0e1218);
+
+    --rk-shadow:      0 26px 70px rgba(0, 0, 0, .68);
+    --rk-row-shadow:  0 4px 14px rgba(0, 0, 0, .28);
+    --rk-hero-shadow: 0 8px 26px rgba(0, 0, 0, .38);
 
     --rk-col-bg:
-        linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, 0) 32%),
-        linear-gradient(160deg, rgba(0, 0, 0, .34), rgba(0, 0, 0, .10));
-    --rk-mobile-col-bg: rgba(0, 0, 0, .28);
+        linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, 0) 32%),
+        linear-gradient(160deg, rgba(0, 0, 0, .28), rgba(0, 0, 0, .08));
+    --rk-mobile-col-bg: rgba(0, 0, 0, .22);
 
     /* — interaction — */
     --rk-accent:  var(--accent-cyan, #01e1ea);
-    --rk-hover-a: rgba(1, 225, 234, .09);
-    --rk-hover-b: rgba(1, 225, 234, .02);
+    --rk-hover-a: rgba(1, 225, 234, .07);
+    --rk-hover-b: rgba(1, 225, 234, .015);
 
-    /* — GOLD — */
-    --rk-gold:        #FFC93C;
-    --rk-gold-hi:     #FFF2C9;
-    --rk-gold-deep:   #A96A00;
-    --rk-gold-name:   #FFF7E6;
-    --rk-gold-ink:    #FFD87A;
-    --rk-gold-head:   #FFD87A;
-    --rk-gold-tint-a: rgba(255, 201, 60, .13);
-    --rk-gold-tint-b: rgba(255, 201, 60, .05);
-    --rk-gold-glow:   rgba(255, 182, 26, .42);
+    /* — GOLD (desaturated, warm, legible) — */
+    --rk-gold:        #E3B255;
+    --rk-gold-hi:     #FFEFC6;
+    --rk-gold-deep:   #8E5A0B;
+    --rk-gold-name:   #F6E6C1;
+    --rk-gold-ink:    #EBC781;
+    --rk-gold-head:   #EBC781;
+    --rk-gold-tint-a: rgba(227, 178, 85, .10);
+    --rk-gold-tint-b: rgba(227, 178, 85, .035);
+    --rk-gold-glow:   rgba(227, 178, 85, .20);
     --rk-gold-rim: linear-gradient(115deg,
-        #7A4A00 0%,  #FFD87A 11%, #FFF7DF 20%, #FFC93C 31%,
-        #A96A00 42%, #FFE9A8 53%, #FFC93C 64%, #7A4A00 76%,
-        #FFD87A 87%, #FFF7DF 94%, #FFC93C 100%);
+        #6B4405 0%, #E3B255 12%, #FFF0C9 21%, #D9A63F 32%,
+        #8E5A0B 43%, #F2D48C 54%, #D9A63F 65%, #6B4405 77%,
+        #E3B255 88%, #FFF0C9 95%, #D9A63F 100%);
 
     /* — PLATINUM — */
-    --rk-plat-name:   #EAF2FF;
-    --rk-plat-ink:    #EAF2FF;
-    --rk-plat-head:   #DCE9F7;
-    --rk-plat-tint-a: rgba(198, 224, 255, .11);
-    --rk-plat-tint-b: rgba(198, 224, 255, .03);
-    --rk-plat-glow:   rgba(168, 208, 255, .34);
-    --rk-plat-shim:   rgba(220, 240, 255, .16);
+    --rk-plat-name:   #DBE5F1;
+    --rk-plat-ink:    #C3D2E3;
+    --rk-plat-head:   #CCDAE9;
+    --rk-plat-tint-a: rgba(180, 205, 235, .08);
+    --rk-plat-tint-b: rgba(180, 205, 235, .022);
+    --rk-plat-glow:   rgba(160, 195, 235, .16);
+    --rk-plat-shim:   rgba(210, 232, 255, .11);
     --rk-plat-rim: linear-gradient(150deg,
-        #FFFFFF 0%, #D6E6F6 16%, #93A9C0 32%, #FFFFFF 48%,
-        #B4C8DC 64%, #74889F 82%, #EAF3FC 100%);
+        #EEF4FA 0%, #BFD0E1 16%, #7E92A8 32%, #E9F1F8 48%,
+        #A2B6C9 64%, #67798E 82%, #D8E4EF 100%);
 
     /* — BRONZE — */
-    --rk-bronze-name: #FFB073;
-    --rk-bronze-ink:  #E9A96B;
-    --rk-bronze-line: rgba(230, 140, 60, .38);
-    --rk-bronze-glow: rgba(230, 140, 60, .45);
+    --rk-bronze-name: #DFA06A;
+    --rk-bronze-ink:  #CC9055;
+    --rk-bronze-line: rgba(204, 144, 85, .28);
+    --rk-bronze-glow: rgba(204, 144, 85, .20);
 }
 
-/* ── LIGHT THEME TOKENS ───────────────────────────────────
-   Only the values that are hard-coded dark-biased get
-   overridden; everything else keeps inheriting the app's
-   own --text-* / --border-* / --bg-* variables.
-   ───────────────────────────────────────────────────────── */
+/* ── LIGHT THEME TOKENS (system preference) ─────────────── */
 @media (prefers-color-scheme: light) {
     #rankingsOverlay:not([data-theme="dark"]):not(.dark):not(.is-dark):not(.theme-dark) {
         color-scheme: light;
 
-        --rk-surface-1: rgba(16, 26, 40, .035);
-        --rk-surface-2: rgba(16, 26, 40, .060);
-        --rk-inset:     rgba(255, 255, 255, .80);
-        --rk-shade:     rgba(16, 26, 40, .05);
-        --rk-scroll:    rgba(16, 26, 40, .20);
+        --rk-panel-bg: var(--bg-panel, #ffffff);
 
-        --rk-shadow:      0 30px 80px rgba(16, 26, 40, .22);
-        --rk-row-shadow:  0 6px 18px rgba(16, 26, 40, .14);
-        --rk-hero-shadow: 0 12px 34px rgba(16, 26, 40, .18);
+        --rk-surface-1: rgba(16, 26, 40, .030);
+        --rk-surface-2: rgba(16, 26, 40, .052);
+        --rk-inset:     rgba(255, 255, 255, .85);
+        --rk-shade:     rgba(16, 26, 40, .04);
+        --rk-scroll:    rgba(16, 26, 40, .18);
+
+        --rk-shadow:      0 24px 60px rgba(16, 26, 40, .16);
+        --rk-row-shadow:  0 3px 12px rgba(16, 26, 40, .10);
+        --rk-hero-shadow: 0 8px 24px rgba(16, 26, 40, .13);
 
         --rk-col-bg:
             linear-gradient(180deg, rgba(255, 255, 255, .92), rgba(255, 255, 255, .55)),
             linear-gradient(160deg, rgba(16, 26, 40, .05), rgba(16, 26, 40, .01));
-        --rk-mobile-col-bg: rgba(16, 26, 40, .035);
+        --rk-mobile-col-bg: rgba(16, 26, 40, .030);
 
-        --rk-hover-a: rgba(0, 150, 170, .10);
-        --rk-hover-b: rgba(0, 150, 170, .03);
+        --rk-hover-a: rgba(0, 140, 160, .085);
+        --rk-hover-b: rgba(0, 140, 160, .025);
 
-        --rk-gold-name:   #4A3200;
-        --rk-gold-ink:    #8A5A00;
-        --rk-gold-head:   #B37A00;
-        --rk-gold-tint-a: rgba(255, 186, 30, .22);
-        --rk-gold-tint-b: rgba(255, 186, 30, .08);
-        --rk-gold-glow:   rgba(190, 128, 0, .34);
+        --rk-gold-name:   #3E2B00;
+        --rk-gold-ink:    #78500A;
+        --rk-gold-head:   #8F5E00;
+        --rk-gold-tint-a: rgba(206, 150, 40, .16);
+        --rk-gold-tint-b: rgba(206, 150, 40, .05);
+        --rk-gold-glow:   rgba(140, 95, 0, .16);
 
-        --rk-plat-name:   #2E3F52;
-        --rk-plat-ink:    #33465C;
-        --rk-plat-head:   #4A6076;
-        --rk-plat-tint-a: rgba(80, 120, 170, .12);
-        --rk-plat-tint-b: rgba(80, 120, 170, .03);
-        --rk-plat-glow:   rgba(70, 120, 180, .28);
-        --rk-plat-shim:   rgba(90, 140, 200, .16);
+        --rk-plat-name:   #22364A;
+        --rk-plat-ink:    #2B4055;
+        --rk-plat-head:   #3D5468;
+        --rk-plat-tint-a: rgba(70, 105, 150, .10);
+        --rk-plat-tint-b: rgba(70, 105, 150, .025);
+        --rk-plat-glow:   rgba(60, 100, 155, .14);
+        --rk-plat-shim:   rgba(80, 125, 180, .11);
         --rk-plat-rim: linear-gradient(150deg,
-            #FFFFFF 0%, #B9CCDE 16%, #6C8299 32%, #FFFFFF 48%,
-            #8FA6BC 64%, #55697E 82%, #DCE8F4 100%);
+            #FFFFFF 0%, #B4C7D9 16%, #64798F 32%, #FFFFFF 48%,
+            #8BA2B8 64%, #4E6277 82%, #D6E3EF 100%);
 
-        --rk-bronze-name: #8A4A12;
-        --rk-bronze-ink:  #A45E1E;
-        --rk-bronze-line: rgba(190, 105, 30, .40);
-        --rk-bronze-glow: rgba(190, 105, 30, .32);
+        --rk-bronze-name: #6C390A;
+        --rk-bronze-ink:  #82461A;
+        --rk-bronze-line: rgba(148, 84, 25, .30);
+        --rk-bronze-glow: rgba(148, 84, 25, .16);
     }
 }
 
@@ -143,46 +148,48 @@
 .is-light #rankingsOverlay {
     color-scheme: light;
 
-    --rk-surface-1: rgba(16, 26, 40, .035);
-    --rk-surface-2: rgba(16, 26, 40, .060);
-    --rk-inset:     rgba(255, 255, 255, .80);
-    --rk-shade:     rgba(16, 26, 40, .05);
-    --rk-scroll:    rgba(16, 26, 40, .20);
+    --rk-panel-bg: var(--bg-panel, #ffffff);
 
-    --rk-shadow:      0 30px 80px rgba(16, 26, 40, .22);
-    --rk-row-shadow:  0 6px 18px rgba(16, 26, 40, .14);
-    --rk-hero-shadow: 0 12px 34px rgba(16, 26, 40, .18);
+    --rk-surface-1: rgba(16, 26, 40, .030);
+    --rk-surface-2: rgba(16, 26, 40, .052);
+    --rk-inset:     rgba(255, 255, 255, .85);
+    --rk-shade:     rgba(16, 26, 40, .04);
+    --rk-scroll:    rgba(16, 26, 40, .18);
+
+    --rk-shadow:      0 24px 60px rgba(16, 26, 40, .16);
+    --rk-row-shadow:  0 3px 12px rgba(16, 26, 40, .10);
+    --rk-hero-shadow: 0 8px 24px rgba(16, 26, 40, .13);
 
     --rk-col-bg:
         linear-gradient(180deg, rgba(255, 255, 255, .92), rgba(255, 255, 255, .55)),
         linear-gradient(160deg, rgba(16, 26, 40, .05), rgba(16, 26, 40, .01));
-    --rk-mobile-col-bg: rgba(16, 26, 40, .035);
+    --rk-mobile-col-bg: rgba(16, 26, 40, .030);
 
-    --rk-hover-a: rgba(0, 150, 170, .10);
-    --rk-hover-b: rgba(0, 150, 170, .03);
+    --rk-hover-a: rgba(0, 140, 160, .085);
+    --rk-hover-b: rgba(0, 140, 160, .025);
 
-    --rk-gold-name:   #4A3200;
-    --rk-gold-ink:    #8A5A00;
-    --rk-gold-head:   #B37A00;
-    --rk-gold-tint-a: rgba(255, 186, 30, .22);
-    --rk-gold-tint-b: rgba(255, 186, 30, .08);
-    --rk-gold-glow:   rgba(190, 128, 0, .34);
+    --rk-gold-name:   #3E2B00;
+    --rk-gold-ink:    #78500A;
+    --rk-gold-head:   #8F5E00;
+    --rk-gold-tint-a: rgba(206, 150, 40, .16);
+    --rk-gold-tint-b: rgba(206, 150, 40, .05);
+    --rk-gold-glow:   rgba(140, 95, 0, .16);
 
-    --rk-plat-name:   #2E3F52;
-    --rk-plat-ink:    #33465C;
-    --rk-plat-head:   #4A6076;
-    --rk-plat-tint-a: rgba(80, 120, 170, .12);
-    --rk-plat-tint-b: rgba(80, 120, 170, .03);
-    --rk-plat-glow:   rgba(70, 120, 180, .28);
-    --rk-plat-shim:   rgba(90, 140, 200, .16);
+    --rk-plat-name:   #22364A;
+    --rk-plat-ink:    #2B4055;
+    --rk-plat-head:   #3D5468;
+    --rk-plat-tint-a: rgba(70, 105, 150, .10);
+    --rk-plat-tint-b: rgba(70, 105, 150, .025);
+    --rk-plat-glow:   rgba(60, 100, 155, .14);
+    --rk-plat-shim:   rgba(80, 125, 180, .11);
     --rk-plat-rim: linear-gradient(150deg,
-        #FFFFFF 0%, #B9CCDE 16%, #6C8299 32%, #FFFFFF 48%,
-        #8FA6BC 64%, #55697E 82%, #DCE8F4 100%);
+        #FFFFFF 0%, #B4C7D9 16%, #64798F 32%, #FFFFFF 48%,
+        #8BA2B8 64%, #4E6277 82%, #D6E3EF 100%);
 
-    --rk-bronze-name: #8A4A12;
-    --rk-bronze-ink:  #A45E1E;
-    --rk-bronze-line: rgba(190, 105, 30, .40);
-    --rk-bronze-glow: rgba(190, 105, 30, .32);
+    --rk-bronze-name: #6C390A;
+    --rk-bronze-ink:  #82461A;
+    --rk-bronze-line: rgba(148, 84, 25, .30);
+    --rk-bronze-glow: rgba(148, 84, 25, .16);
 }
 
 
@@ -197,20 +204,30 @@
     padding: 24px 30px 26px !important;
     background:
         linear-gradient(180deg, var(--rk-surface-2) 0%, rgba(255, 255, 255, 0) 20%),
-        linear-gradient(180deg, var(--bg-panel, #0e1218) 0%, var(--rk-shade) 100%) !important;
+        linear-gradient(180deg, var(--rk-panel-bg) 0%, var(--rk-shade) 100%) !important;
     border: 1px solid var(--rk-line-2) !important;
     border-radius: 16px !important;
     box-shadow:
         inset 0 1px 0 var(--rk-inset),
-        inset 0 0 0 1px rgba(255, 255, 255, .015),
-        0 0 0 1px rgba(0, 0, 0, .35),
+        0 0 0 1px rgba(0, 0, 0, .22),
         var(--rk-shadow) !important;
     position: relative !important;
-    overflow: hidden !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
     display: flex !important;
     flex-direction: column !important;
     text-align: left !important;
     isolation: isolate !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--rk-scroll) transparent !important;
+}
+#rankingsOverlay .rankings-card::-webkit-scrollbar { width: 8px !important; }
+#rankingsOverlay .rankings-card::-webkit-scrollbar-track { background: transparent !important; }
+#rankingsOverlay .rankings-card::-webkit-scrollbar-thumb {
+    background: var(--rk-scroll) !important;
+    border: 2px solid transparent !important;
+    background-clip: content-box !important;
+    border-radius: 99px !important;
 }
 
 /* gold → platinum hairline across the top */
@@ -225,7 +242,7 @@
         var(--rk-gold-hi) 32%,
         var(--rk-plat-head) 68%,
         transparent 100%) !important;
-    opacity: .8 !important;
+    opacity: .55 !important;
     pointer-events: none !important;
     z-index: 3 !important;
 }
@@ -238,9 +255,9 @@
     pointer-events: none !important;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%234f8fff' stroke-width='1' stroke-opacity='0.18'%3E%3Cpath d='M10 0v40h40v30'/%3E%3Cpath d='M160 30h-50v40'/%3E%3Cpath d='M0 110h60v50'/%3E%3Cpath d='M110 160v-40h50'/%3E%3Cpath d='M80 0v25'/%3E%3Cpath d='M80 160v-25'/%3E%3C/g%3E%3Cg fill='%234f8fff' fill-opacity='0.30'%3E%3Ccircle cx='50' cy='70' r='2'/%3E%3Ccircle cx='110' cy='70' r='2'/%3E%3Ccircle cx='60' cy='110' r='2'/%3E%3Ccircle cx='110' cy='120' r='2'/%3E%3C/g%3E%3C/svg%3E") !important;
     background-size: 160px 160px !important;
-    -webkit-mask-image: radial-gradient(ellipse 95% 75% at 50% 0%, #000 0%, transparent 78%) !important;
-            mask-image: radial-gradient(ellipse 95% 75% at 50% 0%, #000 0%, transparent 78%) !important;
-    opacity: .55 !important;
+    -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 0%, transparent 72%) !important;
+            mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 0%, transparent 72%) !important;
+    opacity: .28 !important;
 }
 
 
@@ -282,7 +299,7 @@
     line-height: 1 !important;
     white-space: nowrap !important;
     color: var(--rk-ink-1) !important;
-    text-shadow: 0 0 26px var(--rk-gold-glow) !important;
+    text-shadow: 0 0 14px var(--rk-gold-glow) !important;
 }
 
 #rankingsOverlay .rankings-close-btn {
@@ -377,31 +394,67 @@
 #rankingsOverlay .rankings-column:nth-child(1) .rankings-column-title { color: var(--accent-cyan, #01e1ea) !important; }
 #rankingsOverlay .rankings-column:nth-child(2) .rankings-column-title { color: var(--accent-orange, #f68c16) !important; }
 
-/* list + scrollbar */
+/* ── list viewport: exactly 10 slots, invisible scrollbar ── */
 #rankingsOverlay .rankings-list {
+    /* tunable slot geometry (change these to resize the viewport) */
+    --rk-row-h:  56px;
+    --rk-hero-h: 104px;
+    --rk-gap:    6px;
+
     display: flex !important;
     flex-direction: column !important;
-    gap: 6px !important;
-    flex: 1 1 auto !important;
+    gap: var(--rk-gap) !important;
+    flex: 0 0 auto !important;
     min-height: 0 !important;
+
+    /* exactly 10 slots tall (1 hero + 9 standard) */
+    max-height: calc(
+        var(--rk-hero-h) + 9 * var(--rk-row-h) + 11 * var(--rk-gap) + 6px
+    ) !important;
+
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    padding: 2px 10px 4px 2px !important;
+    padding: 2px 2px 4px !important;
     counter-reset: rank !important;
-    scrollbar-width: thin !important;
-    scrollbar-color: var(--rk-scroll) transparent !important;
+    overscroll-behavior: contain !important;
+
+    /* — invisible scrollbar — */
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
 }
-#rankingsOverlay .rankings-list::-webkit-scrollbar { width: 8px !important; }
-#rankingsOverlay .rankings-list::-webkit-scrollbar-track { background: transparent !important; }
-#rankingsOverlay .rankings-list::-webkit-scrollbar-thumb {
-    background: var(--rk-scroll) !important;
-    border: 2px solid transparent !important;
-    background-clip: content-box !important;
-    border-radius: 99px !important;
+#rankingsOverlay .rankings-list::-webkit-scrollbar { width: 0 !important; height: 0 !important; }
+#rankingsOverlay .rankings-list::-webkit-scrollbar-track,
+#rankingsOverlay .rankings-list::-webkit-scrollbar-thumb { background: transparent !important; }
+
+/* soft fade at the bottom — only when there IS more to scroll */
+#rankingsOverlay .rankings-list.is-scrollable {
+    -webkit-mask-image: linear-gradient(180deg,
+        #000 0,
+        #000 calc(100% - 28px),
+        rgba(0, 0, 0, .10) 100%) !important;
+            mask-image: linear-gradient(180deg,
+        #000 0,
+        #000 calc(100% - 28px),
+        rgba(0, 0, 0, .10) 100%) !important;
 }
-#rankingsOverlay .rankings-list::-webkit-scrollbar-thumb:hover {
-    background: var(--rk-accent) !important;
-    background-clip: content-box !important;
+
+/* fixed slot heights (single-line layout) */
+@media (min-width: 769px) {
+    #rankingsOverlay .rankings-list > .rank-row {
+        height: var(--rk-row-h) !important;
+        min-height: 0 !important;
+    }
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) {
+        height: var(--rk-hero-h) !important;
+        min-height: 0 !important;
+    }
+}
+@media (max-width: 1180px) and (min-width: 769px) {
+    #rankingsOverlay .rankings-list {
+        --rk-row-h:  54px;
+        --rk-hero-h: 100px;
+        --rk-gap:    6px;
+    }
 }
 
 /* empty state */
@@ -449,6 +502,7 @@
     position: relative !important;
     overflow: hidden !important;
     contain: layout style paint !important;
+    box-shadow: none !important;
     transition:
         background .18s ease,
         border-color .18s ease,
@@ -549,7 +603,7 @@
     border: 1px solid var(--rk-line-2) !important;
     color: var(--rk-ink-2) !important;
     font-family: var(--font-mono) !important;
-    font-size: .58rem !important;
+    font-size: .60rem !important;
     font-weight: 800 !important;
     letter-spacing: .12em !important;
     text-transform: uppercase !important;
@@ -557,8 +611,9 @@
     line-height: 1.5 !important;
 }
 #rankingsOverlay .rank-detail {
-    color: var(--rk-ink-3) !important;
-    font-size: .62rem !important;
+    color: var(--rk-ink-2) !important;
+    opacity: .82 !important;
+    font-size: .66rem !important;
     font-weight: 700 !important;
     letter-spacing: .12em !important;
     text-transform: uppercase !important;
@@ -614,9 +669,9 @@
 
 
 /* ══════════════════════════════════════════════════════════
-   6 · #1 — GOLDEN HERO
+   6 · #1 — GOLDEN HERO (restrained)
    ══════════════════════════════════════════════════════════ */
-#rankingsOverlay .rankings-list > .rank-row:first-child {
+#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) {
     grid-template-columns: 46px 66px minmax(0, 1fr) auto !important;
     gap: 18px !important;
     min-height: 106px !important;
@@ -626,32 +681,30 @@
     background:
         linear-gradient(180deg, var(--rk-gold-tint-a) 0%, var(--rk-gold-tint-b) 46%, rgba(0, 0, 0, 0) 100%),
         linear-gradient(180deg, var(--rk-surface-2), var(--rk-surface-1)) !important;
-    border: 1px solid rgba(255, 201, 60, .42) !important;
+    border: 1px solid rgba(227, 178, 85, .30) !important;
     box-shadow:
         inset 0 1px 0 var(--rk-inset),
-        inset 0 0 60px var(--rk-gold-tint-b),
-        var(--rk-hero-shadow) !important;
+        0 4px 18px rgba(0, 0, 0, .26) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:first-child:hover {
+#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder):hover {
     transform: none !important;
-    border-color: var(--rk-gold) !important;
+    border-color: rgba(227, 178, 85, .52) !important;
     background:
         linear-gradient(180deg, var(--rk-gold-tint-a) 0%, var(--rk-gold-tint-b) 46%, rgba(0, 0, 0, 0) 100%),
         linear-gradient(180deg, var(--rk-surface-2), var(--rk-surface-1)) !important;
     box-shadow:
         inset 0 1px 0 var(--rk-inset),
-        inset 0 0 60px var(--rk-gold-tint-a),
-        0 0 34px var(--rk-gold-glow),
+        0 0 22px var(--rk-gold-glow),
         var(--rk-hero-shadow) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:first-child::before {
+#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder)::before {
     font-size: 1.55rem !important;
     font-weight: 900 !important;
     letter-spacing: 0 !important;
     color: var(--rk-gold-ink) !important;
-    text-shadow: 0 0 22px var(--rk-gold-glow) !important;
+    text-shadow: 0 0 14px var(--rk-gold-glow) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:first-child::after {
+#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder)::after {
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
@@ -660,10 +713,11 @@
     height: 2px !important;
     border-radius: 14px 14px 0 0 !important;
     background: linear-gradient(90deg, transparent, var(--rk-gold) 50%, transparent) !important;
-    box-shadow: 0 0 16px var(--rk-gold-glow) !important;
+    box-shadow: 0 0 10px var(--rk-gold-glow) !important;
+    opacity: .85 !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar,
-#rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar-fallback {
+#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar,
+#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar-fallback {
     width: 66px !important;
     height: 66px !important;
     min-width: 66px !important;
@@ -671,92 +725,92 @@
     border-radius: 17px !important;
     font-size: 1.15rem !important;
     color: var(--rk-gold-ink) !important;
-    border-color: rgba(255, 201, 60, .55) !important;
+    border-color: rgba(227, 178, 85, .40) !important;
     box-shadow:
         inset 0 1px 0 var(--rk-inset),
-        0 0 26px var(--rk-gold-glow) !important;
+        0 0 14px var(--rk-gold-glow) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:first-child .rank-info { gap: 8px !important; }
-#rankingsOverlay .rankings-list > .rank-row:first-child .rank-name {
+#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-info { gap: 8px !important; }
+#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-name {
     font-size: 1.06rem !important;
     letter-spacing: .09em !important;
     color: var(--rk-gold-name) !important;
-    text-shadow: 0 0 22px var(--rk-gold-glow) !important;
+    text-shadow: 0 0 12px var(--rk-gold-glow) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:first-child .rank-level {
+#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-level {
     font-size: .6rem !important;
     padding: 3px 9px !important;
     color: var(--rk-gold-ink) !important;
     background: var(--rk-gold-tint-b) !important;
-    border-color: rgba(255, 201, 60, .42) !important;
+    border-color: rgba(227, 178, 85, .30) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:first-child .rank-detail {
-    font-size: .64rem !important;
+#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-detail {
+    font-size: .66rem !important;
     color: var(--rk-ink-2) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:first-child .rank-stats {
+#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-stats {
     flex-direction: column !important;
     align-items: flex-end !important;
     gap: 9px !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:first-child .rank-score {
+#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-score {
     min-width: 130px !important;
     font-size: 1.5rem !important;
     letter-spacing: .03em !important;
     color: var(--rk-gold-ink) !important;
-    text-shadow: 0 0 26px var(--rk-gold-glow) !important;
+    text-shadow: 0 0 14px var(--rk-gold-glow) !important;
 }
 
 
 /* ══════════════════════════════════════════════════════════
-   7 · #2 PLATINUM  /  #3 BRONZE
+   7 · #2 PLATINUM  /  #3 BRONZE  (restrained)
    ══════════════════════════════════════════════════════════ */
-#rankingsOverlay .rankings-list > .rank-row:nth-child(2) {
-    border-color: rgba(190, 215, 245, .34) !important;
+#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) {
+    border-color: rgba(180, 205, 235, .24) !important;
     background:
         linear-gradient(180deg, var(--rk-plat-tint-a) 0%, var(--rk-plat-tint-b) 55%, rgba(0, 0, 0, 0) 100%),
         linear-gradient(180deg, var(--rk-surface-2), var(--rk-surface-1)) !important;
     box-shadow:
         inset 0 1px 0 var(--rk-inset),
-        0 6px 22px rgba(0, 0, 0, .18) !important;
+        0 3px 14px rgba(0, 0, 0, .14) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(2)::before {
+#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder)::before {
     color: var(--rk-plat-ink) !important;
-    text-shadow: 0 0 12px var(--rk-plat-glow) !important;
+    text-shadow: 0 0 8px var(--rk-plat-glow) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(2)::after {
+#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder)::after {
     background: linear-gradient(180deg, transparent, var(--rk-plat-ink), transparent) !important;
-    box-shadow: 0 0 10px var(--rk-plat-glow) !important;
+    box-shadow: 0 0 8px var(--rk-plat-glow) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(2) .rank-avatar,
-#rankingsOverlay .rankings-list > .rank-row:nth-child(2) .rank-avatar-fallback {
-    border-color: rgba(210, 230, 255, .48) !important;
+#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar,
+#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar-fallback {
+    border-color: rgba(190, 215, 240, .34) !important;
     color: var(--rk-plat-ink) !important;
     box-shadow:
         inset 0 1px 0 var(--rk-inset),
-        0 0 14px var(--rk-plat-glow) !important;
+        0 0 9px var(--rk-plat-glow) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(2) .rank-name  { color: var(--rk-plat-name) !important; }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(2) .rank-score { color: var(--rk-plat-name) !important; }
+#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-name  { color: var(--rk-plat-name) !important; }
+#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-score { color: var(--rk-plat-name) !important; }
 
 /* bronze */
-#rankingsOverlay .rankings-list > .rank-row:nth-child(3) {
+#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) {
     border-color: var(--rk-bronze-line) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(3)::before {
+#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder)::before {
     color: var(--rk-bronze-ink) !important;
-    text-shadow: 0 0 12px var(--rk-bronze-glow) !important;
+    text-shadow: 0 0 8px var(--rk-bronze-glow) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(3)::after {
+#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder)::after {
     background: var(--rk-bronze-ink) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(3) .rank-avatar,
-#rankingsOverlay .rankings-list > .rank-row:nth-child(3) .rank-avatar-fallback {
+#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-avatar,
+#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-avatar-fallback {
     border-color: var(--rk-bronze-line) !important;
     color: var(--rk-bronze-ink) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(3) .rank-name  { color: var(--rk-bronze-name) !important; }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(3) .rank-score { color: var(--rk-bronze-name) !important; }
+#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-name  { color: var(--rk-bronze-name) !important; }
+#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-score { color: var(--rk-bronze-name) !important; }
 
 
 /* ══════════════════════════════════════════════════════════
@@ -782,7 +836,7 @@
     transition: color .18s, background .18s, border-color .18s !important;
 }
 #rankingsOverlay .rank-badge.is-live { color: #17a06a !important; background: rgba(61, 220, 151, .10) !important; border-color: rgba(61, 220, 151, .38) !important; }
-#rankingsOverlay .rank-badge.is-hot  { color: var(--rk-gold-ink) !important; background: var(--rk-gold-tint-b) !important; border-color: rgba(255, 201, 60, .38) !important; }
+#rankingsOverlay .rank-badge.is-hot  { color: var(--rk-gold-ink) !important; background: var(--rk-gold-tint-b) !important; border-color: rgba(227, 178, 85, .30) !important; }
 #rankingsOverlay .rank-badge.is-open { color: #4f6fd8 !important; background: rgba(124, 156, 255, .12) !important; border-color: rgba(124, 156, 255, .38) !important; }
 #rankingsOverlay .rank-badge.is-off  { color: #d94848 !important; background: rgba(255, 107, 107, .10) !important; border-color: rgba(255, 107, 107, .34) !important; }
 #rankingsOverlay .rank-badge.is-idle { color: var(--rk-ink-3) !important; }
@@ -803,25 +857,82 @@
 
 
 /* ══════════════════════════════════════════════════════════
-   9 · RESPONSIVE
+   9 · PLACEHOLDER SLOTS
+   Rows without enough real entries get class="is-placeholder".
+   They inherit the slot geometry but drop every decorative
+   treatment, so the column reads as a fixed 10-slot grid.
+   ══════════════════════════════════════════════════════════ */
+#rankingsOverlay .rankings-list > .rank-row.is-placeholder {
+    pointer-events: none !important;
+    cursor: default !important;
+    background: transparent !important;
+    border: 1px dashed var(--rk-line-1) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    animation: none !important;
+    opacity: .62 !important;
+}
+#rankingsOverlay .rankings-list > .rank-row.is-placeholder::after { display: none !important; }
+#rankingsOverlay .rankings-list > .rank-row.is-placeholder::before {
+    color: var(--rk-ink-3) !important;
+    text-shadow: none !important;
+    font-weight: 700 !important;
+    opacity: .5 !important;
+}
+#rankingsOverlay .rankings-list > .rank-row.is-placeholder .rank-avatar,
+#rankingsOverlay .rankings-list > .rank-row.is-placeholder .rank-avatar-fallback {
+    background: transparent !important;
+    border: 1px dashed var(--rk-line-2) !important;
+    box-shadow: none !important;
+    color: var(--rk-ink-3) !important;
+    opacity: .55 !important;
+}
+#rankingsOverlay .rankings-list > .rank-row.is-placeholder .rank-name {
+    color: var(--rk-ink-3) !important;
+    text-shadow: none !important;
+    opacity: .55 !important;
+    font-weight: 700 !important;
+    letter-spacing: .18em !important;
+}
+#rankingsOverlay .rankings-list > .rank-row.is-placeholder .rank-detail {
+    color: var(--rk-ink-3) !important;
+    opacity: .45 !important;
+    letter-spacing: .16em !important;
+}
+#rankingsOverlay .rankings-list > .rank-row.is-placeholder .rank-level {
+    color: var(--rk-ink-3) !important;
+    background: transparent !important;
+    border-color: var(--rk-line-1) !important;
+    opacity: .5 !important;
+}
+#rankingsOverlay .rankings-list > .rank-row.is-placeholder .rank-score {
+    color: var(--rk-ink-3) !important;
+    text-shadow: none !important;
+    opacity: .5 !important;
+    font-weight: 700 !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   10 · RESPONSIVE
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 1180px) {
     #rankingsOverlay .rankings-card { padding: 22px !important; }
     #rankingsOverlay .rankings-column:first-child { padding-right: 20px !important; }
     #rankingsOverlay .rankings-column:last-child  { padding-left: 20px !important; }
 
-    #rankingsOverlay .rankings-list > .rank-row:first-child {
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) {
         grid-template-columns: 40px 58px minmax(0, 1fr) auto !important;
         gap: 14px !important;
         min-height: 96px !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar,
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar-fallback {
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar,
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar-fallback {
         width: 58px !important; height: 58px !important;
         min-width: 58px !important; min-height: 58px !important;
         border-radius: 15px !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-score {
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-score {
         font-size: 1.3rem !important;
         min-width: 110px !important;
     }
@@ -863,10 +974,13 @@
         border-top: 1px solid var(--rk-line-1) !important;
         padding-top: 24px !important;
     }
+    /* on stacked layout, the per-column 10-slot viewport is not useful —
+       let the card itself scroll instead */
     #rankingsOverlay .rankings-list {
         overflow: visible !important;
-        padding-right: 4px !important;
         max-height: none !important;
+        -webkit-mask-image: none !important;
+                mask-image: none !important;
     }
 }
 
@@ -988,7 +1102,7 @@
         letter-spacing: .08em !important;
     }
     #rankingsOverlay .rank-detail {
-        font-size: .56rem !important;
+        font-size: .58rem !important;
         letter-spacing: .08em !important;
         white-space: nowrap !important;
         overflow: hidden !important;
@@ -1004,7 +1118,7 @@
         line-height: 1.15 !important;
     }
 
-    #rankingsOverlay .rankings-list > .rank-row:first-child {
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) {
         grid-template-columns: 26px 44px minmax(0, 1fr) auto !important;
         grid-template-areas:
             "rank avatar name  score"
@@ -1015,26 +1129,26 @@
         border-radius: 12px !important;
         border-width: 2px !important;
         box-shadow:
-            inset 0 0 24px var(--rk-gold-tint-b),
-            0 0 14px var(--rk-gold-glow) !important;
+            inset 0 0 20px var(--rk-gold-tint-b),
+            0 0 12px var(--rk-gold-glow) !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:first-child::before {
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder)::before {
         font-size: 1.15rem !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar,
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar-fallback {
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar,
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar-fallback {
         width: 44px !important; height: 44px !important;
         min-width: 44px !important; min-height: 44px !important;
         border-radius: 12px !important;
         font-size: .85rem !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-info { display: contents !important; }
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-name {
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-info { display: contents !important; }
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-name {
         font-size: .86rem !important;
         align-self: end !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-stats { display: contents !important; }
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-score {
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-stats { display: contents !important; }
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-score {
         font-size: 1rem !important;
         min-width: 0 !important;
         align-self: end !important;
@@ -1064,23 +1178,23 @@
     #rankingsOverlay .rank-score { font-size: .78rem !important; }
     #rankingsOverlay .rank-level { font-size: .54rem !important; }
 
-    #rankingsOverlay .rankings-list > .rank-row:first-child {
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) {
         grid-template-columns: 22px 38px minmax(0, 1fr) auto !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar,
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar-fallback {
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar,
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar-fallback {
         width: 38px !important; height: 38px !important;
         min-width: 38px !important; min-height: 38px !important;
         border-radius: 10px !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-score {
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-score {
         font-size: .9rem !important;
     }
 }
 
 
 /* ══════════════════════════════════════════════════════════
-   10 · ACCESSIBILITY
+   11 · ACCESSIBILITY
    ══════════════════════════════════════════════════════════ */
 #rankingsOverlay .rank-row:focus-visible,
 #rankingsOverlay .rankings-close-btn:focus-visible {
@@ -1099,32 +1213,36 @@
     #rankingsOverlay .rankings-column::after,
     #rankingsOverlay .rankings-column::before,
     #rankingsOverlay .rankings-body::before,
-    #rankingsOverlay .rankings-list > .rank-row:first-child,
-    #rankingsOverlay .rankings-list > .rank-row:first-child::after,
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-score,
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2),
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder),
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder)::after,
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-score,
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder),
     #rankingsOverlay .rank-badge.is-live::before {
         animation: none !important;
         transition: none !important;
     }
     #rankingsOverlay .rankings-list > .rank-row:hover { transform: none !important; }
+    #rankingsOverlay .rankings-list.is-scrollable {
+        -webkit-mask-image: none !important;
+                mask-image: none !important;
+    }
 }
 
 
 /* ══════════════════════════════════════════════════════════
-   11 · DESKTOP EPIC PASS  (min-width: 1025px only)
+   12 · DESKTOP EPIC PASS  (min-width: 1025px only) — toned down
    ══════════════════════════════════════════════════════════ */
 @media (min-width: 1025px) {
 
     #rankingsOverlay .rankings-card {
         background:
-            radial-gradient(ellipse 120% 60% at 50% -10%, var(--rk-gold-tint-b), transparent 55%),
-            radial-gradient(ellipse 100% 50% at 50% 110%, var(--rk-plat-tint-b), transparent 60%),
-            linear-gradient(180deg, var(--rk-surface-2) 0%, rgba(255, 255, 255, 0) 20%),
-            linear-gradient(180deg, var(--bg-panel, #0e1218) 0%, var(--rk-shade) 100%) !important;
+            radial-gradient(ellipse 120% 55% at 50% -12%, var(--rk-gold-tint-b), transparent 58%),
+            radial-gradient(ellipse 100% 45% at 50% 112%, var(--rk-plat-tint-b), transparent 62%),
+            linear-gradient(180deg, var(--rk-surface-2) 0%, rgba(255, 255, 255, 0) 18%),
+            linear-gradient(180deg, var(--rk-panel-bg) 0%, var(--rk-shade) 100%) !important;
     }
 
-    /* ── gold → platinum holo header ── */
+    /* ── gold → platinum holo header (slower, softer) ── */
     #rankingsOverlay .rankings-header h3 {
         background: linear-gradient(100deg,
             var(--rk-gold-head) 0%,
@@ -1140,9 +1258,9 @@
         color: transparent !important;
         text-shadow: none !important;
         filter:
-            drop-shadow(0 0 18px var(--rk-gold-glow))
-            drop-shadow(0 0 30px var(--rk-plat-glow)) !important;
-        animation: rkHoloSheen 3.4s linear infinite !important;
+            drop-shadow(0 0 10px var(--rk-gold-glow))
+            drop-shadow(0 0 18px var(--rk-plat-glow)) !important;
+        animation: rkHoloSheen 6s linear infinite !important;
     }
     @keyframes rkHoloSheen {
         0%   { background-position:   0% 50%; }
@@ -1170,17 +1288,17 @@
             var(--rk-plat-head) 62%,
             transparent 100%) !important;
         background-size: 100% 200% !important;
-        opacity: .55 !important;
+        opacity: .30 !important;
         pointer-events: none !important;
         z-index: 1 !important;
-        animation: rkSeamFlow 5s linear infinite !important;
+        animation: rkSeamFlow 8s linear infinite !important;
     }
     @keyframes rkSeamFlow {
         0%   { background-position: 0 0; }
         100% { background-position: 0 -200%; }
     }
 
-    /* ── column panels ── */
+    /* ── column panels (scanlines removed) ── */
     #rankingsOverlay .rankings-column {
         flex: 1 1 0 !important;
         position: relative !important;
@@ -1190,30 +1308,14 @@
         background: var(--rk-col-bg) !important;
         box-shadow:
             inset 0 1px 0 var(--rk-inset),
-            0 18px 44px rgba(0, 0, 0, .22) !important;
+            0 12px 32px rgba(0, 0, 0, .16) !important;
         transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease !important;
     }
-    #rankingsOverlay .rankings-column:hover { transform: translateY(-3px) !important; }
+    #rankingsOverlay .rankings-column:hover { transform: translateY(-2px) !important; }
 
-    #rankingsOverlay .rankings-column::after {
-        content: '' !important;
-        position: absolute !important;
-        inset: 0 !important;
-        z-index: 0 !important;
-        pointer-events: none !important;
-        border-radius: inherit !important;
-        background: repeating-linear-gradient(180deg,
-            var(--rk-surface-1) 0px,
-            var(--rk-surface-1) 1px,
-            transparent 1px,
-            transparent 3px) !important;
-        background-size: 100% 6px !important;
-        animation: rkScan 12s linear infinite !important;
-    }
-    @keyframes rkScan {
-        from { background-position: 0 0; }
-        to   { background-position: 0 120px; }
-    }
+    /* the noisy scanline overlay is gone */
+    #rankingsOverlay .rankings-column::after { display: none !important; }
+
     #rankingsOverlay .rankings-column::before {
         content: '' !important;
         position: absolute !important;
@@ -1224,6 +1326,7 @@
         z-index: 0 !important;
         pointer-events: none !important;
         background: radial-gradient(circle, var(--rk-surface-2), transparent 70%) !important;
+        opacity: .55 !important;
     }
     #rankingsOverlay .rankings-column-title,
     #rankingsOverlay .rankings-list {
@@ -1232,21 +1335,21 @@
     }
 
     #rankingsOverlay .rankings-column:nth-child(1) {
-        border-color: rgba(1, 225, 234, .32) !important;
+        border-color: rgba(1, 225, 234, .20) !important;
         box-shadow:
             inset 0 1px 0 var(--rk-inset),
-            0 0 0 1px rgba(1, 225, 234, .08),
-            0 20px 54px rgba(1, 225, 234, .10) !important;
+            0 0 0 1px rgba(1, 225, 234, .05),
+            0 14px 36px rgba(1, 225, 234, .06) !important;
     }
     #rankingsOverlay .rankings-column:nth-child(2) {
-        border-color: rgba(246, 140, 22, .32) !important;
+        border-color: rgba(246, 140, 22, .20) !important;
         box-shadow:
             inset 0 1px 0 var(--rk-inset),
-            0 0 0 1px rgba(246, 140, 22, .08),
-            0 20px 54px rgba(246, 140, 22, .10) !important;
+            0 0 0 1px rgba(246, 140, 22, .05),
+            0 14px 36px rgba(246, 140, 22, .06) !important;
     }
-    #rankingsOverlay .rankings-column:nth-child(1):hover { border-color: rgba(1, 225, 234, .6) !important; }
-    #rankingsOverlay .rankings-column:nth-child(2):hover { border-color: rgba(246, 140, 22, .6) !important; }
+    #rankingsOverlay .rankings-column:nth-child(1):hover { border-color: rgba(1, 225, 234, .40) !important; }
+    #rankingsOverlay .rankings-column:nth-child(2):hover { border-color: rgba(246, 140, 22, .40) !important; }
 
     #rankingsOverlay .rankings-column:first-child { padding-right: 20px !important; }
     #rankingsOverlay .rankings-column:last-child {
@@ -1254,39 +1357,35 @@
         border-left: 1px solid var(--rk-line-2) !important;
     }
 
-    /* ── epic column titles ── */
+    /* ── column titles: readable, no strobe ── */
     #rankingsOverlay .rankings-column-title {
         margin: 0 -20px 18px !important;
         padding: 16px 20px 15px !important;
-        font-size: 1.05rem !important;
+        font-size: .92rem !important;
         font-weight: 900 !important;
-        letter-spacing: .4em !important;
-        text-indent: .4em !important;
+        letter-spacing: .34em !important;
+        text-indent: .34em !important;
         line-height: 1.1 !important;
         border-bottom: 1px solid var(--rk-line-1) !important;
         background: linear-gradient(180deg, var(--rk-surface-2), rgba(255, 255, 255, 0)) !important;
-        text-shadow: 0 0 18px currentColor, 0 0 36px currentColor !important;
-        animation: rkTitlePulse 3.2s ease-in-out infinite !important;
-    }
-    @keyframes rkTitlePulse {
-        0%, 100% { text-shadow: 0 0 16px currentColor, 0 0 32px currentColor; }
-        50%      { text-shadow: 0 0 26px currentColor, 0 0 54px currentColor, 0 0 88px currentColor; }
+        text-shadow: 0 0 12px currentColor !important;
+        animation: none !important;
     }
     #rankingsOverlay .rankings-column-title::before {
         content: '' !important;
-        width: 9px !important;
-        height: 9px !important;
+        width: 7px !important;
+        height: 7px !important;
         margin-right: 4px !important;
         border-radius: 2px !important;
         background: currentColor !important;
-        box-shadow: 0 0 14px currentColor, 0 0 28px currentColor !important;
+        box-shadow: 0 0 8px currentColor !important;
         transform: rotate(45deg) !important;
         flex-shrink: 0 !important;
     }
     #rankingsOverlay .rankings-column-title::after {
-        width: 90px !important;
-        height: 3px !important;
-        box-shadow: 0 0 14px currentColor, 0 0 28px currentColor !important;
+        width: 64px !important;
+        height: 2px !important;
+        box-shadow: 0 0 8px currentColor !important;
     }
 
     /* ── rows ── */
@@ -1299,14 +1398,14 @@
             transform .14s cubic-bezier(.22, 1, .36, 1) !important;
     }
     #rankingsOverlay .rankings-list > .rank-row:hover {
-        transform: translateX(4px) scale(1.012) !important;
+        transform: translateX(3px) !important;
     }
 
     /* ═══════════════════════════════════════════════════
-       #1 — GOLDEN EPIC
+       #1 — GOLDEN EPIC (calmer)
        ═══════════════════════════════════════════════════ */
-    #rankingsOverlay .rankings-list > .rank-row:first-child {
-        border: 2px solid transparent !important;
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) {
+        border: 1.5px solid transparent !important;
         border-radius: 16px !important;
         background:
             linear-gradient(180deg, var(--rk-gold-tint-a) 0%, var(--rk-gold-tint-b) 46%, rgba(0, 0, 0, 0) 100%) padding-box,
@@ -1314,81 +1413,60 @@
             var(--rk-gold-rim) border-box !important;
         background-size: 100% 100%, 100% 100%, 300% 100% !important;
         background-position: 0 0, 0 0, 0% 50% !important;
-        animation:
-            rkGoldRimFlow 6.5s linear infinite,
-            rkGoldAura 3.4s ease-in-out infinite !important;
+        animation: rkGoldRimFlow 12s linear infinite !important;
+        box-shadow:
+            inset 0 1px 0 var(--rk-inset),
+            0 0 18px var(--rk-gold-glow),
+            var(--rk-hero-shadow) !important;
     }
     @keyframes rkGoldRimFlow {
         from { background-position: 0 0, 0 0,   0% 50%; }
         to   { background-position: 0 0, 0 0, 300% 50%; }
     }
-    @keyframes rkGoldAura {
-        0%, 100% {
-            box-shadow:
-                inset 0 1px 0 var(--rk-inset),
-                inset 0 0 60px var(--rk-gold-tint-b),
-                0 0 22px var(--rk-gold-glow),
-                var(--rk-hero-shadow);
-        }
-        50% {
-            box-shadow:
-                inset 0 1px 0 var(--rk-inset),
-                inset 0 0 100px var(--rk-gold-tint-a),
-                0 0 60px var(--rk-gold-glow),
-                0 0 120px var(--rk-gold-tint-b),
-                var(--rk-hero-shadow);
-        }
-    }
 
-    /* dual-layer gold sweep beam */
-    #rankingsOverlay .rankings-list > .rank-row:first-child::after {
-        height: 3px !important;
+    /* single, slow sweep beam (replaces the old dual-layer strobe) */
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder)::after {
+        height: 2px !important;
         border-radius: 16px 16px 0 0 !important;
         background:
             linear-gradient(90deg,
-                transparent 0%, var(--rk-gold-hi) 50%, transparent 100%) 0 0 / 30% 100% no-repeat,
-            linear-gradient(90deg,
-                transparent 0%, var(--rk-gold-glow) 50%, transparent 100%) 0 0 / 60% 100% no-repeat !important;
-        box-shadow: 0 0 22px var(--rk-gold-glow) !important;
-        animation: rkGoldBeam 2.6s ease-in-out infinite, rkGoldBeamFade 4.2s ease-in-out infinite !important;
+                transparent 0%, var(--rk-gold-hi) 50%, transparent 100%)
+                0 0 / 34% 100% no-repeat !important;
+        box-shadow: 0 0 12px var(--rk-gold-glow) !important;
+        animation: rkGoldBeam 5s ease-in-out infinite !important;
     }
     @keyframes rkGoldBeam {
-        0%   { background-position: -40% 0, -40% 0; }
-        100% { background-position: 140% 0, 140% 0; }
-    }
-    @keyframes rkGoldBeamFade {
-        0%, 100% { opacity: 1; }
-        50%      { opacity: .55; }
+        0%   { background-position: -40% 0; opacity: 0; }
+        12%  { opacity: .95; }
+        88%  { opacity: .95; }
+        100% { background-position: 140% 0; opacity: 0; }
     }
 
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar,
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-avatar-fallback {
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar,
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar-fallback {
         box-shadow:
             inset 0 1px 0 var(--rk-inset),
-            0 0 0 2px rgba(255, 201, 60, .35),
-            0 0 26px var(--rk-gold-glow) !important;
+            0 0 0 2px rgba(227, 178, 85, .28),
+            0 0 14px var(--rk-gold-glow) !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:first-child .rank-score {
-        animation: rkGoldScoreGlow 3s ease-in-out infinite !important;
-    }
-    @keyframes rkGoldScoreGlow {
-        0%, 100% { text-shadow: 0 0 22px var(--rk-gold-glow); }
-        50%      { text-shadow: 0 0 32px var(--rk-gold-glow), 0 0 60px var(--rk-gold-tint-a); }
+    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-score {
+        animation: none !important;
+        text-shadow: 0 0 14px var(--rk-gold-glow) !important;
     }
 
     /* ═══════════════════════════════════════════════════
-       #2 — PLATINUM PLATED
+       #2 — PLATINUM PLATED (slower, quieter shimmer)
        ═══════════════════════════════════════════════════ */
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2) {
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) {
         border: 1px solid transparent !important;
-        border-radius: 14px !important;
+        border-radius: 12px !important;
         background:
             linear-gradient(120deg,
                 transparent 0%,
-                transparent 42%,
+                transparent 44%,
                 var(--rk-plat-shim) 50%,
-                transparent 58%,
-                transparent 100%) 0 0 / 220% 100% no-repeat,
+                transparent 56%,
+                transparent 100%) 0 0 / 240% 100% no-repeat,
             linear-gradient(180deg,
                 var(--rk-plat-tint-a) 0%,
                 var(--rk-plat-tint-b) 55%,
@@ -1398,50 +1476,121 @@
         box-shadow:
             inset 0 1px 0 var(--rk-inset),
             inset 0 -20px 40px var(--rk-plat-tint-b),
-            0 6px 22px rgba(0, 0, 0, .18) !important;
-        animation: rkPlatShimmer 5.5s ease-in-out infinite !important;
+            0 3px 14px rgba(0, 0, 0, .14) !important;
+        animation: rkPlatShimmer 9s ease-in-out infinite !important;
     }
     @keyframes rkPlatShimmer {
-        0%   { background-position: 220% 0, 0 0, 0 0, 0 0; }
-        60%  { background-position: -120% 0, 0 0, 0 0, 0 0; }
-        100% { background-position: -120% 0, 0 0, 0 0, 0 0; }
+        0%   { background-position: 240% 0, 0 0, 0 0, 0 0; }
+        55%  { background-position: -140% 0, 0 0, 0 0, 0 0; }
+        100% { background-position: -140% 0, 0 0, 0 0, 0 0; }
     }
 
-    /* plated edge: crisp top hairline + left chrome bar */
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2)::after {
+    /* plated edge: crisp left chrome bar */
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder)::after {
         top: 0 !important;
         bottom: 0 !important;
         left: 0 !important;
         right: auto !important;
-        width: 3px !important;
+        width: 2px !important;
         height: auto !important;
-        border-radius: 14px 0 0 14px !important;
+        border-radius: 12px 0 0 12px !important;
         background: linear-gradient(180deg,
             transparent 0%,
-            var(--rk-plat-ink) 22%,
+            var(--rk-plat-ink) 24%,
             var(--rk-plat-shim) 50%,
-            var(--rk-plat-ink) 78%,
+            var(--rk-plat-ink) 76%,
             transparent 100%) !important;
-        box-shadow: 0 0 12px var(--rk-plat-glow) !important;
+        box-shadow: none !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2)::before {
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder)::before {
         color: var(--rk-plat-ink) !important;
-        text-shadow: 0 0 12px var(--rk-plat-glow) !important;
+        text-shadow: 0 0 8px var(--rk-plat-glow) !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2) .rank-avatar,
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2) .rank-avatar-fallback {
-        border-color: rgba(210, 230, 255, .48) !important;
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar,
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar-fallback {
+        border-color: rgba(190, 215, 240, .34) !important;
         color: var(--rk-plat-ink) !important;
         box-shadow:
             inset 0 1px 0 var(--rk-inset),
-            0 0 14px var(--rk-plat-glow) !important;
+            0 0 9px var(--rk-plat-glow) !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2) .rank-name {
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-name {
         color: var(--rk-plat-name) !important;
-        text-shadow: 0 0 14px var(--rk-plat-glow) !important;
+        text-shadow: 0 0 9px var(--rk-plat-glow) !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2) .rank-score {
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-score {
         color: var(--rk-plat-name) !important;
-        text-shadow: 0 0 18px var(--rk-plat-glow) !important;
+        text-shadow: 0 0 11px var(--rk-plat-glow) !important;
+    }
+
+    /* placeholders must never inherit the hero treatment */
+    #rankingsOverlay .rankings-list > .rank-row.is-placeholder {
+        animation: none !important;
+        background: transparent !important;
     }
 }
+
+
+/* ══════════════════════════════════════════════════════════
+   13 · COMPANION JS  (drop into a <script> after the CSS)
+   ----------------------------------------------------------
+   Pads every .rankings-list to 10 rows and toggles the
+   .is-scrollable fade. Safe to remove if you already handle
+   this in your own renderer.
+
+   <script>
+   (function () {
+     var MIN_ROWS = 10;
+
+     var PLACEHOLDER_HTML =
+       '<div class="rank-avatar-fallback" aria-hidden="true">–</div>' +
+       '<div class="rank-info">' +
+         '<span class="rank-name">—</span>' +
+         '<div class="rank-meta">' +
+           '<span class="rank-detail">AWAITING DATA</span>' +
+         '</div>' +
+       '</div>' +
+       '<div class="rank-stats"><span class="rank-score">—</span></div>';
+
+     function refreshList(list) {
+       list.querySelectorAll('.rank-row.is-placeholder').forEach(function (n) { n.remove(); });
+
+       var real = list.querySelectorAll('.rank-row:not(.is-placeholder)').length;
+
+       if (real > 0 && real < MIN_ROWS) {
+         var frag = document.createDocumentFragment();
+         for (var i = real; i < MIN_ROWS; i++) {
+           var row = document.createElement('div');
+           row.className = 'rank-row is-placeholder';
+           row.setAttribute('aria-hidden', 'true');
+           row.innerHTML = PLACEHOLDER_HTML;
+           frag.appendChild(row);
+         }
+         list.appendChild(frag);
+       }
+
+       var overflowing = list.scrollHeight > list.clientHeight + 2;
+       list.classList.toggle('is-scrollable', overflowing);
+     }
+
+     function refreshAll() {
+       document.querySelectorAll('#rankingsOverlay .rankings-list').forEach(refreshList);
+     }
+
+     if (document.readyState === 'loading') {
+       document.addEventListener('DOMContentLoaded', refreshAll);
+     } else {
+       refreshAll();
+     }
+
+     window.addEventListener('resize', refreshAll, { passive: true });
+
+     var mo = new MutationObserver(refreshAll);
+     document.querySelectorAll('#rankingsOverlay .rankings-list').forEach(function (list) {
+       mo.observe(list, { childList: true });
+     });
+
+     window.refreshRankingsSlots = refreshAll;
+   })();
+   </script>
+   ========================================================= */
