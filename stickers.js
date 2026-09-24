@@ -35,7 +35,11 @@
         { key: 'SLEEP', url: 'https://i.postimg.cc/zBmLsp1F/SLEEP.png' },
         { key: 'WHAT', url: 'https://i.postimg.cc/26pqsTfv/WHAT.png' },
         { key: 'CLOWN', url: 'https://i.postimg.cc/VNXnVVVf/Chat-GPT-Image-22-sept-2026-07-24-56-p-m-(1).png' },
-        { key: 'SHIT', url: 'https://i.postimg.cc/GmFvMfN8/Chat-GPT-Image-22-sept-2026-07-24-56-p-m-(1)-(1).png' }
+        { key: 'SHIT', url: 'https://i.postimg.cc/GmFvMfN8/Chat-GPT-Image-22-sept-2026-07-24-56-p-m-(1)-(1).png' },
+        { key: 'SHRIMP', url: 'https://i.postimg.cc/fW8YYSPp/shrimp.png' },
+        { key: 'CRAB', url: 'https://i.postimg.cc/MZ911fLC/crab.png' },
+        { key: 'DOLPHIN', url: 'https://i.postimg.cc/XNs99BPt/Chat-GPT-Image-22-sept-2026-07-24-56-p-m-(1)-(1)-(3).png' },
+        { key: 'WHALE', url: 'https://i.postimg.cc/v8055xKN/whale.png' }
     ];
 
     var GRID_SLOTS = 16;   // 4 × 4
