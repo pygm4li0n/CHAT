@@ -32,7 +32,7 @@
         { key: 'LOL', url: 'https://i.postimg.cc/DZDjPDJV/LOL-(1).png' },
         { key: 'LOVE', url: 'https://i.postimg.cc/qRftPQd2/LOVE.png' },
         { key: 'MAD', url: 'https://i.postimg.cc/pTN9wktB/MAD.png' },
-        { key: 'SLEEP', url: 'https://i.postimg.cc/zBmLsp1F/SLEEP.png' },
+        { key: 'SLEEP', url: 'https://i.postimg.cc/HngBgkvH/ezgif-com-gif-maker-(11).gif' },
         { key: 'WHAT', url: 'https://i.postimg.cc/26pqsTfv/WHAT.png' },
         { key: 'CLOWN', url: 'https://i.postimg.cc/VNXnVVVf/Chat-GPT-Image-22-sept-2026-07-24-56-p-m-(1).png' },
         { key: 'SHIT', url: 'https://i.postimg.cc/GmFvMfN8/Chat-GPT-Image-22-sept-2026-07-24-56-p-m-(1)-(1).png' },
