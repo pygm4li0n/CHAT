@@ -51,7 +51,7 @@
     <link rel="stylesheet" href="theme-merged.css">
 
     <!-- Other app stylesheets -->
-    <link rel="stylesheet" href="mobile-sidebar.css?v=3">
+    <link rel="stylesheet" href="mobile-sidebar.css?v=4">
     <link rel="stylesheet" href="rankings-epic.css">
 
     <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
@@ -376,6 +376,116 @@
     <script src="profile-system.js?v=7"></script>
     <script src="stickers.js?v=1"></script>
     <script src="rank-badge-fix.js"></script>
+
+    <!-- ═══════════════════════════════════════════════════════
+         ⚑ MOBILE SIDEBAR PROFILE
+         – Avatar click → edit profile
+         – Builds the 2×2 actions grid (theme / rankings /
+           refresh / mod) inside the profile block
+         – No-op on desktop (grid hidden via CSS at ≥769px)
+    ═══════════════════════════════════════════════════════ -->
+    <script>
+    (function wireMobileProfile() {
+        'use strict';
+
+        function buildActionsGrid() {
+            const profile = document.getElementById('sidebarUserProfileBig');
+            if (!profile) return;
+
+            if (profile.querySelector('.sidebar-profile-actions')) return;
+
+            const grid = document.createElement('div');
+            grid.className = 'sidebar-profile-actions';
+            grid.setAttribute('aria-label', 'Profile actions');
+
+            const themeBtn    = document.getElementById('sidebarThemeBtn');
+            const rankingsBtn = document.getElementById('rankingsBtn');
+            if (themeBtn)    grid.appendChild(themeBtn);
+            if (rankingsBtn) grid.appendChild(rankingsBtn);
+
+            if (!document.getElementById('sidebarRefreshBtn')) {
+                const rb = document.createElement('button');
+                rb.id = 'sidebarRefreshBtn';
+                rb.className = 'btn-icon';
+                rb.type = 'button';
+                rb.title = 'Reconnect';
+                rb.textContent = '↻';
+                rb.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const h = document.getElementById('refreshBtn');
+                    if (h) h.click();
+                });
+                grid.appendChild(rb);
+            }
+
+            if (!document.getElementById('sidebarModBtn')) {
+                const mb = document.createElement('button');
+                mb.id = 'sidebarModBtn';
+                mb.className = 'btn-icon hidden';
+                mb.type = 'button';
+                mb.title = 'Mod settings';
+                mb.textContent = '⚙️';
+                mb.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const h = document.getElementById('modSettingsBtn');
+                    if (h) h.click();
+                });
+                grid.appendChild(mb);
+
+                const headerMod = document.getElementById('modSettingsBtn');
+                if (headerMod) {
+                    const sync = function () {
+                        const hidden = headerMod.classList.contains('hidden')
+                                    || headerMod.style.display === 'none';
+                        mb.classList.toggle('hidden', hidden);
+                    };
+                    sync();
+                    new MutationObserver(sync).observe(headerMod, {
+                        attributes: true,
+                        attributeFilter: ['class', 'style']
+                    });
+                }
+            }
+
+            profile.appendChild(grid);
+        }
+
+        function wireAvatarClick() {
+            const avatar = document.getElementById('sidebarBigAvatar');
+            const pencil = document.getElementById('sidebarChangeNameBtn');
+            if (!avatar || !pencil || avatar.dataset.msnWired) return;
+
+            avatar.dataset.msnWired = '1';
+            avatar.setAttribute('role', 'button');
+            avatar.setAttribute('tabindex', '0');
+            avatar.setAttribute('aria-label', 'Edit profile');
+
+            const trigger = function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                pencil.click();
+            };
+            avatar.addEventListener('click', trigger, true);
+            avatar.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') trigger(e);
+            });
+        }
+
+        function run() {
+            buildActionsGrid();
+            wireAvatarClick();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', run);
+        } else {
+            run();
+        }
+        setTimeout(run, 600);
+        setTimeout(run, 2000);
+        setTimeout(run, 5000);
+    })();
+    </script>
 
     <script>
         (function () {
