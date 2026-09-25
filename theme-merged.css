@@ -1455,6 +1455,18 @@ button.theme-select {
     transform: translateY(-1px) !important;
 }
 
+#themeOverlay .theme-option[data-theme="lava"] {
+    background: linear-gradient(145deg, #2A0E06 0%, #0A0503 100%) !important;
+    border: 1px solid #7A3413 !important;
+    color: #FF4500 !important;
+    box-shadow: inset 0 0 12px rgba(255, 69, 0, 0.10) !important;
+}
+#themeOverlay .theme-option[data-theme="lava"]:hover {
+    border-color: #FF4500 !important;
+    box-shadow: 0 0 22px rgba(255, 69, 0, 0.55), inset 0 0 14px rgba(255, 69, 0, 0.18) !important;
+    transform: translateY(-1px) !important;
+}
+
 /* ═════════════════════════════════════════════════════
    ⚑ ACTIVE — subtle indicator in the theme's own color
 ═════════════════════════════════════════════════════ */
