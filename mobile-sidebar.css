@@ -1,8 +1,8 @@
 /* ═════════════════════════════════════════════════════
-   MOBILE SIDEBAR — PHANTOM EDITION v3 (≤768px only)
+   MOBILE SIDEBAR — PHANTOM EDITION v5 (≤768px only)
    – Header: ☰ LEFT + centered BIG LOGO (75px) + Phantom RIGHT
    – Sidebar: FULL SCREEN (edge to edge, no inset)
-   – Back arrow: small themed button, TOP-RIGHT next to the copper rail
+   – Back arrow: integrated tab on the RIGHT copper rail, vertically centered
    – Profile: avatar LEFT · name + rank + level + status all aligned on the same x
    – Avatar click = edit (pencil removed)
    – Tracker follows the icons grid
@@ -187,66 +187,105 @@
         border-radius: 0 !important;
     }
 
-    /* ── BACK ARROW — small themed button, TOP-RIGHT next to the copper rail ── */
+    /* ═══════════════════════════════════════════════════
+       ⚑ BACK ARROW — integrated tab on the right copper rail
+       – Flush against the rail's left edge (right: 9px)
+       – Rounded on the LEFT, flat on the RIGHT (rail continues through)
+       – Taller than wide → reads as a tab, not a floating button
+       – Same accent color as the rail → seamless merge
+    ═══════════════════════════════════════════════════ */
     .sidebar-back-btn {
         position: absolute !important;
-        top: 10px !important;
-        right: calc(9px + 8px) !important;   /* 9px rail + 8px gap */
+        top: 50% !important;
+        right: 9px !important;                          /* flush against rail */
         left: auto !important;
-        transform: none !important;
+        transform: translateY(-50%) !important;
+        transform-origin: right center !important;
         width: 34px !important;
-        height: 34px !important;
+        height: 58px !important;                        /* taller — reads as a tab */
         min-width: 34px !important;
         padding: 0 !important;
         margin: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        border-radius: 10px !important;
-        background: var(--bg-elevated, rgba(20,20,20,0.92)) !important;
+
+        /* Rounded on the left, flat on the right → merges into the rail */
+        border-radius: 12px 0 0 12px !important;
+
+        /* Background warms toward the rail on the right edge */
+        background: linear-gradient(90deg,
+            var(--bg-elevated, rgba(20,20,20,0.92)) 0%,
+            color-mix(in srgb,
+                var(--accent-cyan, #20FF62) 14%,
+                var(--bg-panel, #111827)) 100%) !important;
+
+        /* Border on 3 sides only — the rail is the right side */
         border: 1px solid var(--accent-cyan, #20FF62) !important;
+        border-right: none !important;
+
         color: var(--accent-cyan, #20FF62) !important;
         font-family: var(--font-mono, monospace) !important;
-        font-size: 1.1rem !important;
+        font-size: 1.15rem !important;
         line-height: 1 !important;
         cursor: pointer !important;
         -webkit-tap-highlight-color: transparent !important;
         z-index: 70 !important;
-        transition: background 0.15s ease, color 0.15s ease,
-                    box-shadow 0.15s ease, transform 0.12s ease !important;
+
+        transition: background 0.18s ease, box-shadow 0.18s ease, color 0.18s ease !important;
+
+        /* Glow only on the LEFT — the right side blends into the rail */
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.10),
-            0 0 12px var(--accent-cyan, rgba(32,255,98,0.35)) !important;
+            -6px 0 16px var(--accent-cyan, rgba(32,255,98,0.30)),
+            inset 0 1px 0 rgba(255,255,255,0.08) !important;
+
+        /* Small chamfer where it meets the rail (top & bottom of right edge) */
+        clip-path: polygon(
+            0 0,
+            calc(100% - 2px) 0,
+            100% 6px,
+            100% calc(100% - 6px),
+            calc(100% - 2px) 100%,
+            0 100%
+        );
     }
     .sidebar-back-btn .arrow {
-        font-size: 1.1rem !important;
+        font-size: 1.15rem !important;
         line-height: 1 !important;
         display: inline-block !important;
         transition: transform 0.15s ease !important;
     }
     .sidebar-back-btn .label { display: none !important; }
+
     .sidebar-back-btn:hover,
     .sidebar-back-btn:focus-visible {
-        background: color-mix(in srgb, var(--accent-cyan, #20FF62) 15%, var(--bg-elevated, #141414)) !important;
+        background: linear-gradient(90deg,
+            color-mix(in srgb, var(--accent-cyan, #20FF62) 18%, var(--bg-panel, #111827)) 0%,
+            color-mix(in srgb, var(--accent-cyan, #20FF62) 38%, var(--bg-panel, #111827)) 100%) !important;
         outline: none !important;
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.15),
-            0 0 18px var(--accent-cyan, rgba(32,255,98,0.55)) !important;
+            -8px 0 24px var(--accent-cyan, rgba(32,255,98,0.50)),
+            inset 0 1px 0 rgba(255,255,255,0.14) !important;
     }
+    .sidebar-back-btn:hover .arrow,
+    .sidebar-back-btn:focus-visible .arrow {
+        transform: translateX(-3px) !important;
+    }
+
     .sidebar-back-btn:active {
         background: var(--accent-cyan, #20FF62) !important;
         color: var(--bg-panel, #111827) !important;
-        transform: scale(0.94) !important;
-        box-shadow: 0 0 20px var(--accent-cyan, rgba(32,255,98,0.75)) !important;
+        box-shadow:
+            -4px 0 20px var(--accent-cyan, rgba(32,255,98,0.85)),
+            inset 0 1px 0 rgba(255,255,255,0.20) !important;
     }
     .sidebar-back-btn:active .arrow {
-        transform: translateX(-3px) !important;
+        transform: translateX(-4px) !important;
     }
 
     /* ═══════════════════════════════════════════════════
        ⚑ PROFILE — avatar left, name + rank + level + status
        all aligned at the SAME x to the right of the avatar.
-       Top padding reserves space for the back button.
     ═══════════════════════════════════════════════════ */
     .sidebar-user-profile-big {
         flex: 0 0 auto !important;
@@ -261,9 +300,9 @@
             "avatar  status  actions";
         column-gap: 12px;
         row-gap: 5px;
-        padding: 52px 16px 14px !important;            /* top clears the back button */
+        padding: 14px 16px 14px !important;
         padding-right: calc(16px + 9px) !important;    /* room for copper rail */
-        min-height: 150px !important;
+        min-height: 128px !important;
         box-sizing: border-box !important;
         align-items: start;
         border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.08)) !important;
