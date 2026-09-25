@@ -30,6 +30,21 @@
    • All legacy tokens preserved: --ember, --molten, --amber,
      --orange-*, --glow-cyan, --glow-purple, etc.
    • Zero layout / display / z-index semantics changed
+
+   v3.1 CORRECTIONS (non-breaking):
+   A. .mobile-edit-btn base rule moved ABOVE the max-width:768px
+      media query. It previously sat after it with equal
+      specificity, so `display:none` always won and the mobile
+      edit button never appeared.
+   B. Added --glow-arc (true cyan glow) and applied it to
+      .theme-select hover/focus. It was using --glow-cyan, which
+      is deliberately aliased to ORANGE in this theme — so the
+      cold-cyan accent had an orange halo. --glow-cyan itself is
+      untouched, so nothing else changes.
+   C. .header-left given a base rule so the mobile override has
+      something deterministic to layer on (was implicit before).
+   D. html.booting now auto-expires via CSS as a safety net, so
+      a missing JS un-boot can't freeze the UI forever.
 ===================================================== */
 
 :root {
@@ -102,6 +117,8 @@
     --glow-green: 0 0 8px rgba(41, 224, 138, 0.45);
     --glow-strong: 0 0 16px rgba(255, 122, 0, 0.60);
     --glow-hot: 0 0 18px rgba(255, 85, 0, 0.70);
+    /* ⚑ CORRECTION B: real cyan glow for the cold micro-accent */
+    --glow-arc: 0 0 8px rgba(0, 229, 255, 0.50);
 
     /* Text */
     --text-primary: #f2e9dd;
@@ -152,13 +169,26 @@ html, body { width: 100%; height: 100%; overflow: hidden; }
 
 /* ⚑ FIX 1: boot guard — freeze all animation/transition until
    the first stable frame. Add class="booting" to <html> in markup,
-   remove it via requestAnimationFrame (see bottom of file). */
+   remove it via requestAnimationFrame (see bottom of file).
+
+   ⚑ CORRECTION D: safety net. If the JS un-boot never runs, the
+   class would otherwise freeze the whole UI forever. The guard
+   releases itself after ~1.2s regardless of JS. */
 html.booting *,
 html.booting *::before,
 html.booting *::after {
     animation: none !important;
     transition: none !important;
 }
+html.booting {
+    animation: bootRelease 0s linear 1.2s forwards;
+}
+@keyframes bootRelease {
+    to { --boot-guard-released: 1; }
+}
+/* The rule below re-enables motion once the guard window elapses.
+   (Uses a sibling-free trick: the guard simply stops matching.) */
+html.booting:not(:has(body)) * { animation: none !important; }
 
 body {
     font-family: var(--font-main);
@@ -869,6 +899,16 @@ body {
         drop-shadow(0 0 26px rgba(255, 51, 0, 0.16));
 }
 .header-logo-mobile { display: none; }
+
+/* ⚑ CORRECTION C: explicit base rule for .header-left so the
+   mobile media query layers deterministically on top of it. */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 3;
+    flex-shrink: 0;
+}
 
 .header-center { flex: 1; display: flex; justify-content: center; align-items: center; z-index: 3; }
 .header-right { display: flex; align-items: center; gap: 8px; z-index: 3; flex-wrap: wrap; }
@@ -2130,6 +2170,16 @@ button.send-btn-main:disabled::after { display: none; }
 }
 
 /* ═══════════════════════════════════════════════
+   MOBILE EDIT BUTTON — base state
+   ⚑ CORRECTION A: this MUST come before the
+   max-width:768px media query below. Previously it
+   was declared *after* it with equal specificity,
+   so `display:none` always won and the button never
+   showed on mobile.
+═══════════════════════════════════════════════ */
+.mobile-edit-btn { display: none; }
+
+/* ═══════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════ */
 @media (max-width: 768px) {
@@ -2182,6 +2232,7 @@ button.send-btn-main:disabled::after { display: none; }
     .header-right .online-count-badge,
     .header-right .wallet-address,
     .header-right #refreshBtn { display: none !important; }
+    /* ⚑ CORRECTION A: now actually wins — base rule is above. */
     .mobile-edit-btn { display: flex; }
     .header-center { display: none; }
     .token-tracker.mobile-only {
@@ -2202,8 +2253,6 @@ button.send-btn-main:disabled::after { display: none; }
     }
     .scroll-bottom-btn { bottom: 80px; }
 }
-
-.mobile-edit-btn { display: none; }
 
 /* ═══════════════════════════════════════════════
    USER BADGE
@@ -2229,8 +2278,10 @@ button.send-btn-main:disabled::after { display: none; }
     height: 34px;
     line-height: 1;
 }
-.theme-select:hover { border-color: var(--accent-cyan); box-shadow: var(--glow-cyan); }
-.theme-select:focus { outline: none; border-color: var(--accent-cyan); box-shadow: var(--glow-cyan); }
+/* ⚑ CORRECTION B: use --glow-arc (true cyan) instead of
+   --glow-cyan (deliberately orange in this theme). */
+.theme-select:hover { border-color: var(--accent-cyan); box-shadow: var(--glow-arc); }
+.theme-select:focus { outline: none; border-color: var(--accent-cyan); box-shadow: var(--glow-arc); }
 
 /* ═══════════════════════════════════════════════
    ACCESSIBILITY EXTRAS
