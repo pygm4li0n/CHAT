@@ -1541,8 +1541,8 @@ button.theme-select {
             rgba(0, 0, 0, 0.35),
             rgba(0, 0, 0, 0.45)
         ),
-        radial-gradient(circle at 30% 20%, rgba(57, 255, 20, 0.05) 0%, transparent 60%),
-        radial-gradient(circle at 70% 80%, rgba(57, 255, 20, 0.035) 0%, transparent 50%),
+        radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--accent-cyan) 5%, transparent) 0%, transparent 60%),
+        radial-gradient(circle at 70% 80%, color-mix(in srgb, var(--accent-cyan) 3.5%, transparent) 0%, transparent 50%),
         repeating-linear-gradient(
             0deg,
             transparent 0px,
@@ -1581,11 +1581,11 @@ button.theme-select {
         0 0 6px rgba(0, 255, 32, 0.3) !important;
 }
 .msg-bubble {
-    background-color: rgba(10, 14, 8, 0.65) !important;
+    background-color: color-mix(in srgb, var(--bg-elevated, #151b2d) 65%, transparent) !important;
     backdrop-filter: none !important;
 }
 .msg-wrapper.own .msg-bubble {
-    background-color: rgba(12, 20, 10, 0.65) !important;
+    background-color: color-mix(in srgb, var(--bg-elevated, #151b2d) 72%, transparent) !important;
 }
 
 /* ═════════════════════════════════════════════════════
