@@ -9,11 +9,24 @@
      • Never prepends, never appends, never removes text
      • Never touches child elements, images, or pseudo-elements
    Only touches the rankings overlay.
+
+   CORRECTIONS APPLIED:
+   1. Emoji regexes now carry the `u` flag. Without it, a class
+      like [🐋🐬🦀🦐] is parsed as UTF-16 surrogate halves, so it
+      would match the first half of *any* emoji in the same
+      surrogate block (e.g. 🐳 🐙 🐢) and could corrupt them.
+      With `u`, each emoji is matched as a single code point.
+   2. `emojiFromText` now uses word-boundary regexes instead of
+      `indexOf`. Previously a username like "DolphinLover" or
+      "CrabKing" would falsely match "dolphin" / "crab" and
+      override the real label.
+   3. The per-node emoji test reuses a precompiled non-global
+      regex so it can't be affected by `lastIndex` state.
 ============================================================ */
 (function () {
     'use strict';
 
-    /* name → emoji (longest keys first — avoids "whale" matching inside another word) */
+    /* name → emoji (order = priority if multiple labels appear) */
     var NAME_TO_EMOJI = [
         { key: 'dolphin', emoji: '🐬' },
         { key: 'shrimp',  emoji: '🦐' },
@@ -21,8 +34,21 @@
         { key: 'crab',    emoji: '🦀' }
     ];
 
-    /* A run of one or more rank emojis, plus any whitespace around them */
-    var EMOJI_RUN_RE = /(?:[🐋🐬🦀🦐]\s*)+/g;
+    /* Precompiled word-boundary matchers. Using \b avoids matching
+       rank words buried inside usernames (DolphinLover, CrabKing). */
+    var LABEL_MATCHERS = NAME_TO_EMOJI.map(function (entry) {
+        return {
+            emoji: entry.emoji,
+            re: new RegExp('\\b' + entry.key + '\\b', 'i')
+        };
+    });
+
+    /* A run of one or more rank emojis, plus any whitespace around
+       them. The `u` flag is REQUIRED — see corrections note above. */
+    var EMOJI_RUN_RE = /(?:[🐋🐬🦀🦐]\s*)+/gu;
+
+    /* Single-emoji test. Non-global so .test() is stateless. */
+    var EMOJI_ANY_RE = /[🐋🐬🦀🦐]/u;
 
     /* ── Balance → emoji (fallback) ── */
     function getBadge(balance) {
@@ -48,10 +74,9 @@
     /* ── Emoji from a text label (Whale / Dolphin / Crab / Shrimp) ── */
     function emojiFromText(text) {
         if (!text) return null;
-        var lower = String(text).toLowerCase();
-        for (var i = 0; i < NAME_TO_EMOJI.length; i++) {
-            if (lower.indexOf(NAME_TO_EMOJI[i].key) !== -1) {
-                return NAME_TO_EMOJI[i].emoji;
+        for (var i = 0; i < LABEL_MATCHERS.length; i++) {
+            if (LABEL_MATCHERS[i].re.test(text)) {
+                return LABEL_MATCHERS[i].emoji;
             }
         }
         return null;
@@ -79,7 +104,7 @@
         var node;
         while ((node = walker.nextNode())) {
             var t = node.nodeValue || '';
-            if (!/[🐋🐬🦀🦐]/.test(t)) continue;         /* nothing to fix here */
+            if (!EMOJI_ANY_RE.test(t)) continue;         /* nothing to fix here */
             var fixed = t.replace(EMOJI_RUN_RE, correct + ' ');
             if (fixed !== t) node.nodeValue = fixed;
         }
