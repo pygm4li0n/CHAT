@@ -1468,25 +1468,29 @@
     function trunc(t, l=45) { return t && t.length>l ? t.substring(0,l)+'…' : t||''; }
 
     function showError(msg) {
-        errorToast.textContent = '⚠️ ' + msg;
-        errorToast.classList.add('visible');
-        clearTimeout(errorToast._timeout);
-        errorToast._timeout = setTimeout(() => errorToast.classList.remove('visible'), 8000);
-        if (nameOverlay && !nameOverlay.classList.contains('hidden')) {
-            showOverlayMessage(msg, 'error');
-        }
+    errorToast.classList.remove('visible');
+    void errorToast.offsetWidth;                       // force reflow → restart CSS animation
+    errorToast.textContent = '⚠️ ' + msg;
+    errorToast.classList.add('visible');
+    clearTimeout(errorToast._timeout);
+    errorToast._timeout = setTimeout(() => errorToast.classList.remove('visible'), 8000);
+    if (nameOverlay && !nameOverlay.classList.contains('hidden')) {
+        showOverlayMessage(msg, 'error');
     }
+}
 
-    function showSuccess(msg) {
-        const clean = String(msg).replace(/^✅\s*/, '').replace(/^⚠️\s*/, '');
-        errorToast.textContent = '✅ ' + clean;
-        errorToast.classList.add('visible');
-        clearTimeout(errorToast._timeout);
-        errorToast._timeout = setTimeout(() => errorToast.classList.remove('visible'), 5000);
-        if (nameOverlay && !nameOverlay.classList.contains('hidden')) {
-            showOverlayMessage(clean, 'success');
-        }
+function showSuccess(msg) {
+    const clean = String(msg).replace(/^✅\s*/, '').replace(/^⚠️\s*/, '');
+    errorToast.classList.remove('visible');
+    void errorToast.offsetWidth;                       // force reflow → restart CSS animation
+    errorToast.textContent = '✅ ' + clean;
+    errorToast.classList.add('visible');
+    clearTimeout(errorToast._timeout);
+    errorToast._timeout = setTimeout(() => errorToast.classList.remove('visible'), 5000);
+    if (nameOverlay && !nameOverlay.classList.contains('hidden')) {
+        showOverlayMessage(clean, 'success');
     }
+}
 
     function setConnection(state) {
         isConnected = (state === 'connected');
@@ -1724,7 +1728,7 @@
             innerHTML += `<div class="msg-image-wrap" data-img-src="${escapeHtml(msg.image_url)}"><img src="${escapeHtml(msg.image_url)}" alt="shared image" loading="lazy"></div>`;
         }
         innerHTML += `<div class="msg-actions-container">`;
-        innerHTML += `<button class="msg-action-btn reply-btn" data-id="${msg.id}" data-username="${escapeHtml(user)}" data-message="${escapeHtml(msg.message||'')}" data-imageurl="${msg.image_url || ''}">↩ Reply</button>`;
+        innerHTML += `<button class="msg-action-btn reply-btn" data-id="${msg.id}" data-username="${escapeHtml(user)}" data-message="${escapeHtml(msg.message||'')}" data-imageurl="${escapeHtml(msg.image_url || '')}">↩ Reply</button>`;
         if (isOwn && !msg.is_deleted) {
             innerHTML += `<button class="msg-action-btn edit-btn" data-id="${msg.id}">✎</button>`;
             innerHTML += `<button class="msg-action-btn delete-btn" data-id="${msg.id}">✕</button>`;
