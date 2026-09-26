@@ -50,13 +50,19 @@
        ───────────────────────────────────────────────────────── */
     function displayNameFor(profile) {
         if (!profile) return null;
+        // When X-verified, X's display name / handle wins
+        if (profile.x_verified) {
+            if (profile.display_name) return profile.display_name;
+            if (profile.x_handle) return '@' + profile.x_handle;
+        }
         return profile.display_name
-            || (profile.x_verified && profile.x_handle ? '@' + profile.x_handle : null)
             || profile.username
             || null;
     }
     function avatarFor(profile) {
         if (!profile) return null;
+        // When X-verified, X's avatar wins
+        if (profile.x_verified && profile.x_avatar_url) return profile.x_avatar_url;
         return profile.avatar_url || profile.x_avatar_url || null;
     }
 
