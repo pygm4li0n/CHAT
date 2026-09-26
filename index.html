@@ -18,6 +18,49 @@
         }, 10000);
     </script>
 
+    <!-- ═══════════════════════════════════════════════════════
+         ⚑ X OAUTH RETURN — skip the loader for THIS cycle only.
+         x-auth.js sets sessionStorage.msn_x_oauth_pending = '1'
+         right before redirecting to X. When the browser lands
+         back on this page, we detect the flag and reveal the
+         app immediately — no loading screen flash.
+
+         The flag is cleared by x-auth.js ~1.5s after the
+         session is confirmed, so normal reloads still play
+         the loader in full.
+    ═══════════════════════════════════════════════════════ -->
+    <script>
+    (function () {
+        try {
+            if (sessionStorage.getItem('msn_x_oauth_pending') === '1') {
+                // Reveal the app now — before loading-screen.js runs
+                document.documentElement.classList.remove('msn-booting');
+                document.documentElement.classList.remove('booting');
+
+                // Inject a hard kill-switch so any overlay the loader
+                // injects later is invisible and non-interactive.
+                var s = document.createElement('style');
+                s.id = 'x-return-hide-loader';
+                s.textContent =
+                    '#msnBootOverlay{' +
+                    '  display:none !important;' +
+                    '  opacity:0 !important;' +
+                    '  visibility:hidden !important;' +
+                    '  pointer-events:none !important;' +
+                    '}' +
+                    'html.msn-booting body > *:not(#msnBootOverlay):not(script):not(style):not(link):not(noscript){' +
+                    '  opacity:1 !important;' +
+                    '  pointer-events:auto !important;' +
+                    '}';
+                (document.head || document.documentElement).appendChild(s);
+
+                // Let later scripts know we're skipping the loader
+                window.__msnSkipBootLoader = true;
+            }
+        } catch (e) {}
+    })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap">
@@ -46,8 +89,7 @@
         })();
     </script>
 
-    <!-- Merged override stack — replaces theme-fixes.css + theme-revamp.css + chat-texture.css.
-         Internal order (see file header): theme-fixes → theme-revamp → chat-texture → resolution. -->
+    <!-- Merged override stack -->
     <link rel="stylesheet" href="theme-merged.css">
 
     <!-- Other app stylesheets -->
@@ -376,16 +418,11 @@
     <script src="profile-system.js?v=7"></script>
     <script src="stickers.js?v=1"></script>
     <script src="rank-badge-fix.js"></script>
-    <script src="wallet-identity.js?v=1"></script>
-    <script src="x-auth.js?v=1"></script>
+    <script src="wallet-identity.js?v=3"></script>
+    <script src="x-auth.js?v=5"></script>
 
     <!-- ═══════════════════════════════════════════════════════
          ⚑ MOBILE SIDEBAR PROFILE — MOBILE ONLY
-         – Avatar click → edit profile
-         – Builds the 2×2 actions grid (theme / rankings /
-           refresh / mod) inside the profile block
-         – Guarded by isMobile(): NEVER touches the shared buttons
-           on desktop, so script.js's right sidebar keeps its cards.
     ═══════════════════════════════════════════════════════ -->
     <script>
     (function wireMobileProfile() {
@@ -396,9 +433,6 @@
         }
 
         function buildActionsGrid() {
-            // ⚑ MOBILE ONLY. On desktop, script.js owns these buttons
-            // via .msn-right-sidebar. Running here would steal them
-            // into a display:none container.
             if (!isMobile()) return;
 
             const profile = document.getElementById('sidebarUserProfileBig');
@@ -463,9 +497,6 @@
         }
 
         function wireAvatarClick() {
-            // ⚑ MOBILE ONLY. Avatar tap → VIEW PROFILE modal.
-            // Uses profile.refresh() — open() needs a username arg,
-            // refresh() reads self and calls open(me) for us.
             if (!isMobile()) return;
 
             const avatar = document.getElementById('sidebarBigAvatar');
@@ -482,20 +513,17 @@
 
                 const P = window.MSN && window.MSN.profile;
 
-                // Prefer refresh() — fills in the self username for us
                 if (P && typeof P.refresh === 'function') {
                     P.refresh();
                     return;
                 }
 
-                // Fallback: open() with the cached username explicitly
                 if (P && typeof P.open === 'function') {
                     let me = null;
                     try { me = localStorage.getItem('msn_chat_username'); } catch (err) {}
                     if (me) { P.open(me); return; }
                 }
 
-                // Last resort: trigger the edit flow so the user isn't stuck
                 const pencil = document.getElementById('sidebarChangeNameBtn');
                 if (pencil) pencil.click();
             };
