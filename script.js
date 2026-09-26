@@ -1623,15 +1623,26 @@ function showSuccess(msg) {
     async function loadReactions(table, isPrivate) {
         const { data, error } = await supabase.from(table).select('*');
         if (error) return;
+
         const target = isPrivate ? privateMessageReactions : messageReactions;
         for (const key of Object.keys(target)) delete target[key];
-        (data||[]).forEach(r => {
+
+        (data || []).forEach(r => {
             if (!target[r.message_id]) target[r.message_id] = {};
-            if (!target[r.message_id][r.emoji]) target[r.message_id][r.emoji] = { count:0, users: new Set() };
+            if (!target[r.message_id][r.emoji]) {
+                target[r.message_id][r.emoji] = { count: 0, users: new Set() };
+            }
             target[r.message_id][r.emoji].count++;
             target[r.message_id][r.emoji].users.add(r.username);
         });
-        document.querySelectorAll('.msg-wrapper').forEach(w => updateReactionUI(w, isPrivate));
+
+        // ⚑ Repaint ONLY the container this data belongs to.
+        //   Repainting both was wiping whichever loaded first.
+        const container = isPrivate ? privateContainer : publicContainer;
+        if (!container) return;
+        container.querySelectorAll('.msg-wrapper').forEach(w => {
+            updateReactionUI(w, isPrivate);
+        });
     }
     function subscribeReactions() {
         if (reactionsChannel) supabase.removeChannel(reactionsChannel);
