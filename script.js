@@ -1533,7 +1533,7 @@ function showSuccess(msg) {
         const unique = [...new Set(usernames.filter(u => u && (!avatarCache[u] || !(u in userBalances))))];
         if (unique.length === 0) return;
         const { data, error } = await supabase.from('profiles')
-            .select('username, avatar_url, token_balance, wallet_address')
+            .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, token_balance, wallet_address')
             .in('username', unique);
         if (error) { console.warn('Error fetching profiles:', error); return; }
         (data || []).forEach(p => {
@@ -1543,13 +1543,33 @@ function showSuccess(msg) {
                 avatarCache[p.username] = p.avatar_url;
                 userBalances[p.username] = hasWallet ? (p.token_balance || 0) : null;
             }
+            // ⚑ Feed the canonical identity cache so X-verified
+            //   names + avatars propagate to chat, sidebar, ranks.
+            if (hasWallet && window.MSNIdentity && window.MSNIdentity.remember) {
+                window.MSNIdentity.remember(p);
+            }
         });
     }
-    function getAvatarURL(user) { return avatarCache[user] || null; }
+        // ⚑ Canonical identity: X-verified avatar / display_name win.
+    function getAvatarURL(user) {
+        if (window.MSNIdentity && window.MSNIdentity.resolve) {
+            const r = window.MSNIdentity.resolve(user);
+            if (r && r.avatar) return r.avatar;
+        }
+        return avatarCache[user] || null;
+    }
+    function displayNameForUser(user) {
+        if (window.MSNIdentity && window.MSNIdentity.resolve) {
+            const r = window.MSNIdentity.resolve(user);
+            if (r && r.displayName) return r.displayName;
+        }
+        return user;
+    }
     function renderAvatarHTML(user) {
         const url = getAvatarURL(user);
-        if (url) return `<img src="${escapeHtml(url)}" alt="${escapeHtml(user)}" style="width:100%;height:100%;object-fit:cover;">`;
-        return (user || '?')[0].toUpperCase();
+        const name = displayNameForUser(user);
+        if (url) return `<img src="${escapeHtml(url)}" alt="${escapeHtml(name)}" style="width:100%;height:100%;object-fit:cover;">`;
+        return (name || '?')[0].toUpperCase();
     }
 
     function resizeImage(file, maxDim=750) {
@@ -1685,12 +1705,13 @@ function showSuccess(msg) {
         return html;
     }
 
-    async function buildMessageNode(msg, isPrivate) {
+        async function buildMessageNode(msg, isPrivate) {
         const user = isPrivate ? msg.from_user : msg.username;
         if (!getAvatarURL(user)) await fetchAvatars([user]);
         const isOwn = user === username;
+        const shownUser = displayNameForUser(user);
 
-    const wrapper = document.createElement('div');
+        const wrapper = document.createElement('div');
         wrapper.className = 'msg-wrapper' + (isOwn ? ' own' : '');
         wrapper.setAttribute('data-msg-id', msg.id);
         if (msg.wallet_address) {
@@ -1724,7 +1745,7 @@ function showSuccess(msg) {
         const badge = getBadgeForUser(user);
         const badgeHtml = badge ? `<span class="user-badge" title="${badge.name}">${badge.emoji}</span>` : '';
 
-        innerHTML += `<div class="msg-username"><span class="msg-avatar">${renderAvatarHTML(user)}</span> ${escapeHtml(user)} ${badgeHtml}${isPrivate?' <span style="font-size:0.6rem;opacity:0.6;">🔒</span>':''} <span class="msg-time">${formatTime(msg.created_at)}</span>`;
+        innerHTML += `<div class="msg-username"><span class="msg-avatar">${renderAvatarHTML(user)}</span> ${escapeHtml(shownUser)} ${badgeHtml}${isPrivate?' <span style="font-size:0.6rem;opacity:0.6;">🔒</span>':''} <span class="msg-time">${formatTime(msg.created_at)}</span>`;
         if (msg.edited_at) innerHTML += `<span class="msg-edited">(edited)</span>`;
         innerHTML += `</div>`;
 
@@ -2256,7 +2277,7 @@ function showSuccess(msg) {
             }
         });
         sidebarUsers.innerHTML = html || '<div class="no-users-sidebar">No one else online</div>';
-        onlineCountNumber.textContent = onlineUsers.size;        const uniqueForCount = new Set();
+        const uniqueForCount = new Set();
         onlineUsers.forEach(u => uniqueForCount.add(u.username));
         const onlineCount = uniqueForCount.size;
         onlineCountNumber.textContent = onlineCount;
@@ -2290,9 +2311,10 @@ function showSuccess(msg) {
     }
     function buildSidebarItem(userName, isOnline, isPending, isSelf=false, isAccepted=false) {
         const avatarURL = getAvatarURL(userName);
+        const shownName = displayNameForUser(userName);
         const avatarHTML = avatarURL
-            ? `<img src="${escapeHtml(avatarURL)}" alt="${escapeHtml(userName)}">`
-            : (userName.charAt(0)||'?').toUpperCase();
+            ? `<img src="${escapeHtml(avatarURL)}" alt="${escapeHtml(shownName)}">`
+            : (shownName.charAt(0)||'?').toUpperCase();
         let btnClass = 'private-btn', btnText = 'Request';
         if(isAccepted) { btnClass += ' accepted'; btnText = 'Chat'; }
         else if(isPending) { btnClass += ' pending'; btnText = 'Accept?'; }
@@ -2304,7 +2326,7 @@ function showSuccess(msg) {
             ? window.MSNIdentity.byUsername()[userName] : '';
         return `<div class="sidebar-user-item${isSelf?' you-tag':''}" data-username="${escapeHtml(userName)}"${walletForItem ? ` data-wallet="${escapeHtml(walletForItem)}"` : ''}>
             <div class="user-avatar">${avatarHTML}${isOnline?'<span class="online-indicator"></span>':''}</div>
-            <div class="user-info"><div class="user-name">${escapeHtml(userName)} ${badgeHtml}</div><div class="user-status-text">${isSelf?'You':'Online'}</div></div>
+                        <div class="user-info"><div class="user-name">${escapeHtml(shownName)} ${badgeHtml}</div><div class="user-status-text">${isSelf?'You':'Online'}</div></div>
             ${!isSelf ? `<button class="${btnClass}">${btnText}</button>` : ''}
         </div>`;
     }
@@ -3352,14 +3374,34 @@ function showSuccess(msg) {
         el.innerHTML = '<div class="rankings-empty">Error loading</div>';
         return;
       }
-      if (!data || !data.length) {
+     if (!data || !data.length) {
         el.innerHTML = '<div class="rankings-empty">No holders yet</div>';
         return;
       }
-      el.innerHTML = data.map(row => {
+      // ⚑ Ingest into identity cache, then enrich (X name + avatar).
+      data.forEach(row => {
+        if (window.MSNIdentity && window.MSNIdentity.remember) {
+          window.MSNIdentity.remember({
+            wallet_address: row.wallet_address,
+            username:       row.username,
+            display_name:   row.display_name,
+            avatar_url:     row.avatar_url,
+            x_handle:       row.x_handle,
+            x_verified:     row.x_verified,
+            x_avatar_url:   row.x_avatar_url
+          });
+        }
+      });
+      const enriched = (window.MSNIdentity && window.MSNIdentity.enrichRows)
+        ? window.MSNIdentity.enrichRows(data)
+        : data;
+      el.innerHTML = enriched.map(row => {
         const tier = badgeFromName(row.holder_tier);
         const bal  = Number(row.token_balance || 0).toLocaleString();
-        return '<div class="rank-row">' +
+        const walletAttr = row.wallet_address
+          ? ' data-wallet="' + esc(row.wallet_address) + '"'
+          : '';
+        return '<div class="rank-row"' + walletAttr + '>' +
           avatarHTML(row) +
           '<div class="rank-info">' +
             '<div class="rank-name">' + esc(row.username || 'anon') + '</div>' +
@@ -3389,12 +3431,32 @@ function showSuccess(msg) {
         el.innerHTML = '<div class="rankings-empty">No activity yet</div>';
         return;
       }
-      const rows = data.slice().sort((a, b) => Number(b.xp || 0) - Number(a.xp || 0));
+      // ⚑ Ingest into identity cache, then enrich (X name + avatar).
+      data.forEach(row => {
+        if (window.MSNIdentity && window.MSNIdentity.remember) {
+          window.MSNIdentity.remember({
+            wallet_address: row.wallet_address,
+            username:       row.username,
+            display_name:   row.display_name,
+            avatar_url:     row.avatar_url,
+            x_handle:       row.x_handle,
+            x_verified:     row.x_verified,
+            x_avatar_url:   row.x_avatar_url
+          });
+        }
+      });
+      const enriched = (window.MSNIdentity && window.MSNIdentity.enrichRows)
+        ? window.MSNIdentity.enrichRows(data)
+        : data;
+      const rows = enriched.slice().sort((a, b) => Number(b.xp || 0) - Number(a.xp || 0));
       el.innerHTML = rows.map(row => {
         const xp    = Number(row.xp || 0);
         const level = Number(row.level) || levelFromXp(xp);
         const today = Number(row.xp_today || 0);
-        return '<div class="rank-row">' +
+        const walletAttr = row.wallet_address
+          ? ' data-wallet="' + esc(row.wallet_address) + '"'
+          : '';
+        return '<div class="rank-row"' + walletAttr + '>' +
           avatarHTML(row) +
           '<div class="rank-info">' +
             '<div class="rank-name">' + esc(row.username || 'anon') + '</div>' +
