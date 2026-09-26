@@ -197,10 +197,17 @@
     var done = false;
 
     function settleApp() {
-        // Unhide the input bar if script.js left it hidden
+        // ⚑ Unhide the input bar ONLY if the name overlay is NOT
+        //   visible. On a fresh session, script.js intentionally
+        //   keeps the input bar hidden until the user enters a name;
+        //   we must not override that.
         try {
-            var ib = document.getElementById('inputAreaBar');
-            if (ib && ib.classList.contains('hidden')) ib.classList.remove('hidden');
+            var nOverlay = document.getElementById('nameOverlay');
+            var nameIsVisible = nOverlay && !nOverlay.classList.contains('hidden');
+            if (!nameIsVisible) {
+                var ib = document.getElementById('inputAreaBar');
+                if (ib && ib.classList.contains('hidden')) ib.classList.remove('hidden');
+            }
         } catch (e) {}
 
         // Force messages containers to the bottom so the user
