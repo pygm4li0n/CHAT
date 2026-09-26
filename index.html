@@ -18,6 +18,75 @@
         }, 10000);
     </script>
 
+    <!-- ═══════════════════════════════════════════════════════
+         ⚑ X OAUTH RETURN — clean app restore.
+         • Hide the loader visuals from the very first frame
+           (never paints, never flashes)
+         • Keep `msn-booting` on <html> so the app stays hidden
+           until script.js signals it's fully built
+         • Release the boot gate on `msn:app-ready` (4s safety net)
+         • 3-minute TTL on the flag — cannot get stuck
+    ═══════════════════════════════════════════════════════ -->
+    <script>
+    (function () {
+        try {
+            var raw = sessionStorage.getItem('msn_x_oauth_pending');
+            if (!raw) return;
+
+            // Validate flag (accept legacy '1' or timestamped JSON)
+            var valid = false;
+            if (raw === '1') {
+                valid = true;
+            } else {
+                var d = JSON.parse(raw);
+                if (d && typeof d.started === 'number') {
+                    var age = Date.now() - d.started;
+                    if (age >= 0 && age <= 3 * 60 * 1000) valid = true;
+                }
+            }
+            if (!valid) {
+                sessionStorage.removeItem('msn_x_oauth_pending');
+                return;
+            }
+
+            window.__msnSkipBootLoader = true;
+
+            // Hide any loader overlay the moment it's injected
+            var s = document.createElement('style');
+            s.id = 'x-return-hide-loader';
+            s.textContent =
+                '#msnBootOverlay{' +
+                '  display:none !important;' +
+                '  opacity:0 !important;' +
+                '  visibility:hidden !important;' +
+                '  pointer-events:none !important;' +
+                '}';
+            (document.head || document.documentElement).appendChild(s);
+
+            // Release the boot gate when script.js is done building
+            var released = false;
+            function release() {
+                if (released) return;
+                released = true;
+                document.documentElement.classList.remove('msn-booting');
+                document.documentElement.classList.remove('booting');
+                var ov = document.getElementById('msnBootOverlay');
+                if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+            }
+
+            document.addEventListener('msn:app-ready', release, { once: true });
+
+            // If script.js already finished before this listener attached
+            if (window.__msnAppReady === true) {
+                requestAnimationFrame(release);
+            }
+
+            // Safety net — never leave the app hidden longer than 4s
+            setTimeout(release, 4000);
+        } catch (e) {}
+    })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap">
@@ -46,7 +115,7 @@
         })();
     </script>
 
-    <!-- Merged override stack — replaces theme-fixes.css + theme-revamp.css + chat-texture.css. -->
+    <!-- Merged override stack -->
     <link rel="stylesheet" href="theme-merged.css">
 
     <!-- Other app stylesheets -->
@@ -131,7 +200,7 @@
          ⚑ BOOT SEQUENCE — must be first in <body>
          Injects the loading overlay before anything renders.
     ═══════════════════════════════════════════════════════ -->
-    <script src="loading-screen.js?v=4"></script>
+    <script src="loading-screen.js?v=5"></script>
 
     <canvas id="particleCanvas"></canvas>
 
@@ -371,7 +440,7 @@
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
     <script src="https://unpkg.com/@solana/spl-token@latest/lib/index.iife.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=71"></script>
+    <script src="script.js?v=72"></script>
     <script src="profile-system.js?v=7"></script>
     <script src="stickers.js?v=1"></script>
     <script src="rank-badge-fix.js"></script>
