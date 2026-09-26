@@ -461,24 +461,31 @@
             profile.appendChild(grid);
         }
 
-        function wireAvatarClick() {
-            // ⚑ MOBILE ONLY. On desktop, profile-system.js opens the
-            // VIEW PROFILE modal on avatar click — not the edit flow.
+                function wireAvatarClick() {
+            // ⚑ MOBILE ONLY. Avatar tap → VIEW PROFILE modal.
+            // The modal has its own "Edit Profile" button (wired by
+            // profile-system.js) so users still reach edit in one tap.
             if (!isMobile()) return;
 
             const avatar = document.getElementById('sidebarBigAvatar');
-            const pencil = document.getElementById('sidebarChangeNameBtn');
-            if (!avatar || !pencil || avatar.dataset.msnWired) return;
+            if (!avatar || avatar.dataset.msnWired) return;
 
             avatar.dataset.msnWired = '1';
             avatar.setAttribute('role', 'button');
             avatar.setAttribute('tabindex', '0');
-            avatar.setAttribute('aria-label', 'Edit profile');
+            avatar.setAttribute('aria-label', 'View profile');
 
             const trigger = function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                pencil.click();
+                // Ensure profile-system.js is loaded, then open self profile
+                if (window.MSN && window.MSN.profile && typeof window.MSN.profile.open === 'function') {
+                    window.MSN.profile.open();
+                } else {
+                    // Fallback: click the header avatar handler if available
+                    const pencil = document.getElementById('sidebarChangeNameBtn');
+                    if (pencil) pencil.click();
+                }
             };
             avatar.addEventListener('click', trigger, true);
             avatar.addEventListener('keydown', function (e) {
