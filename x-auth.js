@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════════════════════
-   x-auth.js — v5
+   x-auth.js — v6
    ───────────────────────────────────────────────────────────
    • Injects an X login button:
-       – Desktop: left of #phantomConnectBtn in the header,
-         with a VERIFY / VERIFIED label to its left
+       – Desktop: left of #phantomConnectBtn, with a
+         VERIFY / VERIFIED label to its left
        – Mobile:  replaces #sidebarRefreshBtn in the 2×2 grid
    • Uses the SEPARATE X auth Supabase project for OAuth
    • On success, writes x_handle / x_verified / x_avatar_url /
@@ -11,14 +11,17 @@
    • wallet-identity.js handles the rest via realtime
    Load AFTER wallet-identity.js
 
-   v5 fixes:
-   • Loader is dismissed ONLY on OAuth return, not on every load.
-     A sessionStorage flag (msn_x_oauth_pending) is set right
-     before the redirect and cleared ~1.5s after we're back.
-   • The head <script> in index.html also reads this flag and
-     hides the loader before loading-screen.js even runs.
-   • All other v4 behavior preserved (gray → colored button,
-     VERIFY / VERIFIED label, session cache, retries).
+   v6 fixes:
+   • OAuth-return flow no longer reveals a half-built app.
+     – Loader VISUALS are hidden immediately (no spinner).
+     – `msn-booting` STAYS on <html> so the app itself is
+       still invisible.
+     – We release the boot gate only when script.js fires
+       `msn:app-ready` (or after 1.6s max as a safety net).
+     Result: no loading screen, no empty layout, no flicker.
+   • Pending-OAuth flag is timestamped with a 3-minute TTL,
+     so a stuck flag can never permanently hide the loader.
+   • Everything else from v5 preserved.
    ═══════════════════════════════════════════════════════════ */
 (function () {
     'use strict';
@@ -34,19 +37,47 @@
     var _sessionCache = null;
     var _sessionKnown = false;
 
-    /* ─── OAuth pending flag (survives the redirect) ────── */
+    /* ═══════════════════════════════════════════════════════
+       OAuth pending flag — timestamped + 3-min TTL
+       Survives the redirect. Cannot get stuck.
+       ═══════════════════════════════════════════════════════ */
+    var OAUTH_FLAG_TTL_MS = 3 * 60 * 1000;
+
     function markOAuthPending() {
-        try { sessionStorage.setItem('msn_x_oauth_pending', '1'); } catch (e) {}
+        try {
+            sessionStorage.setItem('msn_x_oauth_pending', JSON.stringify({
+                started: Date.now()
+            }));
+        } catch (e) {}
     }
     function clearOAuthPending() {
         try { sessionStorage.removeItem('msn_x_oauth_pending'); } catch (e) {}
     }
     function isOAuthPending() {
         try {
-            if (sessionStorage.getItem('msn_x_oauth_pending') === '1') return true;
-            if (window.__msnSkipBootLoader === true) return true;
-        } catch (e) {}
-        return false;
+            var raw = sessionStorage.getItem('msn_x_oauth_pending');
+            if (!raw) return false;
+
+            // Legacy bare-flag from older builds — treat as stale
+            if (raw === '1') {
+                sessionStorage.removeItem('msn_x_oauth_pending');
+                return false;
+            }
+
+            var data = JSON.parse(raw);
+            if (!data || typeof data.started !== 'number') {
+                sessionStorage.removeItem('msn_x_oauth_pending');
+                return false;
+            }
+
+            var age = Date.now() - data.started;
+            if (age > OAUTH_FLAG_TTL_MS || age < 0) {
+                sessionStorage.removeItem('msn_x_oauth_pending');
+                return false;
+            }
+
+            return true;
+        } catch (e) { return false; }
     }
 
     function getAuth() {
@@ -78,11 +109,32 @@
         try { return localStorage.getItem('msn_cached_wallet') || null; } catch (e) { return null; }
     }
 
-    function dismissBootLoader() {
+    /* ═══════════════════════════════════════════════════════
+       Boot-gate control for OAuth return
+       ═══════════════════════════════════════════════════════ */
+
+    /* Hide just the loader's visuals — spinner, ring, glow — but
+       leave `msn-booting` in place so the app stays invisible. */
+    function suppressLoaderVisualOnly() {
+        if (document.getElementById('x-return-hide-loader-visual')) return;
+        var s = document.createElement('style');
+        s.id = 'x-return-hide-loader-visual';
+        s.textContent =
+            '#msnBootOverlay{' +
+            '  opacity:0 !important;' +
+            '  pointer-events:none !important;' +
+            '  transition:none !important;' +
+            '}';
+        (document.head || document.documentElement).appendChild(s);
+    }
+
+    /* Remove the boot gate — reveals the (fully built) app. */
+    function releaseBootGate() {
         try {
             document.documentElement.classList.remove('msn-booting');
             document.documentElement.classList.remove('booting');
         } catch (e) {}
+
         var ov = document.getElementById('msnBootOverlay');
         if (ov) {
             ov.classList.add('done');
@@ -92,7 +144,7 @@
             ov.style.pointerEvents = 'none';
             setTimeout(function () {
                 if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
-            }, 400);
+            }, 300);
         }
     }
 
@@ -256,7 +308,6 @@
 
         try { localStorage.setItem('msn_x_pending_wallet', wallet); } catch (e) {}
 
-        // ⚑ Set the flag BEFORE the redirect so we know on return.
         markOAuthPending();
 
         var cleanRedirect = location.origin + location.pathname;
@@ -265,8 +316,6 @@
             options: { redirectTo: cleanRedirect, scopes: 'users.read tweet.read' }
         });
         if (error) {
-            // OAuth failed to even start — clear the flag so future
-            // normal loads don't skip the loader.
             clearOAuthPending();
             console.warn('[x-auth] signIn error:', error);
         }
@@ -340,9 +389,6 @@
         } catch (e) { console.warn('[x-auth] clear failed:', e); }
     }
 
-    /* ─────────────────────────────────────────────────────────
-       Button + label state
-       ───────────────────────────────────────────────────────── */
     function markButton(btn, signedIn) {
         if (!btn) return;
         btn.classList.toggle('x-signed-in', !!signedIn);
@@ -403,19 +449,43 @@
         markButton(btn, !!_sessionCache);
     }
 
+    /* ═══════════════════════════════════════════════════════
+       Boot
+       ═══════════════════════════════════════════════════════ */
     function boot() {
         injectStyles();
 
-        // ⚑ Snapshot the flag ONCE at boot — if we're returning from
-        //   OAuth, the head <script> has already hidden the loader,
-        //   but we belt-and-suspenders it here for the first ~1s.
         var returningFromOAuth = isOAuthPending();
 
         if (returningFromOAuth) {
-            dismissBootLoader();
-            setTimeout(dismissBootLoader, 100);
-            setTimeout(dismissBootLoader, 400);
-            setTimeout(dismissBootLoader, 900);
+            // ─────────────────────────────────────────────
+            // OAuth return:
+            //   1. Hide the loader's VISUALS immediately
+            //   2. Keep `msn-booting` on <html> so the app
+            //      stays hidden behind the boot gate
+            //   3. Release when script.js fires `msn:app-ready`
+            //      or after 1.6s (whichever comes first)
+            // ─────────────────────────────────────────────
+            suppressLoaderVisualOnly();
+
+            var released = false;
+            var release = function () {
+                if (released) return;
+                released = true;
+                releaseBootGate();
+            };
+
+            // Preferred: script.js tells us it's done
+            document.addEventListener('msn:app-ready', release, { once: true });
+
+            // Safety net — never let the gate stay up forever
+            setTimeout(release, 1600);
+
+            // If script.js already announced ready (cached boot),
+            // release on the next frame
+            if (window.__msnAppReady === true) {
+                requestAnimationFrame(release);
+            }
         }
 
         retryHeaderButton();
@@ -433,16 +503,10 @@
 
             if (session) {
                 applyXToProfile(session);
-
-                // ⚑ Only clear the pending flag if we were returning
-                //   from OAuth. On a normal load with a persisted
-                //   session, leave the flag alone (it's already null).
                 if (returningFromOAuth) {
                     setTimeout(clearOAuthPending, 1500);
                 }
             } else {
-                // No session on an OAuth-return load = failure.
-                // Clear so next normal load isn't affected.
                 if (returningFromOAuth) clearOAuthPending();
             }
         });
@@ -454,7 +518,6 @@
 
             if (session) {
                 applyXToProfile(session);
-                // SIGNED_IN during this boot cycle = OAuth just completed
                 if (event === 'SIGNED_IN' && returningFromOAuth) {
                     setTimeout(clearOAuthPending, 1500);
                 }
@@ -471,5 +534,5 @@
     } else {
         boot();
     }
-    console.log('[x-auth] loaded v5');
+    console.log('[x-auth] loaded v6');
 })();
