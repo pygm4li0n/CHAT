@@ -3158,15 +3158,23 @@ html body .mod-message-box .mod-message-text {
    Token tracker + CA pill share ONE border, ONE background,
    ONE height. A hairline divider separates the two segments.
    Hover: container glows cyan. Segments stay transparent.
+   Width: hugs content — no extra space.
 ═════════════════════════════════════════════════════ */
 @media (min-width: 769px) {
 
-    /* ── Outer shell: single unified box ── */
+    /* ── Outer shell: shrink to content ── */
     .header-center {
         display: inline-flex !important;
         align-items: stretch !important;
         justify-content: center !important;
         gap: 0 !important;
+
+        /* ⚑ Kill the theme's `flex: 1` — take natural width only */
+        flex: 0 0 auto !important;
+        width: fit-content !important;
+        max-width: fit-content !important;
+        min-width: 0 !important;
+
         height: 40px !important;
         min-height: 40px !important;
         max-height: 40px !important;
@@ -3322,7 +3330,6 @@ html body .mod-message-box .mod-message-text {
         opacity: 1 !important;
     }
 }
-
 /* ═══════════════════════════════════════════════════════════════════
    ███  END OF FILE  ███
    ═══════════════════════════════════════════════════════════════════ */
