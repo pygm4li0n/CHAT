@@ -1,18 +1,30 @@
 /* ============================================================
    profile-system.js — MSN Profile / User Identity HUD
    ────────────────────────────────────────────────────────────
-   Drop-in. Load AFTER app-extras.js.
+   Drop-in. Load AFTER script.js + wallet-identity.js.
 
-     <script src="profile-system.js"></script>
+     <script src="profile-system.js?v=8"></script>
 
    • Reuses window.MSN.supabase (or builds a fallback client)
-   • Reads self identity from localStorage (no closure access)
-   • Self streak read from #sidebarStreakDisplay (live tracking DOM)
-   • Other-user streak read via get_streak_by_wallet RPC
-   • Joined date derived from messages.created_at (truest signal)
+   • Wallet-first lookup — rename-safe, X-aware
+   • X-verified identity (display_name / @handle / x_avatar_url)
+     wins on every surface: card, name, avatar, badge
+   • Canonical resolver delegates to window.MSNIdentity.resolve
+   • Click any avatar / name / ranking row → profile card
+   • Ranks carry data-wallet → card opens by wallet, not name
+   • Live re-render when 'msn:identity-changed' fires
+   • Self streak read from #sidebarStreakDisplay (tracking DOM)
+   • Other-user streak via get_streak_by_wallet RPC
+   • Joined date derived from earliest message (truest signal)
    • Ghost users (chatted, no profile row) still render a card
-   • Clickable usernames with hover underline + "VIEW PROFILE" hint
-   • v2: big left-aligned avatar + centered identity column
+
+   v3 additions:
+   • fetchProfileData(username, isSelf, wallet) — wallet-first
+   • resolve() / remember() bridges to wallet-identity.js
+   • 𝕏 verified badge next to display name
+   • closeProfile resets open tracking
+   • 'msn:identity-changed' → live re-render of open card
+   • Ranks click prefers data-wallet over name text
    ============================================================ */
 (function () {
     'use strict';
@@ -47,6 +59,12 @@
         if (window.CSS && CSS.escape) return CSS.escape(s);
         return String(s).replace(/"/g, '\\"');
     }
+    /* Solana base58 address shape (32–48 chars, no whitespace). */
+    function isWalletLike(s) {
+        return typeof s === 'string'
+            && s.length >= 32 && s.length <= 48
+            && !/\s/.test(s);
+    }
     function getSB() {
         if (window.MSN && window.MSN.supabase) return window.MSN.supabase;
         if (window.supabase && window.supabase.createClient) {
@@ -65,6 +83,19 @@
             '.sidebar-user-item[data-username="' + cssEscape(username) + '"]'
         );
         return !!(item && item.querySelector('.online-indicator'));
+    }
+
+    /* ── Canonical identity bridge (delegates to wallet-identity) ── */
+    function resolveIdentity(x) {
+        if (window.MSNIdentity && window.MSNIdentity.resolve) {
+            return window.MSNIdentity.resolve(x);
+        }
+        return null;
+    }
+    function rememberIdentity(p) {
+        if (window.MSNIdentity && window.MSNIdentity.remember) {
+            try { window.MSNIdentity.remember(p); } catch (e) {}
+        }
     }
 
     /* ── Read live streak from the tracking system's DOM ──── */
@@ -161,7 +192,7 @@
         + '}'
         + '.msn-profile-close:active{transform:rotate(90deg) scale(.96);}'
 
-        /* ── HEADER: avatar left · identity centered in the remaining space ── */
+        /* ── HEADER ── */
         + '.msn-profile-head{'
         +   'position:relative;display:flex;align-items:center;gap:18px;'
         +   'padding:4px 0 18px;margin-bottom:16px;'
@@ -190,7 +221,7 @@
         + '}'
         + '.msn-profile-status-dot.online{background:#4ade80;box-shadow:0 0 10px #4ade80,0 0 22px rgba(74,222,128,.55);}'
 
-        /* Identity column — centered horizontally + vertically in remaining space */
+        /* Identity column */
         + '.msn-profile-identity{'
         +   'flex:1 1 auto;min-width:0;display:flex;flex-direction:column;'
         +   'align-items:center;justify-content:center;text-align:center;gap:7px;'
@@ -200,6 +231,17 @@
         +   'color:var(--text-primary,#fff);word-break:break-word;'
         +   'text-shadow:0 0 14px var(--accent-cyan,rgba(0,240,255,.3));'
         + '}'
+
+        /* ⚑ X-verified badge */
+        + '.msn-x-badge{'
+        +   'display:inline-flex;align-items:center;justify-content:center;'
+        +   'width:1.15em;height:1.15em;margin-left:.5em;'
+        +   'border-radius:50%;background:#1d9bf0;color:#fff;'
+        +   'font-size:.68em;font-weight:900;line-height:1;'
+        +   'box-shadow:0 0 10px rgba(29,155,240,.7),0 0 4px rgba(29,155,240,.9) inset;'
+        +   'vertical-align:middle;transform:translateY(-1px);'
+        + '}'
+
         + '.msn-profile-signature{'
         +   'margin:0;font-size:.84rem;color:var(--text-secondary,#94a3b8);'
         +   'font-style:italic;line-height:1.45;word-break:break-word;min-height:1.2em;'
@@ -209,7 +251,7 @@
         +   'letter-spacing:.14em;text-transform:uppercase;font-weight:700;'
         + '}'
 
-        /* HUD stats — 3 columns (Level / XP / Messages) */
+        /* HUD stats */
         + '.msn-profile-hud{'
         +   'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;'
         +   'padding:12px 8px;margin-bottom:14px;'
@@ -232,7 +274,7 @@
         +   'text-shadow:0 0 10px var(--accent-cyan,rgba(0,240,255,.4));'
         + '}'
 
-        /* Streak row — fires + count */
+        /* Streak row */
         + '.msn-streak-row{'
         +   'display:flex;align-items:center;justify-content:space-between;gap:12px;'
         +   'padding:10px 12px;margin-bottom:16px;'
@@ -397,6 +439,7 @@
         +   '.msn-achievements-grid{grid-template-columns:repeat(6,1fr);gap:6px;}'
         +   '.msn-ach-slot{font-size:.92rem;border-radius:6px;}'
         +   '.msn-action-btn{padding:11px 10px;font-size:.7rem;}'
+        +   '.msn-x-badge{width:1em;height:1em;font-size:.62em;}'
         +   '.msg-username::before,'
         +   '.sidebar-user-item::before,'
         +   '.sidebar-user-profile-big::before{display:none;}'
@@ -491,34 +534,47 @@
     }
 
     /* ── Data fetch ───────────────────────────────────────── */
-   async function fetchProfileData(username, isSelf) {
+    async function fetchProfileData(username, isSelf, wallet) {
         var sb = getSB();
         if (!sb) return { error: 'no-supabase' };
 
         var out = {
             username: username,
+            display_name: username,
             avatar_url: null,
+            x_verified: false,
             signature: '',
             xp: 0,
             level: 1,
             messages_count: 0,
             current_streak: 0,
             created_at: null,
-            wallet_address: null,
+            wallet_address: wallet || null,
             achievements: [],
             hasProfile: false
         };
 
-        /* Only columns that actually exist in this schema */
-        var richSel = 'username, avatar_url, wallet_address, xp, messages_count, updated_at';
+        /* Rich select pulls X fields when the DB has them */
+        var richSel = 'username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address, xp, messages_count, updated_at';
         var minSel  = 'username, avatar_url, wallet_address, xp';
 
         var profile = null;
-        try {
-            var r1 = await sb.from('profiles').select(richSel).eq('username', username).maybeSingle();
-            if (!r1.error && r1.data) profile = r1.data;
-        } catch (e) { /* fall through */ }
 
+        /* 1. Wallet-first — rename-safe + X-aware */
+        if (wallet) {
+            try {
+                var r0 = await sb.from('profiles').select(richSel).eq('wallet_address', wallet).maybeSingle();
+                if (!r0.error && r0.data) profile = r0.data;
+            } catch (e) { /* fall through */ }
+        }
+        /* 2. By username */
+        if (!profile) {
+            try {
+                var r1 = await sb.from('profiles').select(richSel).eq('username', username).maybeSingle();
+                if (!r1.error && r1.data) profile = r1.data;
+            } catch (e) { /* fall through */ }
+        }
+        /* 3. Minimal select — older schema */
         if (!profile) {
             try {
                 var r2 = await sb.from('profiles').select(minSel).eq('username', username).maybeSingle();
@@ -529,15 +585,35 @@
         if (profile) {
             out.hasProfile     = true;
             out.avatar_url     = profile.avatar_url || null;
-            out.wallet_address = profile.wallet_address || null;
+            out.wallet_address = profile.wallet_address || out.wallet_address;
             out.xp             = Number(profile.xp || 0);
             out.level          = levelFromXp(out.xp);
             out.messages_count = Number(profile.messages_count || 0);
+            /* Feed canonical identity cache */
+            rememberIdentity(profile);
+        }
+
+        /* ── Canonical identity overlay — X wins ── */
+        var resolved = resolveIdentity(out.wallet_address || username);
+        if (resolved) {
+            if (resolved.displayName) out.display_name = resolved.displayName;
+            if (resolved.avatar)      out.avatar_url   = resolved.avatar;
+            out.x_verified = !!resolved.x_verified;
+        } else if (profile) {
+            out.display_name = profile.display_name
+                || (profile.x_verified && profile.x_handle ? '@' + profile.x_handle : null)
+                || profile.username
+                || username;
+            if (profile.x_verified && profile.x_avatar_url) {
+                out.avatar_url = profile.x_avatar_url;
+            } else if (!out.avatar_url && profile.x_avatar_url) {
+                out.avatar_url = profile.x_avatar_url;
+            }
+            out.x_verified = !!profile.x_verified;
         }
 
         /* ── Message count fallback — ONLY for other users ──
-           Self always reads the wallet-keyed column, so a rename
-           can never zero out your own count. */
+           Self always reads the wallet-keyed column. */
         if (!isSelf && !out.messages_count) {
             try {
                 var mc = await sb.from('messages')
@@ -569,7 +645,7 @@
         }
 
         /* ── Streak ──
-           SELF: read live DOM (source of truth = tracking system)
+           SELF: live DOM (tracking system is source of truth)
            OTHER: RPC reads wallet_streaks.login_streak */
         if (isSelf) {
             out.current_streak = readSelfStreakFromDOM();
@@ -597,10 +673,16 @@
 
     /* ── Rendering ────────────────────────────────────────── */
     function avatarHTML(data) {
-        if (data.avatar_url) {
-            return '<img src="' + esc(data.avatar_url) + '" alt="">';
+        var url  = data.avatar_url;
+        var name = data.display_name || data.username || '?';
+        /* Belt-and-braces: prefer canonical resolver when available */
+        var r = resolveIdentity(data.wallet_address || data.username);
+        if (r) {
+            if (r.avatar)      url  = r.avatar;
+            if (r.displayName) name = r.displayName;
         }
-        return esc((data.username || '?').charAt(0).toUpperCase() || '?');
+        if (url) return '<img src="' + esc(url) + '" alt="">';
+        return esc((name.charAt(0) || '?').toUpperCase());
     }
 
     function renderLoading() {
@@ -638,6 +720,12 @@
 
         var online = isSelf ? true : isUserOnline(data.username);
 
+        /* Canonical display name + X badge */
+        var shownName = data.display_name || data.username || 'anon';
+        var xBadge = data.x_verified
+            ? '<span class="msn-x-badge" title="Verified on X" aria-label="Verified on X">𝕏</span>'
+            : '';
+
         var achHTML = '';
         if (data.achievements && data.achievements.length) {
             achHTML = data.achievements.map(function (a) {
@@ -662,12 +750,11 @@
                 + '<button class="msn-action-btn primary" data-msn-profile-action="message">Message</button>';
         }
 
-        /* Show streak row: always for self, only if resolved (>0) for others */
         var showStreakRow = isSelf || streak > 0;
 
         bodyEl.innerHTML = ''
 
-            /* ── Header: avatar left · identity centered in remaining space ── */
+            /* Header — avatar left · identity centered in remaining space */
             + '<div class="msn-profile-head">'
             +   '<div class="msn-profile-avatar-wrap">'
             +     '<div class="msn-profile-avatar">' + avatarHTML(data) + '</div>'
@@ -675,20 +762,18 @@
             +         'title="' + (online ? 'Online' : 'Offline') + '"></span>'
             +   '</div>'
             +   '<div class="msn-profile-identity">'
-            +     '<h2 class="msn-profile-username">' + esc(data.username) + '</h2>'
+            +     '<h2 class="msn-profile-username">' + esc(shownName) + xBadge + '</h2>'
             +     '<p class="msn-profile-signature">' + (data.signature ? esc(data.signature) : '') + '</p>'
             +     '<div class="msn-profile-meta">◆ Joined ' + esc(fmtDate(data.created_at)) + '</div>'
             +   '</div>'
             + '</div>'
 
-            // HUD — 3 stats: Level / XP / Messages
             + '<div class="msn-profile-hud">'
             +   '<div class="msn-hud-stat"><span class="msn-hud-label">Level</span><span class="msn-hud-value">' + level + '</span></div>'
             +   '<div class="msn-hud-stat"><span class="msn-hud-label">XP</span><span class="msn-hud-value">' + esc(fmtNum(xp)) + '</span></div>'
             +   '<div class="msn-hud-stat"><span class="msn-hud-label">Messages</span><span class="msn-hud-value">' + esc(fmtNum(msgs)) + '</span></div>'
             + '</div>'
 
-            // Streak row — fires + count (conditional)
             + (showStreakRow ? renderFireRow(streak) : '')
 
             + '<div class="msn-profile-section-label">Achievements</div>'
@@ -771,18 +856,30 @@
 
     /* ── Open / close ─────────────────────────────────────── */
     var currentToken = 0;
-    async function openProfile(username) {
-        if (!username) return;
+    var currentUsernameOpen = null;
+
+    async function openProfile(usernameOrWallet) {
+        if (!usernameOrWallet) return;
         injectOverlay();
         var token = ++currentToken;
+        currentUsernameOpen = usernameOrWallet;
 
         overlay.classList.add('open');
         renderLoading();
 
         var me = getSelfUsername();
-        var isSelf = (username === me);
+        var isWallet = isWalletLike(usernameOrWallet);
+        var isSelf = !isWallet && (usernameOrWallet === me);
 
-        var data = await fetchProfileData(username, isSelf);
+        /* Resolve wallet from canonical cache — supports both
+           a raw wallet address and a username/display_name. */
+        var wallet = isWallet ? usernameOrWallet : null;
+        if (!wallet) {
+            var r = resolveIdentity(usernameOrWallet);
+            if (r && r.wallet) wallet = r.wallet;
+        }
+
+        var data = await fetchProfileData(usernameOrWallet, isSelf, wallet);
         if (token !== currentToken) return;
 
         if (data.error === 'no-supabase')      { renderError('Connection unavailable'); return; }
@@ -794,28 +891,56 @@
     function closeProfile() {
         if (overlay) overlay.classList.remove('open');
         currentToken++;
+        currentUsernameOpen = null;
     }
+
+    /* ⚑ Live re-render when identity changes for the open profile.
+       Fires right after X auth writes display_name / x_handle, or
+       after any realtime profile update. */
+    document.addEventListener('msn:identity-changed', function (e) {
+        if (!overlay || !overlay.classList.contains('open')) return;
+        if (!currentUsernameOpen) return;
+
+        var changedWallet = e.detail && e.detail.wallet;
+        if (!changedWallet) return;
+
+        /* Does the changed wallet match the currently-open target? */
+        var openWallet = isWalletLike(currentUsernameOpen)
+            ? currentUsernameOpen
+            : (resolveIdentity(currentUsernameOpen) || {}).wallet;
+
+        if (openWallet && openWallet === changedWallet) {
+            openProfile(currentUsernameOpen);
+        }
+    });
 
     /* ── Trigger wiring ───────────────────────────────────── */
     document.addEventListener('click', function (e) {
         var t = e.target;
         if (!t || !t.closest) return;
 
+        /* Chat usernames */
         var unameEl = t.closest('.msg-username');
         if (unameEl) {
             if (t.closest('.msg-actions-container, .msg-time, .user-badge, .msg-edited, .reply-ref-block')) return;
+            var wrap = unameEl.closest('.msg-wrapper');
+            var wallet = wrap && wrap.getAttribute('data-wallet');
             var uname = extractUsernameFromMsgUsername(unameEl);
-            if (uname) { e.preventDefault(); e.stopPropagation(); openProfile(uname); return; }
+            var target = wallet || uname;
+            if (target) { e.preventDefault(); e.stopPropagation(); openProfile(target); return; }
         }
 
+        /* Sidebar avatars */
         var sideAvatar = t.closest('.sidebar-user-item .user-avatar');
         if (sideAvatar) {
             var sideItem = sideAvatar.closest('.sidebar-user-item');
+            var sideWallet = sideItem && sideItem.getAttribute('data-wallet');
             var sideName = sideItem && sideItem.getAttribute('data-username');
-            if (sideName) { e.preventDefault(); e.stopPropagation(); openProfile(sideName); return; }
+            var sideTarget = sideWallet || sideName;
+            if (sideTarget) { e.preventDefault(); e.stopPropagation(); openProfile(sideTarget); return; }
         }
 
-                // Whole profile block is now clickable (pencil excluded so Edit still fires)
+        /* Big profile block — self-view on desktop */
         var bigAvatar = t.closest('.sidebar-user-profile-big .big-avatar');
         if (bigAvatar && !t.closest('button, .edit-profile-btn, #sidebarChangeNameBtn')) {
             var isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -825,12 +950,16 @@
             }
         }
 
+        /* Rankings rows — prefer data-wallet over name text */
         var rankRow = t.closest('#rankingsOverlay .rank-row');
-        if (rankRow && t.closest('.rank-avatar, .rank-name')) {
+        if (rankRow && t.closest('.rank-avatar, .rank-name, .rank-avatar-fallback')) {
+            var rankWallet = rankRow.getAttribute('data-wallet');
             var nameEl = rankRow.querySelector('.rank-name');
-            if (nameEl) {
+            var rankName = nameEl && nameEl.textContent.trim();
+            var rankTarget = rankWallet || rankName;
+            if (rankTarget) {
                 e.preventDefault(); e.stopPropagation();
-                openProfile(nameEl.textContent.trim());
+                openProfile(rankTarget);
                 return;
             }
         }
@@ -869,5 +998,5 @@
         boot();
     }
 
-    console.log('[profile-system] loaded — click any avatar or username');
+    console.log('[profile-system] loaded v3 — click any avatar or username');
 })();
