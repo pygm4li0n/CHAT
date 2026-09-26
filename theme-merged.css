@@ -3330,6 +3330,84 @@ html body .mod-message-box .mod-message-text {
         opacity: 1 !important;
     }
 }
+
+/* ═════════════════════════════════════════════════════
+   ⚑ HEADER LOGO + MINI LOGO SLOTS (DESKTOP ONLY)
+   Tune --header-logo-h to resize the main logo.
+   The 3 mini slots are empty placeholders — drop <img>
+   tags inside them when you have your logos ready.
+═════════════════════════════════════════════════════ */
+@media (min-width: 769px) {
+
+    /* Master size knob — change this one value to resize */
+    :root {
+        --header-logo-h: 48px;     /* main logo height */
+        --header-mini-h: 32px;     /* each mini logo height */
+        --header-mini-gap: 6px;    /* space between them */
+    }
+
+    /* ── Main logo ── */
+    .header-left .header-logo {
+        height: var(--header-logo-h, 48px) !important;
+        width: auto !important;
+        max-width: none !important;
+        object-fit: contain !important;
+        display: block !important;
+    }
+
+    /* ── Wrapper that holds the 3 mini slots ── */
+    .header-left {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+    }
+    .header-mini-logos {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: var(--header-mini-gap, 6px) !important;
+        height: var(--header-mini-h, 32px) !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* ── Each mini slot ── */
+    .header-mini-logo {
+        width: var(--header-mini-h, 32px) !important;
+        height: var(--header-mini-h, 32px) !important;
+        min-width: var(--header-mini-h, 32px) !important;
+        min-height: var(--header-mini-h, 32px) !important;
+
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+
+        border-radius: 6px !important;
+        background: var(--bg-elevated, rgba(255, 255, 255, 0.04)) !important;
+        border: 1px dashed var(--border-default, rgba(255, 255, 255, 0.18)) !important;
+
+        color: var(--text-muted, rgba(255, 255, 255, 0.35)) !important;
+        font-size: 0.7rem !important;
+        font-weight: 800 !important;
+        font-family: var(--font-mono, monospace) !important;
+
+        overflow: hidden !important;
+        flex-shrink: 0 !important;
+        position: relative !important;
+        cursor: default !important;
+        transition: border-color 0.18s ease !important;
+    }
+    .header-mini-logo:hover {
+        border-color: var(--accent-cyan, #01E1EA) !important;
+    }
+
+    /* If you drop an <img> in, it fills the slot */
+    .header-mini-logo img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain !important;
+        display: block !important;
+        pointer-events: none !important;
+    }
+}
 /* ═══════════════════════════════════════════════════════════════════
    ███  END OF FILE  ███
    ═══════════════════════════════════════════════════════════════════ */
