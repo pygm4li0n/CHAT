@@ -9,6 +9,13 @@
      display_name to profiles (main app project), keyed by wallet
    • wallet-identity.js handles the rest via realtime
    Load AFTER wallet-identity.js
+
+   v2 fixes:
+   • Button matches Phantom's 44×44 size exactly
+   • Sign-out clears display_name too (was leaving X name behind)
+   • Force-refresh bypasses cache and runs a delayed retry so
+     the avatar / name swap instantly instead of waiting for
+     realtime to land
    ═══════════════════════════════════════════════════════════ */
 (function () {
     'use strict';
@@ -56,20 +63,26 @@
     }
 
     /* ─────────────────────────────────────────────────────────
-       Styles — the animated X button (compact for header)
+       Styles — 44×44, matches Phantom's footprint exactly
        ───────────────────────────────────────────────────────── */
     function injectStyles() {
         if (document.getElementById('x-auth-styles')) return;
         var css = [
             '.x-auth-btn{',
             '  position:relative!important;overflow:hidden!important;',
+            /* ⚑ match Phantom's box exactly */
+            '  width:44px!important;height:44px!important;',
+            '  min-width:44px!important;min-height:44px!important;',
+            '  padding:0!important;',
+            '  border-radius:8px!important;',
             '  background:linear-gradient(135deg,#1d9bf0 0%,#a855f7 38%,#ff2d95 68%,#00ffc6 100%)!important;',
             '  background-size:280% 280%!important;',
             '  animation:xGs 6s ease infinite!important;',
-            '  border:none!important;color:#fff!important;padding:0!important;',
+            '  border:none!important;color:#fff!important;',
             '  display:inline-flex!important;align-items:center!important;justify-content:center!important;',
-            '  box-shadow:0 8px 24px -8px rgba(168,85,247,.85),0 0 30px -12px rgba(29,155,240,.7)!important;',
+            '  box-shadow:0 6px 20px -8px rgba(168,85,247,.85),0 0 24px -10px rgba(29,155,240,.7)!important;',
             '  transition:filter .2s ease,transform .2s ease!important;',
+            '  cursor:pointer!important;',
             '}',
             '.x-auth-btn::after{',
             '  content:"";position:absolute;top:-60%;left:-70%;width:38%;height:220%;',
@@ -78,8 +91,10 @@
             '}',
             '.x-auth-btn:hover{filter:brightness(1.18) saturate(1.25);transform:translateY(-1px) scale(1.04);}',
             '.x-auth-btn:active{transform:scale(.96);}',
+            /* ⚑ SVG sized to match Phantom's 26px icon */
             '.x-auth-btn svg{',
-            '  width:58%;height:58%;fill:#fff;position:relative;z-index:1;',
+            '  width:24px!important;height:24px!important;',
+            '  fill:#fff;position:relative;z-index:1;',
             '  filter:drop-shadow(0 1px 3px rgba(0,0,0,.35)) drop-shadow(0 0 6px rgba(255,255,255,.5));',
             '}',
             '.x-auth-btn.x-signed-in{',
@@ -155,6 +170,30 @@
     }
 
     /* ─────────────────────────────────────────────────────────
+       Force refresh helper — clears cache, refetches, propagates
+       ⚑ Runs twice (immediate + delayed) so realtime isn't the
+         only path to a fresh render.
+       ───────────────────────────────────────────────────────── */
+    function forceIdentityRefresh(wallet) {
+        if (!wallet) return;
+        if (!window.MSNIdentity || !window.MSNIdentity.fetchProfile) return;
+
+        var doRefresh = function () {
+            window.MSNIdentity.fetchProfile(wallet, true).then(function (p) {
+                if (p && window.MSNIdentity.propagateProfile) {
+                    window.MSNIdentity.propagateProfile(wallet, p);
+                }
+            });
+        };
+
+        // Immediate
+        doRefresh();
+        // Retry shortly after — in case the UPDATE hasn't reached the read replica
+        setTimeout(doRefresh, 700);
+        setTimeout(doRefresh, 1500);
+    }
+
+    /* ─────────────────────────────────────────────────────────
        Write X identity to the main app's profiles table
        ───────────────────────────────────────────────────────── */
     async function applyXToProfile(session) {
@@ -185,22 +224,22 @@
                 updated_at:   new Date().toISOString()
             }).eq('wallet_address', wallet);
 
-            if (error) { console.warn('[x-auth] profile update failed:', error.message); return; }
+            if (error) {
+                console.warn('[x-auth] profile update failed:', error.message);
+                return;
+            }
 
             console.log('[x-auth] X identity applied to', wallet);
             try { localStorage.removeItem('msn_x_pending_wallet'); } catch (e) {}
 
-            // Nudge wallet-identity to re-render immediately (realtime will also fire)
-            if (window.MSNIdentity && window.MSNIdentity.fetchProfile) {
-                window.MSNIdentity.fetchProfile(wallet, true).then(function (p) {
-                    if (p && window.MSNIdentity.propagateProfile) {
-                        window.MSNIdentity.propagateProfile(wallet, p);
-                    }
-                });
-            }
+            forceIdentityRefresh(wallet);
         } catch (e) { console.warn('[x-auth] failed:', e); }
     }
 
+    /* ─────────────────────────────────────────────────────────
+       Sign-out — clears EVERY X-related column including
+       display_name, so the name reverts to the wallet's username
+       ───────────────────────────────────────────────────────── */
     async function clearXFromProfile() {
         var main = getMain();
         var wallet = getWallet();
@@ -210,15 +249,12 @@
                 x_handle:     null,
                 x_verified:   false,
                 x_avatar_url: null,
+                display_name: null,          /* ⚑ this is what reverts the name */
                 updated_at:   new Date().toISOString()
             }).eq('wallet_address', wallet);
-            if (window.MSNIdentity && window.MSNIdentity.fetchProfile) {
-                window.MSNIdentity.fetchProfile(wallet, true).then(function (p) {
-                    if (p && window.MSNIdentity.propagateProfile) {
-                        window.MSNIdentity.propagateProfile(wallet, p);
-                    }
-                });
-            }
+
+            console.log('[x-auth] X identity cleared for', wallet);
+            forceIdentityRefresh(wallet);
         } catch (e) { console.warn('[x-auth] clear failed:', e); }
     }
 
