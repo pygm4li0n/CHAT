@@ -10,12 +10,12 @@
    • wallet-identity.js handles the rest via realtime
    Load AFTER wallet-identity.js
 
-   v2 fixes:
-   • Button matches Phantom's 44×44 size exactly
-   • Sign-out clears display_name too (was leaving X name behind)
-   • Force-refresh bypasses cache and runs a delayed retry so
-     the avatar / name swap instantly instead of waiting for
-     realtime to land
+   v3 fixes:
+   • On OAuth return, dismiss the boot loader immediately so
+     the user lands back in the chat, not a fresh loading screen.
+   • Cache session state on boot, so the first click fires the
+     OAuth redirect without awaiting getSession() first.
+   • Retry header button injection (was firing before Phantom).
    ═══════════════════════════════════════════════════════════ */
 (function () {
     'use strict';
@@ -30,6 +30,13 @@
 
     var authClient = null;
     var mainClient = null;
+
+    /* ⚑ Cached session state — lets handleClick decide instantly
+       without an await, which fixes the "first click does nothing"
+       bug (awaiting getSession() consumes the user gesture before
+       the OAuth redirect fires on some browsers). */
+    var _sessionCache = null;
+    var _sessionKnown = false;
 
     function getAuth() {
         if (authClient) return authClient;
@@ -63,6 +70,26 @@
     }
 
     /* ─────────────────────────────────────────────────────────
+       ⚑ Loader dismissal — kills the boot overlay + the
+         `msn-booting` class so the app is visible right away.
+         Called on OAuth return and on any SIGNED_IN event.
+       ───────────────────────────────────────────────────────── */
+    function dismissBootLoader() {
+        try {
+            document.documentElement.classList.remove('msn-booting');
+            document.documentElement.classList.remove('booting');
+        } catch (e) {}
+
+        var ov = document.getElementById('msnBootOverlay');
+        if (ov) {
+            ov.classList.add('done');
+            setTimeout(function () {
+                if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+            }, 600);
+        }
+    }
+
+    /* ─────────────────────────────────────────────────────────
        Styles — 44×44, matches Phantom's footprint exactly
        ───────────────────────────────────────────────────────── */
     function injectStyles() {
@@ -70,7 +97,6 @@
         var css = [
             '.x-auth-btn{',
             '  position:relative!important;overflow:hidden!important;',
-            /* ⚑ match Phantom's box exactly */
             '  width:44px!important;height:44px!important;',
             '  min-width:44px!important;min-height:44px!important;',
             '  padding:0!important;',
@@ -91,7 +117,6 @@
             '}',
             '.x-auth-btn:hover{filter:brightness(1.18) saturate(1.25);transform:translateY(-1px) scale(1.04);}',
             '.x-auth-btn:active{transform:scale(.96);}',
-            /* ⚑ SVG sized to match Phantom's 26px icon */
             '.x-auth-btn svg{',
             '  width:24px!important;height:24px!important;',
             '  fill:#fff;position:relative;z-index:1;',
@@ -132,18 +157,33 @@
     }
 
     /* ─────────────────────────────────────────────────────────
-       Click handler — sign in or sign out
+       Click handler — synchronous decision from cache
        ───────────────────────────────────────────────────────── */
-    async function handleClick() {
+    function handleClick() {
         var auth = getAuth();
         if (!auth) { console.warn('[x-auth] auth client unavailable'); return; }
 
-        var { data: { session } } = await auth.auth.getSession();
+        // If we don't know the session state yet, ask once then act
+        if (!_sessionKnown) {
+            auth.auth.getSession().then(function ({ data: { session } }) {
+                _sessionCache = session;
+                _sessionKnown = true;
+                _doClickAction(auth, session);
+            });
+            return;
+        }
 
-        // Already signed in → sign out
+        // Cached — decide and act immediately (preserves user gesture)
+        _doClickAction(auth, _sessionCache);
+    }
+
+    async function _doClickAction(auth, session) {
+        // Signed in → sign out
         if (session) {
             await auth.auth.signOut();
             try { history.replaceState(null, '', location.pathname); } catch (e) {}
+            _sessionCache = null;
+            _sessionKnown = true;
             await clearXFromProfile();
             refreshButtons();
             return;
@@ -159,10 +199,13 @@
         // Remember which wallet we're verifying so we know where to write on return
         try { localStorage.setItem('msn_x_pending_wallet', wallet); } catch (e) {}
 
+        // Strip any lingering ?code= / #access_token= before redirect
+        var cleanRedirect = location.origin + location.pathname;
+
         var { error } = await auth.auth.signInWithOAuth({
             provider: 'x',
             options: {
-                redirectTo: location.href.split('?')[0].split('#')[0],
+                redirectTo: cleanRedirect,
                 scopes: 'users.read tweet.read'
             }
         });
@@ -170,9 +213,7 @@
     }
 
     /* ─────────────────────────────────────────────────────────
-       Force refresh helper — clears cache, refetches, propagates
-       ⚑ Runs twice (immediate + delayed) so realtime isn't the
-         only path to a fresh render.
+       Force refresh helper
        ───────────────────────────────────────────────────────── */
     function forceIdentityRefresh(wallet) {
         if (!wallet) return;
@@ -186,9 +227,7 @@
             });
         };
 
-        // Immediate
         doRefresh();
-        // Retry shortly after — in case the UPDATE hasn't reached the read replica
         setTimeout(doRefresh, 700);
         setTimeout(doRefresh, 1500);
     }
@@ -206,7 +245,6 @@
         var handle = m.user_name || m.preferred_username || m.username || '';
         var displayName = m.name || m.full_name || m.display_name || handle || '';
 
-        // Wallet to attach to
         var wallet = getWallet();
         try {
             var pending = localStorage.getItem('msn_x_pending_wallet');
@@ -238,7 +276,7 @@
 
     /* ─────────────────────────────────────────────────────────
        Sign-out — clears EVERY X-related column including
-       display_name, so the name reverts to the wallet's username
+       display_name so the name reverts to the wallet's username
        ───────────────────────────────────────────────────────── */
     async function clearXFromProfile() {
         var main = getMain();
@@ -249,7 +287,7 @@
                 x_handle:     null,
                 x_verified:   false,
                 x_avatar_url: null,
-                display_name: null,          /* ⚑ this is what reverts the name */
+                display_name: null,
                 updated_at:   new Date().toISOString()
             }).eq('wallet_address', wallet);
 
@@ -268,30 +306,34 @@
         btn.setAttribute('aria-label', btn.title);
     }
     function refreshButtons() {
-        var auth = getAuth();
-        if (!auth) return;
-        auth.auth.getSession().then(function ({ data: { session } }) {
-            var s = !!session;
-            markButton(document.getElementById('xConnectBtn'), s);
-            markButton(document.getElementById('sidebarXBtn'), s);
-        });
+        var s = !!_sessionCache;
+        markButton(document.getElementById('xConnectBtn'), s);
+        markButton(document.getElementById('sidebarXBtn'), s);
     }
 
     /* ─────────────────────────────────────────────────────────
        Inject — desktop header (left of Phantom)
+       ⚑ Retries added — Phantom button may not exist yet when
+         x-auth first runs, especially on slow connections.
        ───────────────────────────────────────────────────────── */
     function injectHeaderButton() {
-        if (document.getElementById('xConnectBtn')) return;
+        if (document.getElementById('xConnectBtn')) return true;
         var phantom = document.getElementById('phantomConnectBtn');
-        if (!phantom || !phantom.parentNode) return;
+        if (!phantom || !phantom.parentNode) return false;
         var btn = buildButton('xConnectBtn');
         phantom.parentNode.insertBefore(btn, phantom);
+        return true;
+    }
+    function retryHeaderButton() {
+        if (injectHeaderButton()) return;
+        setTimeout(retryHeaderButton, 200);
+        setTimeout(retryHeaderButton, 600);
+        setTimeout(retryHeaderButton, 1500);
+        setTimeout(retryHeaderButton, 3000);
     }
 
     /* ─────────────────────────────────────────────────────────
        Inject — mobile 2×2 grid (replace the ↻ button)
-       The grid is created by the mobile shim in index.html.
-       Our retries run after each of the shim's retries.
        ───────────────────────────────────────────────────────── */
     function injectMobileGridButton() {
         if (document.getElementById('sidebarXBtn')) return;
@@ -302,11 +344,38 @@
     }
 
     /* ─────────────────────────────────────────────────────────
+       Detect OAuth return — if we came back from X, kill the
+       loader as soon as possible.
+       ───────────────────────────────────────────────────────── */
+    function isOAuthReturn() {
+        try {
+            if (localStorage.getItem('msn_x_pending_wallet')) return true;
+        } catch (e) {}
+        var h = location.href;
+        // PKCE: ?code=...&state=...
+        if (/\?(.*&)?code=/.test(h)) return true;
+        // Implicit: #access_token=...
+        if (/#(.*&)?access_token=/.test(h)) return true;
+        return false;
+    }
+
+    /* ─────────────────────────────────────────────────────────
        Boot
        ───────────────────────────────────────────────────────── */
     function boot() {
         injectStyles();
-        injectHeaderButton();
+
+        // ⚑ If we're returning from X, dismiss the loader NOW —
+        //   don't wait for loading-screen.js to finish its cycle.
+        if (isOAuthReturn()) {
+            dismissBootLoader();
+            // Hide again shortly after in case the loader re-injects
+            setTimeout(dismissBootLoader, 50);
+            setTimeout(dismissBootLoader, 300);
+            setTimeout(dismissBootLoader, 900);
+        }
+
+        retryHeaderButton();
 
         // Shim creates the grid at 600 / 2000 / 5000ms — we run after each
         setTimeout(injectMobileGridButton, 900);
@@ -316,19 +385,31 @@
         var auth = getAuth();
         if (!auth) { console.warn('[x-auth] supabase sdk missing'); return; }
 
-        // Initial state + handle OAuth return
+        // Prime the session cache + handle OAuth return
         auth.auth.getSession().then(function ({ data: { session } }) {
-            var s = !!session;
-            markButton(document.getElementById('xConnectBtn'), s);
-            markButton(document.getElementById('sidebarXBtn'), s);
-            if (session) applyXToProfile(session);
+            _sessionCache = session;
+            _sessionKnown = true;
+
+            refreshButtons();
+
+            if (session) {
+                // ⚑ We're signed in (typically after OAuth return) —
+                //   apply X identity and dismiss the loader.
+                dismissBootLoader();
+                applyXToProfile(session);
+            }
         });
 
         auth.auth.onAuthStateChange(function (event, session) {
-            var s = !!session;
-            markButton(document.getElementById('xConnectBtn'), s);
-            markButton(document.getElementById('sidebarXBtn'), s);
-            if (session) applyXToProfile(session);
+            _sessionCache = session;
+            _sessionKnown = true;
+
+            refreshButtons();
+
+            if (session) {
+                dismissBootLoader();
+                applyXToProfile(session);
+            }
             if (event === 'SIGNED_OUT') {
                 try { history.replaceState(null, '', location.pathname); } catch (e) {}
             }
@@ -340,5 +421,5 @@
     } else {
         boot();
     }
-    console.log('[x-auth] loaded');
+    console.log('[x-auth] loaded v3');
 })();
