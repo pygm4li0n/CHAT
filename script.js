@@ -3082,6 +3082,7 @@ function showSuccess(msg) {
             }
 
             // ⚑ Boot sequence complete — release the loading screen
+            window.__msnAppReady = true;
             try { document.dispatchEvent(new CustomEvent('msn:app-ready')); } catch (e) {}
         } else {
         const lastUsername = localStorage.getItem(LAST_USERNAME_KEY);
@@ -3117,6 +3118,7 @@ function showSuccess(msg) {
             subscribeToRealtime();
 
             // ⚑ Boot sequence complete — release the loading screen
+            window.__msnAppReady = true;
             try { document.dispatchEvent(new CustomEvent('msn:app-ready')); } catch (e) {}
         }
         document.addEventListener('visibilitychange', () => {
