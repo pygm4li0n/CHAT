@@ -1,23 +1,17 @@
 /* =========================================================
-   RANKINGS — CELL EDITION v5.1  ·  "SOFT METAL"
+   RANKINGS — CLEAN EDITION v6
    ---------------------------------------------------------
-   #1  GOLDEN    · warm gold rim · soft aura · slow sweep beam
-   #2  PLATINUM  · plated chrome edge · slow diagonal shimmer
-   #3  BRONZE    · quiet, restrained
-   ---------------------------------------------------------
-   Fully theme-aware — dark AND light.
-   Calmer palette · better contrast · no visual scrollbar.
-   Exactly 10 slots per column — placeholders fill the gap.
-   ---------------------------------------------------------
-   NOTE (JS side, already wired in the companion script):
-   · pad each .rankings-list to 10 real+placeholder rows
-   · placeholder row = <div class="rank-row is-placeholder">
-   · toggle .is-scrollable on the list when it overflows
+   • Every row looks the same — clean, legible, theme-aware.
+   • Per-column accent bar (cyan for holders, orange for activity).
+   • No gold rim. No platinum shimmer. No bronze tint.
+   • No glow, no gradients, no animated beams, no holo header.
+   • Top-3 emphasized only by size — never by color.
+   • Exactly 10 slots per column — placeholders fill the gap.
    ========================================================= */
 
 
 /* ══════════════════════════════════════════════════════════
-   1 · THEME TOKENS  (dark = default)
+   1 · THEME TOKENS
    ══════════════════════════════════════════════════════════ */
 #rankingsOverlay {
     color-scheme: dark;
@@ -42,7 +36,6 @@
 
     --rk-shadow:      0 26px 70px rgba(0, 0, 0, .68);
     --rk-row-shadow:  0 4px 14px rgba(0, 0, 0, .28);
-    --rk-hero-shadow: 0 8px 26px rgba(0, 0, 0, .38);
 
     --rk-col-bg:
         linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, 0) 32%),
@@ -54,41 +47,12 @@
     --rk-hover-a: rgba(1, 225, 234, .07);
     --rk-hover-b: rgba(1, 225, 234, .015);
 
-    /* — GOLD (desaturated, warm, legible) — */
-    --rk-gold:        #E3B255;
-    --rk-gold-hi:     #FFEFC6;
-    --rk-gold-deep:   #8E5A0B;
-    --rk-gold-name:   #F6E6C1;
-    --rk-gold-ink:    #EBC781;
-    --rk-gold-head:   #EBC781;
-    --rk-gold-tint-a: rgba(227, 178, 85, .10);
-    --rk-gold-tint-b: rgba(227, 178, 85, .035);
-    --rk-gold-glow:   rgba(227, 178, 85, .20);
-    --rk-gold-rim: linear-gradient(115deg,
-        #6B4405 0%, #E3B255 12%, #FFF0C9 21%, #D9A63F 32%,
-        #8E5A0B 43%, #F2D48C 54%, #D9A63F 65%, #6B4405 77%,
-        #E3B255 88%, #FFF0C9 95%, #D9A63F 100%);
-
-    /* — PLATINUM — */
-    --rk-plat-name:   #DBE5F1;
-    --rk-plat-ink:    #C3D2E3;
-    --rk-plat-head:   #CCDAE9;
-    --rk-plat-tint-a: rgba(180, 205, 235, .08);
-    --rk-plat-tint-b: rgba(180, 205, 235, .022);
-    --rk-plat-glow:   rgba(160, 195, 235, .16);
-    --rk-plat-shim:   rgba(210, 232, 255, .11);
-    --rk-plat-rim: linear-gradient(150deg,
-        #EEF4FA 0%, #BFD0E1 16%, #7E92A8 32%, #E9F1F8 48%,
-        #A2B6C9 64%, #67798E 82%, #D8E4EF 100%);
-
-    /* — BRONZE — */
-    --rk-bronze-name: #DFA06A;
-    --rk-bronze-ink:  #CC9055;
-    --rk-bronze-line: rgba(204, 144, 85, .28);
-    --rk-bronze-glow: rgba(204, 144, 85, .20);
+    /* — per-column accents — */
+    --rk-col1: var(--accent-cyan,   #01e1ea);
+    --rk-col2: var(--accent-orange, #f68c16);
 }
 
-/* ── LIGHT THEME TOKENS (system preference) ─────────────── */
+/* ── LIGHT THEME (system preference) ─────────────────────── */
 @media (prefers-color-scheme: light) {
     #rankingsOverlay:not([data-theme="dark"]):not(.dark):not(.is-dark):not(.theme-dark) {
         color-scheme: light;
@@ -101,9 +65,8 @@
         --rk-shade:     rgba(16, 26, 40, .04);
         --rk-scroll:    rgba(16, 26, 40, .18);
 
-        --rk-shadow:      0 24px 60px rgba(16, 26, 40, .16);
-        --rk-row-shadow:  0 3px 12px rgba(16, 26, 40, .10);
-        --rk-hero-shadow: 0 8px 24px rgba(16, 26, 40, .13);
+        --rk-shadow:     0 24px 60px rgba(16, 26, 40, .16);
+        --rk-row-shadow: 0 3px 12px rgba(16, 26, 40, .10);
 
         --rk-col-bg:
             linear-gradient(180deg, rgba(255, 255, 255, .92), rgba(255, 255, 255, .55)),
@@ -112,29 +75,6 @@
 
         --rk-hover-a: rgba(0, 140, 160, .085);
         --rk-hover-b: rgba(0, 140, 160, .025);
-
-        --rk-gold-name:   #3E2B00;
-        --rk-gold-ink:    #78500A;
-        --rk-gold-head:   #8F5E00;
-        --rk-gold-tint-a: rgba(206, 150, 40, .16);
-        --rk-gold-tint-b: rgba(206, 150, 40, .05);
-        --rk-gold-glow:   rgba(140, 95, 0, .16);
-
-        --rk-plat-name:   #22364A;
-        --rk-plat-ink:    #2B4055;
-        --rk-plat-head:   #3D5468;
-        --rk-plat-tint-a: rgba(70, 105, 150, .10);
-        --rk-plat-tint-b: rgba(70, 105, 150, .025);
-        --rk-plat-glow:   rgba(60, 100, 155, .14);
-        --rk-plat-shim:   rgba(80, 125, 180, .11);
-        --rk-plat-rim: linear-gradient(150deg,
-            #FFFFFF 0%, #B4C7D9 16%, #64798F 32%, #FFFFFF 48%,
-            #8BA2B8 64%, #4E6277 82%, #D6E3EF 100%);
-
-        --rk-bronze-name: #6C390A;
-        --rk-bronze-ink:  #82461A;
-        --rk-bronze-line: rgba(148, 84, 25, .30);
-        --rk-bronze-glow: rgba(148, 84, 25, .16);
     }
 }
 
@@ -156,9 +96,8 @@
     --rk-shade:     rgba(16, 26, 40, .04);
     --rk-scroll:    rgba(16, 26, 40, .18);
 
-    --rk-shadow:      0 24px 60px rgba(16, 26, 40, .16);
-    --rk-row-shadow:  0 3px 12px rgba(16, 26, 40, .10);
-    --rk-hero-shadow: 0 8px 24px rgba(16, 26, 40, .13);
+    --rk-shadow:     0 24px 60px rgba(16, 26, 40, .16);
+    --rk-row-shadow: 0 3px 12px rgba(16, 26, 40, .10);
 
     --rk-col-bg:
         linear-gradient(180deg, rgba(255, 255, 255, .92), rgba(255, 255, 255, .55)),
@@ -167,34 +106,11 @@
 
     --rk-hover-a: rgba(0, 140, 160, .085);
     --rk-hover-b: rgba(0, 140, 160, .025);
-
-    --rk-gold-name:   #3E2B00;
-    --rk-gold-ink:    #78500A;
-    --rk-gold-head:   #8F5E00;
-    --rk-gold-tint-a: rgba(206, 150, 40, .16);
-    --rk-gold-tint-b: rgba(206, 150, 40, .05);
-    --rk-gold-glow:   rgba(140, 95, 0, .16);
-
-    --rk-plat-name:   #22364A;
-    --rk-plat-ink:    #2B4055;
-    --rk-plat-head:   #3D5468;
-    --rk-plat-tint-a: rgba(70, 105, 150, .10);
-    --rk-plat-tint-b: rgba(70, 105, 150, .025);
-    --rk-plat-glow:   rgba(60, 100, 155, .14);
-    --rk-plat-shim:   rgba(80, 125, 180, .11);
-    --rk-plat-rim: linear-gradient(150deg,
-        #FFFFFF 0%, #B4C7D9 16%, #64798F 32%, #FFFFFF 48%,
-        #8BA2B8 64%, #4E6277 82%, #D6E3EF 100%);
-
-    --rk-bronze-name: #6C390A;
-    --rk-bronze-ink:  #82461A;
-    --rk-bronze-line: rgba(148, 84, 25, .30);
-    --rk-bronze-glow: rgba(148, 84, 25, .16);
 }
 
 
 /* ══════════════════════════════════════════════════════════
-   2 · CARD
+   2 · CARD — clean dark panel
    ══════════════════════════════════════════════════════════ */
 #rankingsOverlay .rankings-card {
     max-width: 1180px !important;
@@ -230,39 +146,26 @@
     border-radius: 99px !important;
 }
 
-/* gold → platinum hairline across the top */
+/* Top hairline — subtle, no color gradient */
 #rankingsOverlay .rankings-card::before {
     content: '' !important;
     position: absolute !important;
     top: 0 !important; left: 0 !important; right: 0 !important;
     height: 1px !important;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        var(--rk-gold) 18%,
-        var(--rk-gold-hi) 32%,
-        var(--rk-plat-head) 68%,
-        transparent 100%) !important;
-    opacity: .55 !important;
+    background: rgba(255, 255, 255, .10) !important;
     pointer-events: none !important;
     z-index: 3 !important;
 }
 
+/* Decorative background — removed */
 #rankingsOverlay .rankings-card::after {
-    content: '' !important;
-    position: absolute !important;
-    inset: 0 !important;
-    z-index: 0 !important;
-    pointer-events: none !important;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%234f8fff' stroke-width='1' stroke-opacity='0.18'%3E%3Cpath d='M10 0v40h40v30'/%3E%3Cpath d='M160 30h-50v40'/%3E%3Cpath d='M0 110h60v50'/%3E%3Cpath d='M110 160v-40h50'/%3E%3Cpath d='M80 0v25'/%3E%3Cpath d='M80 160v-25'/%3E%3C/g%3E%3Cg fill='%234f8fff' fill-opacity='0.30'%3E%3Ccircle cx='50' cy='70' r='2'/%3E%3Ccircle cx='110' cy='70' r='2'/%3E%3Ccircle cx='60' cy='110' r='2'/%3E%3Ccircle cx='110' cy='120' r='2'/%3E%3C/g%3E%3C/svg%3E") !important;
-    background-size: 160px 160px !important;
-    -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 0%, transparent 72%) !important;
-            mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 0%, transparent 72%) !important;
-    opacity: .28 !important;
+    content: none !important;
+    display: none !important;
 }
 
 
 /* ══════════════════════════════════════════════════════════
-   3 · HEADER
+   3 · HEADER — plain title, no gradient
    ══════════════════════════════════════════════════════════ */
 #rankingsOverlay .rankings-header {
     position: relative !important;
@@ -282,24 +185,25 @@
     flex: 1 1 auto !important;
     max-width: 340px !important;
     height: 1px !important;
-}
-#rankingsOverlay .rankings-header::before {
-    background: linear-gradient(90deg, transparent, var(--rk-line-2)) !important;
-}
-#rankingsOverlay .rankings-header::after {
-    background: linear-gradient(90deg, var(--rk-line-2), transparent) !important;
+    background: var(--rk-line-2) !important;
 }
 #rankingsOverlay .rankings-header h3 {
     font-family: var(--font-mono) !important;
-    font-size: 1.55rem !important;
+    font-size: 1.4rem !important;
     font-weight: 900 !important;
-    letter-spacing: .52em !important;
-    margin: 0 -.52em 0 0 !important;
+    letter-spacing: .42em !important;
+    margin: 0 -.42em 0 0 !important;
     text-transform: uppercase !important;
     line-height: 1 !important;
     white-space: nowrap !important;
     color: var(--rk-ink-1) !important;
-    text-shadow: 0 0 14px var(--rk-gold-glow) !important;
+    background: none !important;
+    -webkit-background-clip: initial !important;
+            background-clip: initial !important;
+    -webkit-text-fill-color: currentColor !important;
+    text-shadow: none !important;
+    filter: none !important;
+    animation: none !important;
 }
 
 #rankingsOverlay .rankings-close-btn {
@@ -363,7 +267,7 @@
     border-left: 1px solid var(--rk-line-1) !important;
 }
 
-/* column titles */
+/* Column titles — plain accent color, no glow, no underline bar */
 #rankingsOverlay .rankings-column-title {
     font-family: var(--font-mono) !important;
     font-size: .7rem !important;
@@ -379,26 +283,22 @@
     align-items: center !important;
     justify-content: space-between !important;
     gap: 8px !important;
+    text-shadow: none !important;
 }
 #rankingsOverlay .rankings-column-title::after {
-    content: '' !important;
-    position: absolute !important;
-    bottom: -1px !important;
-    left: 0 !important;
-    width: 56px !important;
-    height: 2px !important;
-    background: currentColor !important;
-    box-shadow: 0 0 10px currentColor !important;
-    border-radius: 2px !important;
+    content: none !important;
+    display: none !important;
 }
-#rankingsOverlay .rankings-column:nth-child(1) .rankings-column-title { color: var(--accent-cyan, #01e1ea) !important; }
-#rankingsOverlay .rankings-column:nth-child(2) .rankings-column-title { color: var(--accent-orange, #f68c16) !important; }
+#rankingsOverlay .rankings-column:nth-child(1) .rankings-column-title { color: var(--rk-col1) !important; }
+#rankingsOverlay .rankings-column:nth-child(2) .rankings-column-title { color: var(--rk-col2) !important; }
 
-/* ── list viewport: exactly 10 slots, invisible scrollbar ── */
+
+/* ══════════════════════════════════════════════════════════
+   5 · LIST VIEWPORT — exactly 10 slots, invisible scrollbar
+   ══════════════════════════════════════════════════════════ */
 #rankingsOverlay .rankings-list {
-    /* tunable slot geometry (change these to resize the viewport) */
     --rk-row-h:  56px;
-    --rk-hero-h: 104px;
+    --rk-hero-h: 76px;
     --rk-gap:    6px;
 
     display: flex !important;
@@ -407,7 +307,6 @@
     flex: 0 0 auto !important;
     min-height: 0 !important;
 
-    /* exactly 10 slots tall (1 hero + 9 standard) */
     max-height: calc(
         var(--rk-hero-h) + 9 * var(--rk-row-h) + 11 * var(--rk-gap) + 6px
     ) !important;
@@ -418,7 +317,6 @@
     counter-reset: rank !important;
     overscroll-behavior: contain !important;
 
-    /* — invisible scrollbar — */
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
 }
@@ -426,7 +324,6 @@
 #rankingsOverlay .rankings-list::-webkit-scrollbar-track,
 #rankingsOverlay .rankings-list::-webkit-scrollbar-thumb { background: transparent !important; }
 
-/* soft fade at the bottom — only when there IS more to scroll */
 #rankingsOverlay .rankings-list.is-scrollable {
     -webkit-mask-image: linear-gradient(180deg,
         #000 0,
@@ -438,7 +335,6 @@
         rgba(0, 0, 0, .10) 100%) !important;
 }
 
-/* fixed slot heights (single-line layout) */
 @media (min-width: 769px) {
     #rankingsOverlay .rankings-list > .rank-row {
         height: var(--rk-row-h) !important;
@@ -452,12 +348,11 @@
 @media (max-width: 1180px) and (min-width: 769px) {
     #rankingsOverlay .rankings-list {
         --rk-row-h:  54px;
-        --rk-hero-h: 100px;
+        --rk-hero-h: 74px;
         --rk-gap:    6px;
     }
 }
 
-/* empty state */
 #rankingsOverlay .rankings-empty {
     display: flex !important;
     align-items: center !important;
@@ -483,7 +378,8 @@
 
 
 /* ══════════════════════════════════════════════════════════
-   5 · ROW BASE
+   6 · ROW — uniform clean style for ALL ranks
+   Left border color is set per column below.
    ══════════════════════════════════════════════════════════ */
 #rankingsOverlay .rankings-list > .rank-row {
     counter-increment: rank !important;
@@ -493,9 +389,11 @@
     gap: 14px !important;
     padding: 9px 16px 9px 12px !important;
     min-height: 56px !important;
-    border-radius: 11px !important;
-    background: linear-gradient(180deg, var(--rk-surface-2), var(--rk-surface-1)) !important;
-    border: 1px solid var(--rk-line-1) !important;
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, .03) !important;
+    background-image: none !important;
+    border: 1px solid rgba(255, 255, 255, .08) !important;
+    border-left: 3px solid var(--rk-col1) !important;
     font-family: var(--font-mono) !important;
     font-size: .8rem !important;
     color: var(--rk-ink-1) !important;
@@ -503,12 +401,19 @@
     overflow: hidden !important;
     contain: layout style paint !important;
     box-shadow: none !important;
+    transform: none !important;
+    animation: none !important;
     transition:
         background .18s ease,
         border-color .18s ease,
-        box-shadow .18s ease,
-        transform .18s ease !important;
+        box-shadow .18s ease !important;
 }
+/* Column 2 rows get the orange bar */
+#rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row {
+    border-left-color: var(--rk-col2) !important;
+}
+
+/* Rank number — muted, tabular */
 #rankingsOverlay .rankings-list > .rank-row::before {
     content: counter(rank, decimal-leading-zero) !important;
     display: flex !important;
@@ -516,56 +421,48 @@
     justify-content: center !important;
     font-family: var(--font-mono) !important;
     font-size: .76rem !important;
-    font-weight: 900 !important;
+    font-weight: 800 !important;
     letter-spacing: .02em !important;
     line-height: 1 !important;
     font-variant-numeric: tabular-nums !important;
     color: var(--rk-ink-3) !important;
-    transition: color .18s ease, text-shadow .18s ease !important;
-}
-#rankingsOverlay .rankings-list > .rank-row::after {
-    content: '' !important;
-    position: absolute !important;
-    top: 0 !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: auto !important;
-    width: 2px !important;
-    background: transparent !important;
-    border-radius: 11px 0 0 11px !important;
-    pointer-events: none !important;
-    transition: background .18s ease, box-shadow .18s ease !important;
+    text-shadow: none !important;
+    transition: color .18s ease !important;
 }
 
-/* avatars */
+/* Right-edge bar — none */
+#rankingsOverlay .rankings-list > .rank-row::after {
+    content: none !important;
+    display: none !important;
+}
+
+/* Avatar — plain box, no glow */
 #rankingsOverlay .rank-avatar,
 #rankingsOverlay .rank-avatar-fallback {
     width: 38px !important;
     height: 38px !important;
     min-width: 38px !important;
     min-height: 38px !important;
-    border-radius: 11px !important;
+    border-radius: 10px !important;
     object-fit: cover !important;
     flex-shrink: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    background:
-        linear-gradient(180deg, var(--rk-surface-2), var(--rk-surface-1)),
-        var(--bg-input, transparent) !important;
-    border: 1px solid var(--rk-line-2) !important;
-    color: var(--rk-ink-2) !important;
+    background: rgba(0, 0, 0, .35) !important;
+    border: 1px solid rgba(255, 255, 255, .15) !important;
+    color: var(--rk-col1) !important;
     font-family: var(--font-mono) !important;
-    font-weight: 900 !important;
+    font-weight: 800 !important;
     font-size: .78rem !important;
     line-height: 1 !important;
     letter-spacing: .02em !important;
     user-select: none !important;
-    box-shadow: inset 0 1px 0 var(--rk-inset) !important;
-    transition: border-color .18s ease, box-shadow .18s ease, color .18s ease !important;
+    box-shadow: none !important;
+    transition: border-color .18s ease, color .18s ease !important;
 }
 
-/* info block */
+/* Info block */
 #rankingsOverlay .rank-info,
 #rankingsOverlay .rank-meta-block {
     display: flex !important;
@@ -577,10 +474,11 @@
 #rankingsOverlay .rank-name {
     font-size: .84rem !important;
     font-weight: 800 !important;
-    letter-spacing: .07em !important;
+    letter-spacing: .06em !important;
     line-height: 1.1 !important;
     text-transform: uppercase !important;
-    color: var(--rk-ink-1) !important;
+    color: #ffffff !important;
+    text-shadow: none !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
@@ -599,9 +497,9 @@
     gap: 4px !important;
     padding: 2px 7px !important;
     border-radius: 4px !important;
-    background: var(--rk-hover-b) !important;
-    border: 1px solid var(--rk-line-2) !important;
-    color: var(--rk-ink-2) !important;
+    background: rgba(255, 255, 255, .05) !important;
+    border: 1px solid rgba(255, 255, 255, .10) !important;
+    color: rgba(255, 255, 255, .65) !important;
     font-family: var(--font-mono) !important;
     font-size: .60rem !important;
     font-weight: 800 !important;
@@ -609,10 +507,11 @@
     text-transform: uppercase !important;
     white-space: nowrap !important;
     line-height: 1.5 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
 }
 #rankingsOverlay .rank-detail {
-    color: var(--rk-ink-2) !important;
-    opacity: .82 !important;
+    color: rgba(255, 255, 255, .55) !important;
     font-size: .66rem !important;
     font-weight: 700 !important;
     letter-spacing: .12em !important;
@@ -620,9 +519,10 @@
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
+    text-shadow: none !important;
 }
 
-/* stats */
+/* Stats */
 #rankingsOverlay .rank-stats {
     display: flex !important;
     align-items: center !important;
@@ -633,188 +533,132 @@
 #rankingsOverlay .rank-score {
     min-width: 96px !important;
     text-align: right !important;
-    font-weight: 900 !important;
-    font-size: .9rem !important;
+    font-weight: 800 !important;
+    font-size: .88rem !important;
     letter-spacing: .04em !important;
     line-height: 1 !important;
     font-variant-numeric: tabular-nums !important;
     white-space: nowrap !important;
-    color: var(--rk-ink-1) !important;
+    color: var(--rk-col1) !important;
+    text-shadow: none !important;
+}
+#rankingsOverlay .rankings-column:nth-child(2) .rank-score {
+    color: var(--rk-col2) !important;
 }
 
-/* hover */
+/* Hover — subtle lighten, no translation, no glow */
 #rankingsOverlay .rankings-list > .rank-row:hover {
-    background: linear-gradient(180deg, var(--rk-hover-a), var(--rk-hover-b)) !important;
-    border-color: var(--rk-accent) !important;
-    box-shadow:
-        inset 0 1px 0 var(--rk-inset),
-        var(--rk-row-shadow) !important;
-    transform: translateX(2px) !important;
+    background: rgba(255, 255, 255, .06) !important;
+    border-color: rgba(255, 255, 255, .15) !important;
+    border-left-color: var(--rk-col1) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .4) !important;
+    transform: none !important;
+}
+#rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:hover {
+    border-left-color: var(--rk-col2) !important;
 }
 #rankingsOverlay .rankings-list > .rank-row:hover::before {
-    color: var(--rk-accent) !important;
-    text-shadow: 0 0 12px var(--rk-accent) !important;
-}
-#rankingsOverlay .rankings-list > .rank-row:hover::after {
-    background: var(--rk-accent) !important;
-    box-shadow: 0 0 12px var(--rk-accent) !important;
+    color: rgba(255, 255, 255, .85) !important;
+    text-shadow: none !important;
 }
 #rankingsOverlay .rankings-list > .rank-row:hover .rank-avatar,
 #rankingsOverlay .rankings-list > .rank-row:hover .rank-avatar-fallback {
-    border-color: var(--rk-accent) !important;
-    box-shadow:
-        inset 0 1px 0 var(--rk-inset),
-        0 0 16px var(--rk-hover-a) !important;
+    border-color: var(--rk-col1) !important;
+    box-shadow: none !important;
+}
+#rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:hover .rank-avatar,
+#rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:hover .rank-avatar-fallback {
+    border-color: var(--rk-col2) !important;
 }
 
 
 /* ══════════════════════════════════════════════════════════
-   6 · #1 — GOLDEN HERO (restrained)
+   7 · TOP-3 EMPHASIS — size only, never color
    ══════════════════════════════════════════════════════════ */
+
+/* #1 — a bit taller with a slightly bigger avatar and score */
 #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) {
-    grid-template-columns: 46px 66px minmax(0, 1fr) auto !important;
-    gap: 18px !important;
-    min-height: 106px !important;
-    padding: 18px 22px 18px 16px !important;
-    margin-bottom: 6px !important;
-    border-radius: 14px !important;
-    background:
-        linear-gradient(180deg, var(--rk-gold-tint-a) 0%, var(--rk-gold-tint-b) 46%, rgba(0, 0, 0, 0) 100%),
-        linear-gradient(180deg, var(--rk-surface-2), var(--rk-surface-1)) !important;
-    border: 1px solid rgba(227, 178, 85, .30) !important;
-    box-shadow:
-        inset 0 1px 0 var(--rk-inset),
-        0 4px 18px rgba(0, 0, 0, .26) !important;
-}
-#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder):hover {
-    transform: none !important;
-    border-color: rgba(227, 178, 85, .52) !important;
-    background:
-        linear-gradient(180deg, var(--rk-gold-tint-a) 0%, var(--rk-gold-tint-b) 46%, rgba(0, 0, 0, 0) 100%),
-        linear-gradient(180deg, var(--rk-surface-2), var(--rk-surface-1)) !important;
-    box-shadow:
-        inset 0 1px 0 var(--rk-inset),
-        0 0 22px var(--rk-gold-glow),
-        var(--rk-hero-shadow) !important;
+    grid-template-columns: 40px 46px minmax(0, 1fr) auto !important;
+    gap: 16px !important;
+    min-height: 76px !important;
+    padding: 12px 20px 12px 14px !important;
+    border-left-width: 4px !important;
+    border-radius: 10px !important;
 }
 #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder)::before {
-    font-size: 1.55rem !important;
+    font-size: 1rem !important;
     font-weight: 900 !important;
-    letter-spacing: 0 !important;
-    color: var(--rk-gold-ink) !important;
-    text-shadow: 0 0 14px var(--rk-gold-glow) !important;
-}
-#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder)::after {
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: auto !important;
-    width: auto !important;
-    height: 2px !important;
-    border-radius: 14px 14px 0 0 !important;
-    background: linear-gradient(90deg, transparent, var(--rk-gold) 50%, transparent) !important;
-    box-shadow: 0 0 10px var(--rk-gold-glow) !important;
-    opacity: .85 !important;
+    color: rgba(255, 255, 255, .85) !important;
 }
 #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar,
 #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar-fallback {
-    width: 66px !important;
-    height: 66px !important;
-    min-width: 66px !important;
-    min-height: 66px !important;
-    border-radius: 17px !important;
-    font-size: 1.15rem !important;
-    color: var(--rk-gold-ink) !important;
-    border-color: rgba(227, 178, 85, .40) !important;
-    box-shadow:
-        inset 0 1px 0 var(--rk-inset),
-        0 0 14px var(--rk-gold-glow) !important;
+    width: 46px !important;
+    height: 46px !important;
+    min-width: 46px !important;
+    min-height: 46px !important;
+    border-radius: 12px !important;
+    font-size: 1rem !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-info { gap: 8px !important; }
 #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-name {
-    font-size: 1.06rem !important;
-    letter-spacing: .09em !important;
-    color: var(--rk-gold-name) !important;
-    text-shadow: 0 0 12px var(--rk-gold-glow) !important;
-}
-#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-level {
-    font-size: .6rem !important;
-    padding: 3px 9px !important;
-    color: var(--rk-gold-ink) !important;
-    background: var(--rk-gold-tint-b) !important;
-    border-color: rgba(227, 178, 85, .30) !important;
-}
-#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-detail {
-    font-size: .66rem !important;
-    color: var(--rk-ink-2) !important;
-}
-#rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-stats {
-    flex-direction: column !important;
-    align-items: flex-end !important;
-    gap: 9px !important;
+    font-size: .92rem !important;
+    letter-spacing: .08em !important;
 }
 #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-score {
-    min-width: 130px !important;
-    font-size: 1.5rem !important;
-    letter-spacing: .03em !important;
-    color: var(--rk-gold-ink) !important;
-    text-shadow: 0 0 14px var(--rk-gold-glow) !important;
+    font-size: 1rem !important;
+    min-width: 110px !important;
 }
 
-
-/* ══════════════════════════════════════════════════════════
-   7 · #2 PLATINUM  /  #3 BRONZE  (restrained)
-   ══════════════════════════════════════════════════════════ */
-#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) {
-    border-color: rgba(180, 205, 235, .24) !important;
-    background:
-        linear-gradient(180deg, var(--rk-plat-tint-a) 0%, var(--rk-plat-tint-b) 55%, rgba(0, 0, 0, 0) 100%),
-        linear-gradient(180deg, var(--rk-surface-2), var(--rk-surface-1)) !important;
-    box-shadow:
-        inset 0 1px 0 var(--rk-inset),
-        0 3px 14px rgba(0, 0, 0, .14) !important;
+/* #2 and #3 — same clean look (no color change) */
+#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder),
+#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) {
+    background: rgba(255, 255, 255, .03) !important;
+    background-image: none !important;
+    border-color: rgba(255, 255, 255, .08) !important;
+    border-left: 3px solid var(--rk-col1) !important;
+    box-shadow: none !important;
+    animation: none !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder)::before {
-    color: var(--rk-plat-ink) !important;
-    text-shadow: 0 0 8px var(--rk-plat-glow) !important;
+#rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(2):not(.is-placeholder),
+#rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) {
+    border-left-color: var(--rk-col2) !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder)::after {
-    background: linear-gradient(180deg, transparent, var(--rk-plat-ink), transparent) !important;
-    box-shadow: 0 0 8px var(--rk-plat-glow) !important;
+#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder)::before,
+#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder)::before {
+    color: var(--rk-ink-3) !important;
+    text-shadow: none !important;
+    font-size: .76rem !important;
+    font-weight: 800 !important;
+}
+#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-name,
+#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-name {
+    color: #ffffff !important;
+}
+#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-score,
+#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-score {
+    color: var(--rk-col1) !important;
+}
+#rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-score,
+#rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-score {
+    color: var(--rk-col2) !important;
 }
 #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar,
-#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar-fallback {
-    border-color: rgba(190, 215, 240, .34) !important;
-    color: var(--rk-plat-ink) !important;
-    box-shadow:
-        inset 0 1px 0 var(--rk-inset),
-        0 0 9px var(--rk-plat-glow) !important;
-}
-#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-name  { color: var(--rk-plat-name) !important; }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-score { color: var(--rk-plat-name) !important; }
-
-/* bronze */
-#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) {
-    border-color: var(--rk-bronze-line) !important;
-}
-#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder)::before {
-    color: var(--rk-bronze-ink) !important;
-    text-shadow: 0 0 8px var(--rk-bronze-glow) !important;
-}
-#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder)::after {
-    background: var(--rk-bronze-ink) !important;
-}
+#rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar-fallback,
 #rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-avatar,
 #rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-avatar-fallback {
-    border-color: var(--rk-bronze-line) !important;
-    color: var(--rk-bronze-ink) !important;
+    border-color: rgba(255, 255, 255, .15) !important;
+    color: var(--rk-col1) !important;
+    box-shadow: none !important;
 }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-name  { color: var(--rk-bronze-name) !important; }
-#rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-score { color: var(--rk-bronze-name) !important; }
+#rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar,
+#rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar-fallback,
+#rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-avatar,
+#rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-avatar-fallback {
+    color: var(--rk-col2) !important;
+}
 
 
 /* ══════════════════════════════════════════════════════════
-   8 · BADGES
+   8 · BADGES  (functional, unchanged)
    ══════════════════════════════════════════════════════════ */
 #rankingsOverlay .rank-badge {
     display: inline-flex !important;
@@ -836,7 +680,7 @@
     transition: color .18s, background .18s, border-color .18s !important;
 }
 #rankingsOverlay .rank-badge.is-live { color: #17a06a !important; background: rgba(61, 220, 151, .10) !important; border-color: rgba(61, 220, 151, .38) !important; }
-#rankingsOverlay .rank-badge.is-hot  { color: var(--rk-gold-ink) !important; background: var(--rk-gold-tint-b) !important; border-color: rgba(227, 178, 85, .30) !important; }
+#rankingsOverlay .rank-badge.is-hot  { color: #e3b255 !important; background: rgba(227, 178, 85, .08) !important; border-color: rgba(227, 178, 85, .30) !important; }
 #rankingsOverlay .rank-badge.is-open { color: #4f6fd8 !important; background: rgba(124, 156, 255, .12) !important; border-color: rgba(124, 156, 255, .38) !important; }
 #rankingsOverlay .rank-badge.is-off  { color: #d94848 !important; background: rgba(255, 107, 107, .10) !important; border-color: rgba(255, 107, 107, .34) !important; }
 #rankingsOverlay .rank-badge.is-idle { color: var(--rk-ink-3) !important; }
@@ -858,19 +702,18 @@
 
 /* ══════════════════════════════════════════════════════════
    9 · PLACEHOLDER SLOTS
-   Rows without enough real entries get class="is-placeholder".
-   They inherit the slot geometry but drop every decorative
-   treatment, so the column reads as a fixed 10-slot grid.
    ══════════════════════════════════════════════════════════ */
 #rankingsOverlay .rankings-list > .rank-row.is-placeholder {
     pointer-events: none !important;
     cursor: default !important;
     background: transparent !important;
-    border: 1px dashed var(--rk-line-1) !important;
+    background-image: none !important;
+    border: 1px dashed rgba(255, 255, 255, .08) !important;
+    border-left: 3px solid transparent !important;
     box-shadow: none !important;
     transform: none !important;
     animation: none !important;
-    opacity: .62 !important;
+    opacity: .55 !important;
 }
 #rankingsOverlay .rankings-list > .rank-row.is-placeholder::after { display: none !important; }
 #rankingsOverlay .rankings-list > .rank-row.is-placeholder::before {
@@ -922,19 +765,19 @@
     #rankingsOverlay .rankings-column:last-child  { padding-left: 20px !important; }
 
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) {
-        grid-template-columns: 40px 58px minmax(0, 1fr) auto !important;
+        grid-template-columns: 36px 42px minmax(0, 1fr) auto !important;
         gap: 14px !important;
-        min-height: 96px !important;
+        min-height: 72px !important;
     }
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar,
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar-fallback {
-        width: 58px !important; height: 58px !important;
-        min-width: 58px !important; min-height: 58px !important;
-        border-radius: 15px !important;
+        width: 42px !important; height: 42px !important;
+        min-width: 42px !important; min-height: 42px !important;
+        border-radius: 11px !important;
     }
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-score {
-        font-size: 1.3rem !important;
-        min-width: 110px !important;
+        font-size: .94rem !important;
+        min-width: 96px !important;
     }
 }
 
@@ -955,9 +798,9 @@
         gap: 16px !important;
     }
     #rankingsOverlay .rankings-header h3 {
-        font-size: 1.15rem !important;
-        letter-spacing: .36em !important;
-        margin-right: -.36em !important;
+        font-size: 1.1rem !important;
+        letter-spacing: .32em !important;
+        margin-right: -.32em !important;
     }
     #rankingsOverlay .rankings-header::before,
     #rankingsOverlay .rankings-header::after { max-width: 60px !important; }
@@ -974,8 +817,6 @@
         border-top: 1px solid var(--rk-line-1) !important;
         padding-top: 24px !important;
     }
-    /* on stacked layout, the per-column 10-slot viewport is not useful —
-       let the card itself scroll instead */
     #rankingsOverlay .rankings-list {
         overflow: visible !important;
         max-height: none !important;
@@ -1034,12 +875,12 @@
         pointer-events: none !important;
     }
     #rankingsOverlay .rankings-column:nth-child(1)::before {
-        background: var(--accent-cyan, #01e1ea) !important;
-        box-shadow: 0 0 10px var(--accent-cyan, #01e1ea) !important;
+        background: var(--rk-col1) !important;
+        box-shadow: none !important;
     }
     #rankingsOverlay .rankings-column:nth-child(2)::before {
-        background: var(--accent-orange, #f68c16) !important;
-        box-shadow: 0 0 10px var(--accent-orange, #f68c16) !important;
+        background: var(--rk-col2) !important;
+        box-shadow: none !important;
     }
     #rankingsOverlay .rankings-column-title {
         font-size: .66rem !important;
@@ -1047,7 +888,6 @@
         padding: 0 0 8px 8px !important;
         margin-bottom: 8px !important;
     }
-    #rankingsOverlay .rankings-column-title::after { display: none !important; }
     #rankingsOverlay .rankings-list {
         gap: 4px !important;
         padding: 0 !important;
@@ -1066,6 +906,7 @@
         padding: 8px 10px !important;
         min-height: 50px !important;
         border-radius: 8px !important;
+        border-left-width: 3px !important;
         font-size: .82rem !important;
     }
     #rankingsOverlay .rankings-list > .rank-row::before {
@@ -1119,28 +960,26 @@
     }
 
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) {
-        grid-template-columns: 26px 44px minmax(0, 1fr) auto !important;
+        grid-template-columns: 24px 42px minmax(0, 1fr) auto !important;
         grid-template-areas:
             "rank avatar name  score"
             "rank avatar meta  meta " !important;
         gap: 10px !important;
-        min-height: 72px !important;
-        padding: 12px !important;
-        border-radius: 12px !important;
-        border-width: 2px !important;
-        box-shadow:
-            inset 0 0 20px var(--rk-gold-tint-b),
-            0 0 12px var(--rk-gold-glow) !important;
+        min-height: 68px !important;
+        padding: 10px !important;
+        border-radius: 10px !important;
+        border-left-width: 4px !important;
+        box-shadow: none !important;
     }
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder)::before {
-        font-size: 1.15rem !important;
+        font-size: 1rem !important;
     }
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar,
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar-fallback {
-        width: 44px !important; height: 44px !important;
-        min-width: 44px !important; min-height: 44px !important;
-        border-radius: 12px !important;
-        font-size: .85rem !important;
+        width: 42px !important; height: 42px !important;
+        min-width: 42px !important; min-height: 42px !important;
+        border-radius: 11px !important;
+        font-size: .82rem !important;
     }
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-info { display: contents !important; }
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-name {
@@ -1149,7 +988,7 @@
     }
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-stats { display: contents !important; }
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-score {
-        font-size: 1rem !important;
+        font-size: .94rem !important;
         min-width: 0 !important;
         align-self: end !important;
     }
@@ -1179,16 +1018,16 @@
     #rankingsOverlay .rank-level { font-size: .54rem !important; }
 
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) {
-        grid-template-columns: 22px 38px minmax(0, 1fr) auto !important;
+        grid-template-columns: 20px 36px minmax(0, 1fr) auto !important;
     }
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar,
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar-fallback {
-        width: 38px !important; height: 38px !important;
-        min-width: 38px !important; min-height: 38px !important;
+        width: 36px !important; height: 36px !important;
+        min-width: 36px !important; min-height: 36px !important;
         border-radius: 10px !important;
     }
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-score {
-        font-size: .9rem !important;
+        font-size: .88rem !important;
     }
 }
 
@@ -1200,28 +1039,14 @@
 #rankingsOverlay .rankings-close-btn:focus-visible {
     outline: 2px solid var(--rk-accent) !important;
     outline-offset: 2px !important;
-    border-radius: 11px !important;
+    border-radius: 8px !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
     #rankingsOverlay .rank-row { transition: none !important; }
     #rankingsOverlay .rankings-empty { animation: none !important; }
     #rankingsOverlay .rankings-close-btn:hover { transform: none !important; }
-    #rankingsOverlay .rankings-header h3,
-    #rankingsOverlay .rankings-column-title,
-    #rankingsOverlay .rankings-column,
-    #rankingsOverlay .rankings-column::after,
-    #rankingsOverlay .rankings-column::before,
-    #rankingsOverlay .rankings-body::before,
-    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder),
-    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder)::after,
-    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-score,
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder),
-    #rankingsOverlay .rank-badge.is-live::before {
-        animation: none !important;
-        transition: none !important;
-    }
-    #rankingsOverlay .rankings-list > .rank-row:hover { transform: none !important; }
+    #rankingsOverlay .rank-badge.is-live::before { animation: none !important; }
     #rankingsOverlay .rankings-list.is-scrollable {
         -webkit-mask-image: none !important;
                 mask-image: none !important;
@@ -1230,103 +1055,60 @@
 
 
 /* ══════════════════════════════════════════════════════════
-   12 · DESKTOP EPIC PASS  (min-width: 1025px only) — toned down
+   12 · DESKTOP LAYOUT (≥1025px) — structural only, no gold/platinum
    ══════════════════════════════════════════════════════════ */
 @media (min-width: 1025px) {
 
+    /* Card — plain dark, no holo radial gradients */
     #rankingsOverlay .rankings-card {
         background:
-            radial-gradient(ellipse 120% 55% at 50% -12%, var(--rk-gold-tint-b), transparent 58%),
-            radial-gradient(ellipse 100% 45% at 50% 112%, var(--rk-plat-tint-b), transparent 62%),
             linear-gradient(180deg, var(--rk-surface-2) 0%, rgba(255, 255, 255, 0) 18%),
             linear-gradient(180deg, var(--rk-panel-bg) 0%, var(--rk-shade) 100%) !important;
     }
 
-    /* ── gold → platinum holo header (slower, softer) ── */
+    /* Title — plain, no gradient text */
     #rankingsOverlay .rankings-header h3 {
-        background: linear-gradient(100deg,
-            var(--rk-gold-head) 0%,
-            var(--rk-gold-hi)   18%,
-            var(--rk-ink-1)     36%,
-            var(--rk-plat-head) 54%,
-            var(--rk-gold-hi)   72%,
-            var(--rk-gold-head) 100%) !important;
-        background-size: 260% 100% !important;
-        -webkit-background-clip: text !important;
-        background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
-        color: transparent !important;
+        background: none !important;
+        -webkit-background-clip: initial !important;
+                background-clip: initial !important;
+        -webkit-text-fill-color: currentColor !important;
+        color: var(--rk-ink-1) !important;
         text-shadow: none !important;
-        filter:
-            drop-shadow(0 0 10px var(--rk-gold-glow))
-            drop-shadow(0 0 18px var(--rk-plat-glow)) !important;
-        animation: rkHoloSheen 6s linear infinite !important;
-    }
-    @keyframes rkHoloSheen {
-        0%   { background-position:   0% 50%; }
-        100% { background-position: 260% 50%; }
+        filter: none !important;
+        animation: none !important;
     }
 
-    /* ── body + centre seam ── */
+    /* Body — same two-column layout, no animated seam */
     #rankingsOverlay .rankings-body {
         display: flex !important;
         gap: 28px !important;
         position: relative !important;
     }
     #rankingsOverlay .rankings-body::before {
-        content: '' !important;
-        position: absolute !important;
-        top: 4% !important;
-        bottom: 4% !important;
-        left: 50% !important;
-        width: 1px !important;
-        transform: translateX(-50%) !important;
-        background: linear-gradient(180deg,
-            transparent 0%,
-            var(--rk-gold) 22%,
-            var(--rk-gold-hi) 42%,
-            var(--rk-plat-head) 62%,
-            transparent 100%) !important;
-        background-size: 100% 200% !important;
-        opacity: .30 !important;
-        pointer-events: none !important;
-        z-index: 1 !important;
-        animation: rkSeamFlow 8s linear infinite !important;
-    }
-    @keyframes rkSeamFlow {
-        0%   { background-position: 0 0; }
-        100% { background-position: 0 -200%; }
+        content: none !important;
+        display: none !important;
     }
 
-    /* ── column panels (scanlines removed) ── */
+    /* Column panels — clean, single accent border, no glow */
     #rankingsOverlay .rankings-column {
         flex: 1 1 0 !important;
         position: relative !important;
         padding: 0 20px 18px !important;
-        border-radius: 6px 18px 18px 18px !important;
+        border-radius: 12px !important;
         border: 1px solid var(--rk-line-2) !important;
         background: var(--rk-col-bg) !important;
         box-shadow:
             inset 0 1px 0 var(--rk-inset),
             0 12px 32px rgba(0, 0, 0, .16) !important;
-        transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease !important;
+        transition: border-color .25s ease, box-shadow .25s ease !important;
     }
-    #rankingsOverlay .rankings-column:hover { transform: translateY(-2px) !important; }
-
-    /* the noisy scanline overlay is gone */
+    #rankingsOverlay .rankings-column:hover {
+        transform: none !important;
+    }
     #rankingsOverlay .rankings-column::after { display: none !important; }
-
     #rankingsOverlay .rankings-column::before {
-        content: '' !important;
-        position: absolute !important;
-        top: -35% !important;
-        left: -15% !important;
-        width: 55% !important;
-        height: 75% !important;
-        z-index: 0 !important;
-        pointer-events: none !important;
-        background: radial-gradient(circle, var(--rk-surface-2), transparent 70%) !important;
-        opacity: .55 !important;
+        content: none !important;
+        display: none !important;
     }
     #rankingsOverlay .rankings-column-title,
     #rankingsOverlay .rankings-list {
@@ -1335,21 +1117,19 @@
     }
 
     #rankingsOverlay .rankings-column:nth-child(1) {
-        border-color: rgba(1, 225, 234, .20) !important;
+        border-color: rgba(1, 225, 234, .28) !important;
         box-shadow:
             inset 0 1px 0 var(--rk-inset),
-            0 0 0 1px rgba(1, 225, 234, .05),
             0 14px 36px rgba(1, 225, 234, .06) !important;
     }
     #rankingsOverlay .rankings-column:nth-child(2) {
-        border-color: rgba(246, 140, 22, .20) !important;
+        border-color: rgba(246, 140, 22, .28) !important;
         box-shadow:
             inset 0 1px 0 var(--rk-inset),
-            0 0 0 1px rgba(246, 140, 22, .05),
             0 14px 36px rgba(246, 140, 22, .06) !important;
     }
-    #rankingsOverlay .rankings-column:nth-child(1):hover { border-color: rgba(1, 225, 234, .40) !important; }
-    #rankingsOverlay .rankings-column:nth-child(2):hover { border-color: rgba(246, 140, 22, .40) !important; }
+    #rankingsOverlay .rankings-column:nth-child(1):hover { border-color: rgba(1, 225, 234, .55) !important; }
+    #rankingsOverlay .rankings-column:nth-child(2):hover { border-color: rgba(246, 140, 22, .55) !important; }
 
     #rankingsOverlay .rankings-column:first-child { padding-right: 20px !important; }
     #rankingsOverlay .rankings-column:last-child {
@@ -1357,18 +1137,18 @@
         border-left: 1px solid var(--rk-line-2) !important;
     }
 
-    /* ── column titles: readable, no strobe ── */
+    /* Column titles — bigger, plain color, no underline bar */
     #rankingsOverlay .rankings-column-title {
         margin: 0 -20px 18px !important;
         padding: 16px 20px 15px !important;
         font-size: .92rem !important;
         font-weight: 900 !important;
-        letter-spacing: .34em !important;
-        text-indent: .34em !important;
+        letter-spacing: .32em !important;
+        text-indent: .32em !important;
         line-height: 1.1 !important;
         border-bottom: 1px solid var(--rk-line-1) !important;
         background: linear-gradient(180deg, var(--rk-surface-2), rgba(255, 255, 255, 0)) !important;
-        text-shadow: 0 0 12px currentColor !important;
+        text-shadow: none !important;
         animation: none !important;
     }
     #rankingsOverlay .rankings-column-title::before {
@@ -1378,155 +1158,102 @@
         margin-right: 4px !important;
         border-radius: 2px !important;
         background: currentColor !important;
-        box-shadow: 0 0 8px currentColor !important;
+        box-shadow: none !important;
         transform: rotate(45deg) !important;
         flex-shrink: 0 !important;
     }
     #rankingsOverlay .rankings-column-title::after {
-        width: 64px !important;
-        height: 2px !important;
-        box-shadow: 0 0 8px currentColor !important;
+        content: none !important;
+        display: none !important;
     }
 
-    /* ── rows ── */
+    /* Rows — same as base, extra specificity to beat any leftover top-3 rule */
     #rankingsOverlay .rankings-list > .rank-row {
-        border-radius: 8px 12px 12px 8px !important;
-        transition:
-            background .14s ease,
-            border-color .14s ease,
-            box-shadow .14s ease,
-            transform .14s cubic-bezier(.22, 1, .36, 1) !important;
-    }
-    #rankingsOverlay .rankings-list > .rank-row:hover {
-        transform: translateX(3px) !important;
+        border-radius: 8px !important;
     }
 
-    /* ═══════════════════════════════════════════════════
-       #1 — GOLDEN EPIC (calmer)
-       ═══════════════════════════════════════════════════ */
+    /* Hero row — same clean style, just a thicker left bar */
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) {
-        border: 1.5px solid transparent !important;
-        border-radius: 16px !important;
-        background:
-            linear-gradient(180deg, var(--rk-gold-tint-a) 0%, var(--rk-gold-tint-b) 46%, rgba(0, 0, 0, 0) 100%) padding-box,
-            linear-gradient(180deg, var(--rk-surface-2), var(--rk-surface-1)) padding-box,
-            var(--rk-gold-rim) border-box !important;
-        background-size: 100% 100%, 100% 100%, 300% 100% !important;
-        background-position: 0 0, 0 0, 0% 50% !important;
-        animation: rkGoldRimFlow 12s linear infinite !important;
-        box-shadow:
-            inset 0 1px 0 var(--rk-inset),
-            0 0 18px var(--rk-gold-glow),
-            var(--rk-hero-shadow) !important;
+        border-left-width: 4px !important;
+        border-top: 1px solid rgba(255, 255, 255, .10) !important;
+        border-right: 1px solid rgba(255, 255, 255, .08) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, .08) !important;
+        background: rgba(255, 255, 255, .04) !important;
+        background-image: none !important;
+        animation: none !important;
+        box-shadow: none !important;
     }
-    @keyframes rkGoldRimFlow {
-        from { background-position: 0 0, 0 0,   0% 50%; }
-        to   { background-position: 0 0, 0 0, 300% 50%; }
-    }
-
-    /* single, slow sweep beam (replaces the old dual-layer strobe) */
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder)::after {
-        height: 2px !important;
-        border-radius: 16px 16px 0 0 !important;
-        background:
-            linear-gradient(90deg,
-                transparent 0%, var(--rk-gold-hi) 50%, transparent 100%)
-                0 0 / 34% 100% no-repeat !important;
-        box-shadow: 0 0 12px var(--rk-gold-glow) !important;
-        animation: rkGoldBeam 5s ease-in-out infinite !important;
-    }
-    @keyframes rkGoldBeam {
-        0%   { background-position: -40% 0; opacity: 0; }
-        12%  { opacity: .95; }
-        88%  { opacity: .95; }
-        100% { background-position: 140% 0; opacity: 0; }
-    }
-
-    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar,
-    #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-avatar-fallback {
-        box-shadow:
-            inset 0 1px 0 var(--rk-inset),
-            0 0 0 2px rgba(227, 178, 85, .28),
-            0 0 14px var(--rk-gold-glow) !important;
+        content: none !important;
+        display: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        animation: none !important;
     }
     #rankingsOverlay .rankings-list > .rank-row:first-child:not(.is-placeholder) .rank-score {
         animation: none !important;
-        text-shadow: 0 0 14px var(--rk-gold-glow) !important;
+        text-shadow: none !important;
     }
 
-    /* ═══════════════════════════════════════════════════
-       #2 — PLATINUM PLATED (slower, quieter shimmer)
-       ═══════════════════════════════════════════════════ */
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) {
-        border: 1px solid transparent !important;
-        border-radius: 12px !important;
-        background:
-            linear-gradient(120deg,
-                transparent 0%,
-                transparent 44%,
-                var(--rk-plat-shim) 50%,
-                transparent 56%,
-                transparent 100%) 0 0 / 240% 100% no-repeat,
-            linear-gradient(180deg,
-                var(--rk-plat-tint-a) 0%,
-                var(--rk-plat-tint-b) 55%,
-                rgba(0, 0, 0, 0) 100%) padding-box,
-            linear-gradient(180deg, var(--rk-surface-2), var(--rk-surface-1)) padding-box,
-            var(--rk-plat-rim) border-box !important;
-        box-shadow:
-            inset 0 1px 0 var(--rk-inset),
-            inset 0 -20px 40px var(--rk-plat-tint-b),
-            0 3px 14px rgba(0, 0, 0, .14) !important;
-        animation: rkPlatShimmer 9s ease-in-out infinite !important;
-    }
-    @keyframes rkPlatShimmer {
-        0%   { background-position: 240% 0, 0 0, 0 0, 0 0; }
-        55%  { background-position: -140% 0, 0 0, 0 0, 0 0; }
-        100% { background-position: -140% 0, 0 0, 0 0, 0 0; }
-    }
-
-    /* plated edge: crisp left chrome bar */
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder)::after {
-        top: 0 !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: auto !important;
-        width: 2px !important;
-        height: auto !important;
-        border-radius: 12px 0 0 12px !important;
-        background: linear-gradient(180deg,
-            transparent 0%,
-            var(--rk-plat-ink) 24%,
-            var(--rk-plat-shim) 50%,
-            var(--rk-plat-ink) 76%,
-            transparent 100%) !important;
+    /* #2 and #3 — same clean style */
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder),
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) {
+        border: 1px solid rgba(255, 255, 255, .08) !important;
+        border-left: 3px solid var(--rk-col1) !important;
+        background: rgba(255, 255, 255, .03) !important;
+        background-image: none !important;
         box-shadow: none !important;
+        animation: none !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder)::before {
-        color: var(--rk-plat-ink) !important;
-        text-shadow: 0 0 8px var(--rk-plat-glow) !important;
+    #rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(2):not(.is-placeholder),
+    #rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) {
+        border-left-color: var(--rk-col2) !important;
+    }
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder)::after,
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder)::after {
+        content: none !important;
+        display: none !important;
+    }
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder)::before,
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder)::before {
+        color: var(--rk-ink-3) !important;
+        text-shadow: none !important;
     }
     #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar,
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar-fallback {
-        border-color: rgba(190, 215, 240, .34) !important;
-        color: var(--rk-plat-ink) !important;
-        box-shadow:
-            inset 0 1px 0 var(--rk-inset),
-            0 0 9px var(--rk-plat-glow) !important;
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar-fallback,
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-avatar,
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-avatar-fallback {
+        border-color: rgba(255, 255, 255, .15) !important;
+        color: var(--rk-col1) !important;
+        box-shadow: none !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-name {
-        color: var(--rk-plat-name) !important;
-        text-shadow: 0 0 9px var(--rk-plat-glow) !important;
+    #rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar,
+    #rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-avatar-fallback,
+    #rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-avatar,
+    #rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-avatar-fallback {
+        color: var(--rk-col2) !important;
     }
-    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-score {
-        color: var(--rk-plat-name) !important;
-        text-shadow: 0 0 11px var(--rk-plat-glow) !important;
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-name,
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-name {
+        color: #ffffff !important;
+        text-shadow: none !important;
+    }
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-score,
+    #rankingsOverlay .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-score {
+        color: var(--rk-col1) !important;
+        text-shadow: none !important;
+    }
+    #rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(2):not(.is-placeholder) .rank-score,
+    #rankingsOverlay .rankings-column:nth-child(2) .rankings-list > .rank-row:nth-child(3):not(.is-placeholder) .rank-score {
+        color: var(--rk-col2) !important;
     }
 
-    /* placeholders must never inherit the hero treatment */
+    /* Placeholders — never inherit hero treatment */
     #rankingsOverlay .rankings-list > .rank-row.is-placeholder {
         animation: none !important;
         background: transparent !important;
+        background-image: none !important;
+        border-left-color: transparent !important;
     }
 }
 
