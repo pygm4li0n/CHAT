@@ -16,9 +16,21 @@
    least one full spin cycle even if the app loads instantly.
 
    Load BEFORE script.js — injects itself as first body child.
+
+   v6: Skips the whole loader when returning from X OAuth.
+       The <head> script already hid the overlay and released
+       the boot gate on `msn:app-ready`. This file just exits
+       early so no invisible work is done.
    ============================================================ */
 (function () {
     'use strict';
+
+    // ⚑ Skip the whole loader when returning from X OAuth.
+    //   The <head> script already hid the overlay visuals and
+    //   will release the boot gate on `msn:app-ready`.
+    if (window.__msnSkipBootLoader === true) {
+        return;
+    }
 
     if (document.getElementById('msnBootOverlay')) return;
 
