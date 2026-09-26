@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   x-auth.js — v6
+   x-auth.js — v7
    ───────────────────────────────────────────────────────────
    • Injects an X login button:
        – Desktop: left of #phantomConnectBtn, with a
@@ -11,17 +11,13 @@
    • wallet-identity.js handles the rest via realtime
    Load AFTER wallet-identity.js
 
-   v6 fixes:
-   • OAuth-return flow no longer reveals a half-built app.
-     – Loader VISUALS are hidden immediately (no spinner).
-     – `msn-booting` STAYS on <html> so the app itself is
-       still invisible.
-     – We release the boot gate only when script.js fires
-       `msn:app-ready` (or after 1.6s max as a safety net).
-     Result: no loading screen, no empty layout, no flicker.
-   • Pending-OAuth flag is timestamped with a 3-minute TTL,
-     so a stuck flag can never permanently hide the loader.
-   • Everything else from v5 preserved.
+   v7:
+   • Removed boot-gate control — that's owned by the inline
+     <head> script in index.html now. This file no longer
+     injects its own hide-loader style or releases the gate.
+     Result: no timing race, no empty-app reveal on slow nets.
+   • Everything else from v6 preserved (OAuth flow, flag TTL,
+     identity writes, gray → colored button).
    ═══════════════════════════════════════════════════════════ */
 (function () {
     'use strict';
@@ -39,7 +35,6 @@
 
     /* ═══════════════════════════════════════════════════════
        OAuth pending flag — timestamped + 3-min TTL
-       Survives the redirect. Cannot get stuck.
        ═══════════════════════════════════════════════════════ */
     var OAUTH_FLAG_TTL_MS = 3 * 60 * 1000;
 
@@ -58,7 +53,6 @@
             var raw = sessionStorage.getItem('msn_x_oauth_pending');
             if (!raw) return false;
 
-            // Legacy bare-flag from older builds — treat as stale
             if (raw === '1') {
                 sessionStorage.removeItem('msn_x_oauth_pending');
                 return false;
@@ -107,45 +101,6 @@
             if (s && s.publicKey) return s.publicKey.toBase58();
         } catch (e) {}
         try { return localStorage.getItem('msn_cached_wallet') || null; } catch (e) { return null; }
-    }
-
-    /* ═══════════════════════════════════════════════════════
-       Boot-gate control for OAuth return
-       ═══════════════════════════════════════════════════════ */
-
-    /* Hide just the loader's visuals — spinner, ring, glow — but
-       leave `msn-booting` in place so the app stays invisible. */
-    function suppressLoaderVisualOnly() {
-        if (document.getElementById('x-return-hide-loader-visual')) return;
-        var s = document.createElement('style');
-        s.id = 'x-return-hide-loader-visual';
-        s.textContent =
-            '#msnBootOverlay{' +
-            '  opacity:0 !important;' +
-            '  pointer-events:none !important;' +
-            '  transition:none !important;' +
-            '}';
-        (document.head || document.documentElement).appendChild(s);
-    }
-
-    /* Remove the boot gate — reveals the (fully built) app. */
-    function releaseBootGate() {
-        try {
-            document.documentElement.classList.remove('msn-booting');
-            document.documentElement.classList.remove('booting');
-        } catch (e) {}
-
-        var ov = document.getElementById('msnBootOverlay');
-        if (ov) {
-            ov.classList.add('done');
-            ov.style.display = 'none';
-            ov.style.opacity = '0';
-            ov.style.visibility = 'hidden';
-            ov.style.pointerEvents = 'none';
-            setTimeout(function () {
-                if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
-            }, 300);
-        }
     }
 
     /* ─────────────────────────────────────────────────────────
@@ -455,38 +410,10 @@
     function boot() {
         injectStyles();
 
+        // ⚑ Snapshot whether we're returning from OAuth. Used ONLY
+        //   for flag cleanup — the boot gate is owned by the
+        //   inline <head> script in index.html now.
         var returningFromOAuth = isOAuthPending();
-
-        if (returningFromOAuth) {
-            // ─────────────────────────────────────────────
-            // OAuth return:
-            //   1. Hide the loader's VISUALS immediately
-            //   2. Keep `msn-booting` on <html> so the app
-            //      stays hidden behind the boot gate
-            //   3. Release when script.js fires `msn:app-ready`
-            //      or after 1.6s (whichever comes first)
-            // ─────────────────────────────────────────────
-            suppressLoaderVisualOnly();
-
-            var released = false;
-            var release = function () {
-                if (released) return;
-                released = true;
-                releaseBootGate();
-            };
-
-            // Preferred: script.js tells us it's done
-            document.addEventListener('msn:app-ready', release, { once: true });
-
-            // Safety net — never let the gate stay up forever
-            setTimeout(release, 1600);
-
-            // If script.js already announced ready (cached boot),
-            // release on the next frame
-            if (window.__msnAppReady === true) {
-                requestAnimationFrame(release);
-            }
-        }
 
         retryHeaderButton();
         setTimeout(injectMobileGridButton, 900);
@@ -534,5 +461,5 @@
     } else {
         boot();
     }
-    console.log('[x-auth] loaded v6');
+    console.log('[x-auth] loaded v7');
 })();
