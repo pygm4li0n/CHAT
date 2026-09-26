@@ -1686,9 +1686,14 @@ function showSuccess(msg) {
         if (!getAvatarURL(user)) await fetchAvatars([user]);
         const isOwn = user === username;
 
-        const wrapper = document.createElement('div');
+    const wrapper = document.createElement('div');
         wrapper.className = 'msg-wrapper' + (isOwn ? ' own' : '');
         wrapper.setAttribute('data-msg-id', msg.id);
+        if (msg.wallet_address) {
+            wrapper.setAttribute('data-wallet', msg.wallet_address);
+        } else if (isOwn && typeof getWalletAddress === 'function' && getWalletAddress()) {
+            wrapper.setAttribute('data-wallet', getWalletAddress());
+        }
 
         const bubble = document.createElement('div');
         bubble.className = 'msg-bubble';
@@ -1999,9 +2004,16 @@ function showSuccess(msg) {
                 const seenWallets = new Set();
                 const seenUsernames = new Set();
 
+                // Wallet'd entries win; among the same wallet, newest online_at wins
+                flat.sort((a, b) => {
+                    const aw = a.wallet ? 1 : 0, bw = b.wallet ? 1 : 0;
+                    if (aw !== bw) return bw - aw;
+                    return String(b.online_at).localeCompare(String(a.online_at));
+                });
+
                 flat.forEach(u => {
                     if (u.wallet && seenWallets.has(u.wallet)) return;
-                    if (seenUsernames.has(u.username)) return;
+                    if (!u.wallet && seenUsernames.has(u.username)) return;
 
                     if (u.wallet) seenWallets.add(u.wallet);
                     seenUsernames.add(u.username);
@@ -2284,7 +2296,9 @@ function showSuccess(msg) {
         const badge = getBadgeForUser(userName);
         const badgeHtml = badge ? `<span class="user-badge small" title="${badge.name}">${badge.emoji}</span>` : '';
 
-        return `<div class="sidebar-user-item${isSelf?' you-tag':''}" data-username="${escapeHtml(userName)}">
+        const walletForItem = (window.MSNIdentity && window.MSNIdentity.byUsername())
+            ? window.MSNIdentity.byUsername()[userName] : '';
+        return `<div class="sidebar-user-item${isSelf?' you-tag':''}" data-username="${escapeHtml(userName)}"${walletForItem ? ` data-wallet="${escapeHtml(walletForItem)}"` : ''}>
             <div class="user-avatar">${avatarHTML}${isOnline?'<span class="online-indicator"></span>':''}</div>
             <div class="user-info"><div class="user-name">${escapeHtml(userName)} ${badgeHtml}</div><div class="user-status-text">${isSelf?'You':'Online'}</div></div>
             ${!isSelf ? `<button class="${btnClass}">${btnText}</button>` : ''}
@@ -2481,11 +2495,14 @@ function showSuccess(msg) {
             payload.reply_to_message = replyingTo.message || null;
             if (replyingTo.imageUrl) payload.reply_to_image_url = replyingTo.imageUrl;
         }
+        const senderWallet = getWalletAddress();
         if (isPrivate) {
             payload.from_user = username;
             payload.to_user = activePrivateChat;
+            if (senderWallet) payload.wallet_address = senderWallet;
         } else {
             payload.username = username;
+            if (senderWallet) payload.wallet_address = senderWallet;
         }
         try {
             const { data: inserted, error } = await supabase.from(table).insert([payload]).select().single();
@@ -2584,15 +2601,30 @@ function showSuccess(msg) {
             } catch (err) { showError('Avatar upload failed: ' + err.message); }
         }
 
-        const { error: upsertErr } = await upsertProfile({
-            username: name,
-            avatar_url: avatarUrlToUse
-        });
-
-        if (upsertErr) {
-            console.error('Profile save failed:', upsertErr);
-            showError('Profile save failed: ' + (upsertErr.message || 'unknown'));
-            return false;
+                const walletAddr = getWalletAddress();
+        if (window.MSNIdentity && walletAddr) {
+            const saveResult = await window.MSNIdentity.setUsernameForWallet(walletAddr, name);
+            if (saveResult.error) {
+                if (saveResult.error === 'username_taken') {
+                    showError('That name is already taken — pick another.');
+                } else {
+                    showError('Profile save failed: ' + saveResult.error);
+                }
+                return false;
+            }
+            if (avatarUrlToUse !== undefined) {
+                await upsertProfile({ avatar_url: avatarUrlToUse });
+            }
+        } else {
+            const { error: upsertErr } = await upsertProfile({
+                username: name,
+                avatar_url: avatarUrlToUse
+            });
+            if (upsertErr) {
+                console.error('Profile save failed:', upsertErr);
+                showError('Profile save failed: ' + (upsertErr.message || 'unknown'));
+                return false;
+            }
         }
 
         avatarCache[name] = avatarUrlToUse;
