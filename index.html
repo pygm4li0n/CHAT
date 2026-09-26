@@ -7,9 +7,6 @@
 
     <!-- ═══════════════════════════════════════════════════════
          ⚑ BOOTING FAILSAFE — must run first
-         Marks <html> as booting so the app stays hidden until
-         loading-screen.js reveals it. If the loader never fires,
-         this 10s timer reveals the app anyway (never lock out).
     ═══════════════════════════════════════════════════════ -->
     <script>
         document.documentElement.classList.add('msn-booting');
@@ -19,13 +16,11 @@
     </script>
 
     <!-- ═══════════════════════════════════════════════════════
-         ⚑ X OAUTH RETURN — clean app restore.
-         • Hide the loader visuals from the very first frame
-           (never paints, never flashes)
-         • Keep `msn-booting` on <html> so the app stays hidden
-           until script.js signals it's fully built
-         • Release the boot gate on `msn:app-ready` (4s safety net)
-         • 3-minute TTL on the flag — cannot get stuck
+         ⚑ X OAUTH RETURN — X VERIFIED loading screen
+         Holds a minimal X VERIFIED overlay until script.js
+         signals the app is fully built. Then fades cleanly
+         into the app. No flicker, no empty flashes.
+         Flag has 3-min TTL — cannot get stuck.
     ═══════════════════════════════════════════════════════ -->
     <script>
     (function () {
@@ -33,11 +28,10 @@
             var raw = sessionStorage.getItem('msn_x_oauth_pending');
             if (!raw) return;
 
-            // Validate flag (accept legacy '1' or timestamped JSON)
+            // Validate (legacy '1' or timestamped JSON)
             var valid = false;
-            if (raw === '1') {
-                valid = true;
-            } else {
+            if (raw === '1') valid = true;
+            else {
                 var d = JSON.parse(raw);
                 if (d && typeof d.started === 'number') {
                     var age = Date.now() - d.started;
@@ -49,40 +43,145 @@
                 return;
             }
 
+            // Prevent loading-screen.js from injecting its own loader
             window.__msnSkipBootLoader = true;
 
-            // Hide any loader overlay the moment it's injected
+            // ── Styles ────────────────────────────────────
             var s = document.createElement('style');
-            s.id = 'x-return-hide-loader';
-            s.textContent =
-                '#msnBootOverlay{' +
-                '  display:none !important;' +
-                '  opacity:0 !important;' +
-                '  visibility:hidden !important;' +
-                '  pointer-events:none !important;' +
-                '}';
+            s.id = 'x-oauth-return-styles';
+            s.textContent = [
+                /* Hide the default loader overlay entirely */
+                '#msnBootOverlay{',
+                '  display:none !important;',
+                '  opacity:0 !important;',
+                '  visibility:hidden !important;',
+                '  pointer-events:none !important;',
+                '}',
+
+                /* Keep the app hidden behind the boot gate */
+                'body > *:not(#xOAuthReturnOverlay):not(script):not(style):not(link):not(noscript){',
+                '  transition: opacity .55s cubic-bezier(.22,.61,.36,1) !important;',
+                '}',
+                'html.msn-booting body > *:not(#xOAuthReturnOverlay):not(script):not(style):not(link):not(noscript){',
+                '  opacity: 0 !important;',
+                '  pointer-events: none !important;',
+                '}',
+                'html.msn-booting { overflow: hidden !important; }',
+
+                /* X VERIFIED overlay */
+                '#xOAuthReturnOverlay {',
+                '  position: fixed; inset: 0; z-index: 999999;',
+                '  display: flex; flex-direction: column;',
+                '  align-items: center; justify-content: center;',
+                '  gap: 22px;',
+                '  background: radial-gradient(circle at 50% 45%, #0a0d18 0%, #02040a 75%);',
+                '  opacity: 1; visibility: visible;',
+                '  transition: opacity .5s ease, visibility .5s ease;',
+                '  overflow: hidden;',
+                '  -webkit-user-select: none; user-select: none;',
+                '}',
+                '#xOAuthReturnOverlay::before {',
+                '  content: ""; position: absolute; inset: 0; pointer-events: none;',
+                '  background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,0.20) 2px 3px);',
+                '  opacity: 0.28; z-index: 1;',
+                '}',
+                '#xOAuthReturnOverlay.done { opacity: 0; visibility: hidden; pointer-events: none; }',
+
+                /* X icon */
+                '.xr-icon {',
+                '  position: relative; z-index: 2;',
+                '  width: 82px; height: 82px; border-radius: 22px;',
+                '  display: flex; align-items: center; justify-content: center;',
+                '  background: linear-gradient(135deg,#1d9bf0 0%,#a855f7 38%,#ff2d95 68%,#00ffc6 100%);',
+                '  background-size: 280% 280%;',
+                '  animation: xrGs 6s ease infinite, xrPulse 2s ease-in-out infinite;',
+                '  box-shadow: 0 14px 40px -14px rgba(168,85,247,.95), 0 0 60px -20px rgba(29,155,240,.8);',
+                '}',
+                '.xr-icon svg {',
+                '  width: 44px; height: 44px; fill: #fff;',
+                '  filter: drop-shadow(0 2px 8px rgba(0,0,0,.35)) drop-shadow(0 0 10px rgba(255,255,255,.6));',
+                '}',
+
+                /* Text */
+                '.xr-text {',
+                '  position: relative; z-index: 2;',
+                '  font-family: var(--font-mono, ui-monospace, Menlo, monospace);',
+                '  font-size: 1.05rem; font-weight: 900;',
+                '  letter-spacing: 0.42em; text-indent: 0.42em;',
+                '  color: #fff; text-transform: uppercase;',
+                '  text-shadow: 0 0 16px rgba(29,155,240,.9), 0 0 34px rgba(168,85,247,.5);',
+                '}',
+                '.xr-sub {',
+                '  position: relative; z-index: 2;',
+                '  font-family: var(--font-mono, ui-monospace, Menlo, monospace);',
+                '  font-size: 0.62rem; font-weight: 700;',
+                '  letter-spacing: 0.28em; text-indent: 0.28em;',
+                '  color: rgba(255,255,255,.45); text-transform: uppercase;',
+                '  margin-top: -10px;',
+                '}',
+
+                '@keyframes xrGs {',
+                '  0% { background-position: 0% 50%; }',
+                '  50% { background-position: 100% 50%; }',
+                '  100% { background-position: 0% 50%; }',
+                '}',
+                '@keyframes xrPulse {',
+                '  0%, 100% { transform: scale(1); }',
+                '  50% { transform: scale(1.05); }',
+                '}'
+            ].join('\n');
             (document.head || document.documentElement).appendChild(s);
 
-            // Release the boot gate when script.js is done building
+            // ── Overlay markup ────────────────────────────
+            function buildOverlay() {
+                if (!document.body) return;
+                if (document.getElementById('xOAuthReturnOverlay')) return;
+
+                var ov = document.createElement('div');
+                ov.id = 'xOAuthReturnOverlay';
+                ov.setAttribute('role', 'status');
+                ov.setAttribute('aria-live', 'polite');
+                ov.setAttribute('aria-label', 'X verified — restoring session');
+                ov.innerHTML =
+                    '<div class="xr-icon">' +
+                        '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+                            '<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>' +
+                        '</svg>' +
+                    '</div>' +
+                    '<div class="xr-text">X Verified</div>' +
+                    '<div class="xr-sub">Restoring session</div>';
+
+                document.body.insertBefore(ov, document.body.firstChild);
+            }
+
+            if (document.body) buildOverlay();
+            else document.addEventListener('DOMContentLoaded', buildOverlay, { once: true });
+
+            // ── Release when script.js signals ready ─────
             var released = false;
             function release() {
                 if (released) return;
                 released = true;
+
+                var ov = document.getElementById('xOAuthReturnOverlay');
+                if (ov) ov.classList.add('done');
+
                 document.documentElement.classList.remove('msn-booting');
                 document.documentElement.classList.remove('booting');
-                var ov = document.getElementById('msnBootOverlay');
-                if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+
+                setTimeout(function () {
+                    if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+                }, 600);
             }
 
             document.addEventListener('msn:app-ready', release, { once: true });
 
-            // If script.js already finished before this listener attached
             if (window.__msnAppReady === true) {
                 requestAnimationFrame(release);
             }
 
-            // Safety net — never leave the app hidden longer than 4s
-            setTimeout(release, 4000);
+            // Safety net — never hold longer than 6s
+            setTimeout(release, 6000);
         } catch (e) {}
     })();
     </script>
@@ -198,9 +297,8 @@
 <body>
     <!-- ═══════════════════════════════════════════════════════
          ⚑ BOOT SEQUENCE — must be first in <body>
-         Injects the loading overlay before anything renders.
     ═══════════════════════════════════════════════════════ -->
-    <script src="loading-screen.js?v=5"></script>
+    <script src="loading-screen.js?v=6"></script>
 
     <canvas id="particleCanvas"></canvas>
 
@@ -445,7 +543,7 @@
     <script src="stickers.js?v=1"></script>
     <script src="rank-badge-fix.js"></script>
     <script src="wallet-identity.js?v=3"></script>
-    <script src="x-auth.js?v=6"></script>
+    <script src="x-auth.js?v=7"></script>
 
     <!-- ═══════════════════════════════════════════════════════
          ⚑ MOBILE SIDEBAR PROFILE — MOBILE ONLY
