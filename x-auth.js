@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   x-auth.js — v7
+   x-auth.js — v8
    ───────────────────────────────────────────────────────────
    • Injects an X login button:
        – Desktop: left of #phantomConnectBtn, with a
@@ -11,13 +11,11 @@
    • wallet-identity.js handles the rest via realtime
    Load AFTER wallet-identity.js
 
-   v7:
-   • Removed boot-gate control — that's owned by the inline
-     <head> script in index.html now. This file no longer
-     injects its own hide-loader style or releases the gate.
-     Result: no timing race, no empty-app reveal on slow nets.
-   • Everything else from v6 preserved (OAuth flow, flag TTL,
-     identity writes, gray → colored button).
+   v8:
+   • Toast instead of alert() — reuses the app's #errorToast
+     element so the "Connect Phantom first" message matches
+     the rest of the app's visual language.
+   • Everything else from v7 preserved.
    ═══════════════════════════════════════════════════════════ */
 (function () {
     'use strict';
@@ -101,6 +99,24 @@
             if (s && s.publicKey) return s.publicKey.toBase58();
         } catch (e) {}
         try { return localStorage.getItem('msn_cached_wallet') || null; } catch (e) { return null; }
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       Toast — reuses the app's #errorToast element so the
+       visual matches every other message in the app.
+       Restarts the fade-out animation on every call.
+       ───────────────────────────────────────────────────────── */
+    function showXToast(msg) {
+        var el = document.getElementById('errorToast');
+        if (!el) { alert(msg); return; }
+        el.classList.remove('visible');
+        void el.offsetWidth;                       // force reflow to restart animation
+        el.textContent = '⚠️ ' + msg;
+        el.classList.add('visible');
+        clearTimeout(el._xToastTimeout);
+        el._xToastTimeout = setTimeout(function () {
+            el.classList.remove('visible');
+        }, 8000);
     }
 
     /* ─────────────────────────────────────────────────────────
@@ -257,7 +273,7 @@
 
         var wallet = getWallet();
         if (!wallet) {
-            alert('Connect your Phantom wallet first, then verify with X.');
+            showXToast('Connect your Phantom wallet first, then verify with X.');
             return;
         }
 
@@ -461,5 +477,5 @@
     } else {
         boot();
     }
-    console.log('[x-auth] loaded v7');
+    console.log('[x-auth] loaded v8');
 })();
