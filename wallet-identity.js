@@ -1,0 +1,301 @@
+/* ═══════════════════════════════════════════════════════════
+   wallet-identity.js
+   ───────────────────────────────────────────────────────────
+   • Wallet is the source of truth. Username is a display label.
+   • Rename → UPDATE profiles WHERE wallet_address = X
+   • Realtime profile changes propagate to messages + sidebar.
+   • Presence is deduped by wallet.
+   • X auth ready: write x_handle/x_verified/x_avatar_url.
+   Load AFTER script.js.
+   ═══════════════════════════════════════════════════════════ */
+(function () {
+    'use strict';
+
+    var SUPABASE_URL = 'https://uxrpjfsouwxnlcbhjilz.supabase.co';
+    var SUPABASE_ANON_KEY = 'sb_publishable_cLeBoHrdvg1b7WlnyJ-oVQ_6skjHc_H';
+
+    function getSB() {
+        if (window.MSN && window.MSN.supabase) return window.MSN.supabase;
+        if (window.supabase && window.supabase.createClient) {
+            window.MSN = window.MSN || {};
+            window.MSN.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            return window.MSN.supabase;
+        }
+        return null;
+    }
+
+    function esc(t) {
+        return String(t == null ? '' : t)
+            .replace(/[&<>"']/g, function (m) {
+                return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m];
+            });
+    }
+
+    var byWallet = Object.create(null);
+    var byUsername = Object.create(null);
+
+    function displayNameFor(profile) {
+        if (!profile) return null;
+        return profile.display_name
+            || (profile.x_verified && profile.x_handle ? '@' + profile.x_handle : null)
+            || profile.username
+            || 'anon';
+    }
+    function avatarFor(profile) {
+        if (!profile) return null;
+        return profile.avatar_url || profile.x_avatar_url || null;
+    }
+
+    function rememberProfile(p) {
+        if (!p || !p.wallet_address) return;
+        byWallet[p.wallet_address] = {
+            username:     p.username     || null,
+            display_name: p.display_name || null,
+            avatar_url:   p.avatar_url   || null,
+            x_handle:     p.x_handle     || null,
+            x_verified:   !!p.x_verified,
+            x_avatar_url: p.x_avatar_url || null
+        };
+        if (p.username) byUsername[p.username] = p.wallet_address;
+    }
+
+    function labelForWallet(wallet) {
+        if (!wallet) return null;
+        return displayNameFor(byWallet[wallet]);
+    }
+    function labelForUsername(username) {
+        var w = byUsername[username];
+        return w ? labelForWallet(w) : username;
+    }
+
+    function updateMessagesFor(wallet, profile) {
+        if (!wallet) return;
+        var label = displayNameFor(profile);
+        var avatar = avatarFor(profile);
+
+        document.querySelectorAll('.msg-wrapper[data-wallet="' + CSS.escape(wallet) + '"]')
+            .forEach(function (w) {
+                var unameEl = w.querySelector('.msg-username');
+                if (unameEl && label) {
+                    for (var i = 0; i < unameEl.childNodes.length; i++) {
+                        var n = unameEl.childNodes[i];
+                        if (n.nodeType === 3 && n.nodeValue.trim()) {
+                            n.nodeValue = n.nodeValue.replace(n.nodeValue.trim(), label);
+                            break;
+                        }
+                    }
+                    var link = unameEl.querySelector('.msn-username-link');
+                    if (link) link.textContent = label;
+                }
+                if (avatar) {
+                    var avatarEl = w.querySelector('.msg-avatar');
+                    if (avatarEl) {
+                        var img = avatarEl.querySelector('img');
+                        if (!img) avatarEl.innerHTML = '<img src="' + esc(avatar) + '" alt="">';
+                        else img.src = avatar;
+                    }
+                }
+            });
+    }
+
+    function updateSidebarFor(wallet, profile) {
+        if (!wallet) return;
+        var label = displayNameFor(profile);
+        var avatar = avatarFor(profile);
+        document.querySelectorAll('.sidebar-user-item[data-wallet="' + CSS.escape(wallet) + '"]')
+            .forEach(function (item) {
+                if (label) item.setAttribute('data-username', label);
+                var nameEl = item.querySelector('.user-name');
+                if (nameEl && label) {
+                    for (var i = 0; i < nameEl.childNodes.length; i++) {
+                        var n = nameEl.childNodes[i];
+                        if (n.nodeType === 3 && n.nodeValue.trim()) {
+                            n.nodeValue = n.nodeValue.replace(n.nodeValue.trim(), label);
+                            break;
+                        }
+                    }
+                }
+                if (avatar) {
+                    var av = item.querySelector('.user-avatar');
+                    if (av) {
+                        var img = av.querySelector('img');
+                        if (!img) av.insertAdjacentHTML('afterbegin', '<img src="' + esc(avatar) + '" alt="">');
+                        else img.src = avatar;
+                    }
+                }
+            });
+    }
+
+    function updateSelfBlock(profile) {
+        if (!profile) return;
+        var label = displayNameFor(profile);
+        var avatar = avatarFor(profile);
+        var bigName = document.getElementById('sidebarBigName');
+        var bigAv = document.getElementById('sidebarBigAvatar');
+        if (bigName && label) bigName.textContent = label;
+        if (bigAv && avatar) bigAv.innerHTML = '<img src="' + esc(avatar) + '" alt="">';
+    }
+
+    function propagateProfile(wallet, profile) {
+        rememberProfile(profile);
+        updateMessagesFor(wallet, profile);
+        updateSidebarFor(wallet, profile);
+        try {
+            var cached = localStorage.getItem('msn_cached_wallet');
+            if (cached && cached === wallet) {
+                var label = displayNameFor(profile);
+                if (label) {
+                    localStorage.setItem('msn_chat_username', label);
+                    localStorage.setItem('msn_last_username', label);
+                }
+                updateSelfBlock(profile);
+            }
+        } catch (e) {}
+    }
+
+    async function setUsernameForWallet(wallet, newName) {
+        var sb = getSB();
+        if (!sb || !wallet || !newName) return { error: 'bad_input' };
+
+        var { data: conflict } = await sb.from('profiles')
+            .select('wallet_address').eq('username', newName).maybeSingle();
+
+        if (conflict && conflict.wallet_address && conflict.wallet_address !== wallet) {
+            return { error: 'username_taken' };
+        }
+
+        var payload = {
+            wallet_address: wallet,
+            username:       newName,
+            updated_at:     new Date().toISOString()
+        };
+        var { data, error } = await sb.from('profiles')
+            .upsert(payload, { onConflict: 'wallet_address' })
+            .select().single();
+
+        if (error) return { error: error.message };
+        propagateProfile(wallet, data);
+        return { data: data };
+    }
+
+    function subscribeProfiles() {
+        var sb = getSB();
+        if (!sb) return;
+        if (window.MSN && window.MSN._profileChannel) {
+            sb.removeChannel(window.MSN._profileChannel);
+        }
+        var channel = sb.channel('msn-profiles')
+            .on('postgres_changes',
+                { event: '*', schema: 'public', table: 'profiles' },
+                function (payload) {
+                    var row = payload.new || payload.old;
+                    if (!row || !row.wallet_address) return;
+                    propagateProfile(row.wallet_address, row);
+                })
+            .subscribe();
+        window.MSN = window.MSN || {};
+        window.MSN._profileChannel = channel;
+    }
+
+    async function fetchProfile(wallet, force) {
+        if (!wallet) return null;
+        if (!force && byWallet[wallet]) return byWallet[wallet];
+        var sb = getSB();
+        if (!sb) return null;
+        var { data, error } = await sb.from('profiles')
+            .select('wallet_address, username, display_name, avatar_url, x_handle, x_verified, x_avatar_url')
+            .eq('wallet_address', wallet).maybeSingle();
+        if (error || !data) return null;
+        rememberProfile(data);
+        return data;
+    }
+
+    async function fetchProfilesFor(wallets) {
+        var sb = getSB();
+        if (!sb || !wallets || !wallets.length) return [];
+        var unique = Array.from(new Set(wallets.filter(Boolean)));
+        var { data } = await sb.from('profiles')
+            .select('wallet_address, username, display_name, avatar_url, x_handle, x_verified, x_avatar_url')
+            .in('wallet_address', unique);
+        (data || []).forEach(rememberProfile);
+        return data || [];
+    }
+
+    function tagMessageWrappers() {
+        ['publicMessagesContainer', 'privateMessagesContainer'].forEach(function (id) {
+            var root = document.getElementById(id);
+            if (!root) return;
+            var mo = new MutationObserver(function (muts) {
+                muts.forEach(function (m) {
+                    m.addedNodes.forEach(function (node) {
+                        if (node.nodeType !== 1) return;
+                        var wrap = node.classList && node.classList.contains('msg-wrapper')
+                            ? node : node.querySelector && node.querySelector('.msg-wrapper');
+                        if (!wrap || wrap.dataset.wallet) return;
+                        var unameEl = wrap.querySelector('.msg-username');
+                        if (!unameEl) return;
+                        var link = unameEl.querySelector('.msn-username-link');
+                        var name = (link ? link.textContent : unameEl.textContent || '').trim().split(/\s+/)[0];
+                        var wallet = byUsername[name];
+                        if (wallet) {
+                            wrap.dataset.wallet = wallet;
+                            var p = byWallet[wallet];
+                            if (p) updateMessagesFor(wallet, p);
+                        }
+                    });
+                });
+            });
+            mo.observe(root, { childList: true, subtree: true });
+        });
+    }
+
+    async function seedFromDOM() {
+        var names = new Set();
+        document.querySelectorAll('.msg-username, .sidebar-user-item[data-username]').forEach(function (el) {
+            var link = el.querySelector && el.querySelector('.msn-username-link');
+            var name = (link ? link.textContent : el.textContent || '').trim().split(/\s+/)[0];
+            if (name) names.add(name);
+        });
+        if (!names.size) return;
+        var sb = getSB();
+        if (!sb) return;
+        var { data } = await sb.from('profiles')
+            .select('wallet_address, username, display_name, avatar_url, x_handle, x_verified, x_avatar_url')
+            .in('username', Array.from(names));
+        (data || []).forEach(function (p) {
+            rememberProfile(p);
+            document.querySelectorAll('.msg-wrapper, .sidebar-user-item').forEach(function (el) {
+                var txt = (el.textContent || '').trim();
+                if (txt.indexOf(p.username) === 0 && !el.dataset.wallet) {
+                    el.dataset.wallet = p.wallet_address;
+                }
+            });
+            updateMessagesFor(p.wallet_address, p);
+            updateSidebarFor(p.wallet_address, p);
+        });
+    }
+
+    window.MSNIdentity = {
+        labelForWallet:       labelForWallet,
+        labelForUsername:     labelForUsername,
+        fetchProfile:         fetchProfile,
+        fetchProfilesFor:     fetchProfilesFor,
+        setUsernameForWallet: setUsernameForWallet,
+        propagateProfile:     propagateProfile,
+        byWallet:             function () { return byWallet; },
+        byUsername:           function () { return byUsername; }
+    };
+
+    function boot() {
+        subscribeProfiles();
+        tagMessageWrappers();
+        setTimeout(seedFromDOM, 1200);
+        setTimeout(seedFromDOM, 3000);
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
+    console.log('[wallet-identity] loaded');
+})();
