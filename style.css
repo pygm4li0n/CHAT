@@ -472,14 +472,133 @@ body {
     white-space: nowrap; max-width: 220px; font-size: 0.72rem; color: var(--text-secondary);
 }
 
-.reactions-bar { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-.reaction-btn {
-    background: rgba(255,255,255,0.05); border: 1px solid var(--border-default);
-    border-radius: 16px; padding: 4px 10px; font-size: 0.72rem; cursor: pointer;
-    transition: all 0.25s; display: flex; align-items: center; gap: 4px; color: var(--text-secondary);
+/* ═══════════════════════════════════════════════════
+   Reactions — centered, 20% bigger, pressable
+   body-scoped selectors beat theme-merged's
+   !important overrides without editing that file.
+   ═══════════════════════════════════════════════════ */
+body .reactions-bar {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    align-self: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 8px !important;
+    margin: 10px 0 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
 }
-.reaction-btn.active { background: rgba(0, 240, 255, 0.2); border-color: var(--accent-cyan); color: #fff; box-shadow: 0 0 10px rgba(0, 240, 255, 0.4); }
-.reaction-btn:hover { background: var(--bg-hover); border-color: var(--border-strong); color: #fff; }
+
+body .msg-bubble .reaction-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    min-width: 46px !important;
+    height: 36px !important;
+    padding: 0 11px !important;
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid var(--border-default) !important;
+    border-radius: 18px !important;
+    cursor: pointer !important;
+    color: var(--text-secondary) !important;
+    font-size: 1.05rem !important;      /* +20% from 0.68/0.72 */
+    line-height: 1 !important;
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        transform 0.12s ease,
+        box-shadow 0.2s ease !important;
+    -webkit-tap-highlight-color: transparent !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    overflow: hidden !important;
+}
+
+body .msg-bubble .reaction-btn .reaction-emoji {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.25rem !important;      /* +20% emoji */
+    line-height: 1 !important;
+    transition: transform 0.15s ease !important;
+}
+
+body .msg-bubble .reaction-btn .reaction-count {
+    font-size: 0.85rem !important;      /* +20% count */
+    font-weight: 700 !important;
+    font-variant-numeric: tabular-nums !important;
+    line-height: 1 !important;
+    color: inherit !important;
+    min-width: 0.9em !important;
+    text-align: center !important;
+}
+
+/* Hover */
+body .msg-bubble .reaction-btn:hover {
+    background: var(--bg-hover) !important;
+    border-color: var(--border-strong) !important;
+    color: #fff !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35) !important;
+}
+body .msg-bubble .reaction-btn:hover .reaction-emoji {
+    transform: scale(1.12) !important;
+}
+
+/* Press / active-press */
+body .msg-bubble .reaction-btn:active,
+body .msg-bubble .reaction-btn.pressing {
+    transform: scale(0.92) !important;
+}
+
+/* Selected (you reacted) */
+body .msg-bubble .reaction-btn.active {
+    background: rgba(0, 240, 255, 0.15) !important;
+    border-color: var(--accent-cyan) !important;
+    color: #fff !important;
+    box-shadow:
+        0 0 12px rgba(0, 240, 255, 0.35),
+        inset 0 0 8px rgba(0, 240, 255, 0.15) !important;
+}
+body .msg-bubble .reaction-btn.active .reaction-emoji {
+    filter: drop-shadow(0 0 6px currentColor) !important;
+}
+
+/* Pop animation on click */
+body .msg-bubble .reaction-btn.pressing .reaction-emoji {
+    animation: reactionPulse 0.32s cubic-bezier(.34, 1.56, .64, 1) !important;
+}
+@keyframes reactionPulse {
+    0%   { transform: scale(0.7); opacity: 0.5; }
+    60%  { transform: scale(1.28); }
+    100% { transform: scale(1);   opacity: 1; }
+}
+
+/* Mobile — same look, slightly tighter */
+@media (max-width: 768px) {
+    body .reactions-bar {
+        gap: 6px !important;
+        margin-top: 8px !important;
+    }
+    body .msg-bubble .reaction-btn {
+        min-width: 42px !important;
+        height: 34px !important;
+        padding: 0 9px !important;
+        font-size: 1rem !important;
+    }
+    body .msg-bubble .reaction-btn .reaction-emoji {
+        font-size: 1.18rem !important;
+    }
+    body .msg-bubble .reaction-btn .reaction-count {
+        font-size: 0.8rem !important;
+    }
+}
 
 /* ── Message actions container ── */
 .msg-actions-container {
