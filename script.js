@@ -491,6 +491,10 @@
     let currentAvatarUrl = null;
     let modAnnouncement = '';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // ⚑ Expose for wallet-identity.js and x-auth.js so they reuse
+    //   this client instead of creating their own.
+    window.MSN = window.MSN || {};
+    window.MSN.supabase = supabase;
 
     function getWalletAddress() {
         try {
