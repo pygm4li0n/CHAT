@@ -3341,7 +3341,7 @@ html body .mod-message-box .mod-message-text {
 
     /* Master size knob — change this one value to resize */
     :root {
-        --header-logo-h: 48px;     /* main logo height */
+        --header-logo-h: 38px;     /* main logo height */
         --header-mini-h: 32px;     /* each mini logo height */
         --header-mini-gap: 6px;    /* space between them */
     }
