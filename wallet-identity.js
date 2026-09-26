@@ -1,23 +1,27 @@
 /* ═══════════════════════════════════════════════════════════
-   wallet-identity.js
+   wallet-identity.js — v3
    ───────────────────────────────────────────────────────────
-   • Wallet is the source of truth. Username is a display label.
-   • Rename → UPDATE profiles WHERE wallet_address = X
-   • Realtime profile changes propagate to messages + sidebar.
-   • Presence is deduped by wallet.
-   • X auth ready: write x_handle/x_verified/x_avatar_url.
-   Load AFTER script.js.
+   Wallet is the source of truth. Username is a display label.
+   X-verified identity (display_name / x_handle / x_avatar_url)
+   wins everywhere: chat, sidebar, profile card, rankings.
 
-   v2 fixes:
-   • rememberProfile MERGES instead of overwriting — survives
-     partial realtime payloads that omit `username`.
-   • displayNameFor no longer invents "anon".
-   • subscribeProfiles fetches the full row when the realtime
-     payload is partial, so propagation never writes a blank.
+   v3 additions
+   ────────────
+   • MSNIdentity.resolve(nameOrWallet)
+       → { wallet, username, displayName, avatar, x_verified }
+   • MSNIdentity.remember(profileRow)    → cache only, no DOM
+   • MSNIdentity.enrichRow / enrichRows  → apply to rank rows
+   • propagateProfile also updates .rank-row[data-wallet]
+   • Dispatches 'msn:identity-changed' on every propagation
+
+   v2 fixes retained
+   ─────────────────
+   • rememberProfile MERGES — survives partial realtime payloads.
+   • displayNameFor never invents "anon".
+   • subscribeProfiles refetches the full row on partial payloads.
    • updateMessagesFor / updateSidebarFor hard-guard against
-     writing "anon" or empty labels over existing text.
-   • setUsernameForWallet no longer uses a non-existent `id` col;
-     keys purely on wallet_address (the PK in this schema).
+     writing "anon" over existing labels.
+   • setUsernameForWallet keys purely on wallet_address.
    ═══════════════════════════════════════════════════════════ */
 (function () {
     'use strict';
@@ -34,41 +38,36 @@
         }
         return null;
     }
-
     function esc(t) {
         return String(t == null ? '' : t)
             .replace(/[&<>"']/g, function (m) {
                 return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m];
             });
     }
+    /* Solana base58 addresses: 32–48 chars, no whitespace. */
+    function isWalletLike(s) {
+        return typeof s === 'string'
+            && s.length >= 32 && s.length <= 48
+            && !/\s/.test(s);
+    }
 
     var byWallet = Object.create(null);
     var byUsername = Object.create(null);
 
-    /* ─────────────────────────────────────────────────────────
-       Display resolution — never invent a name
-       ───────────────────────────────────────────────────────── */
     function displayNameFor(profile) {
         if (!profile) return null;
-        // When X-verified, X's display name / handle wins
         if (profile.x_verified) {
             if (profile.display_name) return profile.display_name;
             if (profile.x_handle) return '@' + profile.x_handle;
         }
-        return profile.display_name
-            || profile.username
-            || null;
+        return profile.display_name || profile.username || null;
     }
     function avatarFor(profile) {
         if (!profile) return null;
-        // When X-verified, X's avatar wins
         if (profile.x_verified && profile.x_avatar_url) return profile.x_avatar_url;
         return profile.avatar_url || profile.x_avatar_url || null;
     }
 
-    /* ─────────────────────────────────────────────────────────
-       Cache — MERGE incoming fields, never blank existing ones
-       ───────────────────────────────────────────────────────── */
     function rememberProfile(p) {
         if (!p || !p.wallet_address) return;
         var prev = byWallet[p.wallet_address] || {};
@@ -83,6 +82,25 @@
         if (p.username) byUsername[p.username] = p.wallet_address;
     }
 
+    /* ═════════════════════════════════════════════════════════
+       CANONICAL RESOLVER — single source of truth.
+       ═════════════════════════════════════════════════════════ */
+    function resolve(x) {
+        if (!x || typeof x !== 'string') return null;
+        var wallet = null;
+        if (isWalletLike(x)) wallet = x;
+        else if (byUsername[x]) wallet = byUsername[x];
+        if (!wallet || !byWallet[wallet]) return null;
+        var p = byWallet[wallet];
+        return {
+            wallet:      wallet,
+            username:    p.username || null,
+            displayName: displayNameFor(p) || p.username || null,
+            avatar:      avatarFor(p),
+            x_verified:  !!p.x_verified
+        };
+    }
+
     function labelForWallet(wallet) {
         if (!wallet) return null;
         return displayNameFor(byWallet[wallet]);
@@ -92,18 +110,12 @@
         return w ? labelForWallet(w) : username;
     }
 
-    /* ─────────────────────────────────────────────────────────
-       DOM propagation — guarded against empty / "anon" writes
-       ───────────────────────────────────────────────────────── */
-    function isValidLabel(label) {
-        return !!label && label !== 'anon';
-    }
+    function isValidLabel(label) { return !!label && label !== 'anon'; }
 
     function updateMessagesFor(wallet, profile) {
         if (!wallet) return;
         var label = displayNameFor(profile);
         var avatar = avatarFor(profile);
-
         document.querySelectorAll('.msg-wrapper[data-wallet="' + CSS.escape(wallet) + '"]')
             .forEach(function (w) {
                 var unameEl = w.querySelector('.msg-username');
@@ -157,6 +169,33 @@
             });
     }
 
+    /* ⚑ NEW — rankings rows (name + avatar, live) */
+    function updateRankRowsFor(wallet, profile) {
+        if (!wallet) return;
+        var label = displayNameFor(profile);
+        var avatar = avatarFor(profile);
+        document.querySelectorAll('.rank-row[data-wallet="' + CSS.escape(wallet) + '"]')
+            .forEach(function (row) {
+                var nameEl = row.querySelector('.rank-name');
+                if (nameEl && isValidLabel(label)) nameEl.textContent = label;
+                if (avatar) {
+                    var av = row.querySelector('.rank-avatar');
+                    if (av) {
+                        if (av.tagName === 'IMG') {
+                            av.src = avatar;
+                        } else {
+                            var img = document.createElement('img');
+                            img.className = 'rank-avatar';
+                            img.src = avatar;
+                            img.alt = '';
+                            img.loading = 'lazy';
+                            av.replaceWith(img);
+                        }
+                    }
+                }
+            });
+    }
+
     function updateSelfBlock(profile) {
         if (!profile) return;
         var label = displayNameFor(profile);
@@ -169,8 +208,11 @@
 
     function propagateProfile(wallet, profile) {
         rememberProfile(profile);
+
         updateMessagesFor(wallet, profile);
         updateSidebarFor(wallet, profile);
+        updateRankRowsFor(wallet, profile);
+
         try {
             var cached = localStorage.getItem('msn_cached_wallet');
             if (cached && cached === wallet) {
@@ -182,16 +224,50 @@
                 updateSelfBlock(profile);
             }
         } catch (e) {}
+
+        /* ⚑ Broadcast: profile card, ranks, anything else can listen */
+        try {
+            document.dispatchEvent(new CustomEvent('msn:identity-changed', {
+                detail: { wallet: wallet, profile: byWallet[wallet] || null }
+            }));
+        } catch (e) {}
     }
 
-    /* ─────────────────────────────────────────────────────────
-       Rename — keyed purely on wallet_address (PK in this schema)
-       ───────────────────────────────────────────────────────── */
+    /* ═════════════════════════════════════════════════════════
+       ROW ENRICHMENT — apply identity to arbitrary row objects.
+       ═════════════════════════════════════════════════════════ */
+    function enrichRow(row) {
+        if (!row) return row;
+        var wallet = row.wallet_address;
+        if (!wallet && row.username && byUsername[row.username]) {
+            wallet = byUsername[row.username];
+        }
+        if (!wallet) return row;
+        var p = byWallet[wallet];
+        if (!p) return row;
+
+        var dn = displayNameFor(p);
+        var av = avatarFor(p);
+
+        var out = {};
+        for (var k in row) {
+            if (Object.prototype.hasOwnProperty.call(row, k)) out[k] = row[k];
+        }
+        if (dn) out.username = dn;
+        if (av) out.avatar_url = av;
+        out.wallet_address = wallet;
+        out.x_verified = !!p.x_verified;
+        return out;
+    }
+    function enrichRows(rows) {
+        if (!rows || !rows.length) return rows || [];
+        return rows.map(enrichRow);
+    }
+
     async function setUsernameForWallet(wallet, newName) {
         var sb = getSB();
         if (!sb || !wallet || !newName) return { error: 'bad_input' };
 
-        // 1. Conflict check — another wallet already owns this name?
         var { data: conflict } = await sb.from('profiles')
             .select('wallet_address').eq('username', newName).maybeSingle();
 
@@ -199,25 +275,17 @@
             return { error: 'username_taken' };
         }
 
-        // 2. UPDATE by wallet_address (the anchor)
         var { data: updated, error: updateErr } = await sb.from('profiles')
-            .update({
-                username:   newName,
-                updated_at: new Date().toISOString()
-            })
+            .update({ username: newName, updated_at: new Date().toISOString() })
             .eq('wallet_address', wallet)
             .select()
             .maybeSingle();
 
         if (updateErr) return { error: updateErr.message };
 
-        // 3. No row for this wallet yet → insert a fresh profile
         if (!updated) {
             var { data: inserted, error: insertErr } = await sb.from('profiles')
-                .insert({
-                    wallet_address: wallet,
-                    username:       newName
-                })
+                .insert({ wallet_address: wallet, username: newName })
                 .select()
                 .single();
             if (insertErr) return { error: insertErr.message };
@@ -228,9 +296,6 @@
         return { data: updated };
     }
 
-    /* ─────────────────────────────────────────────────────────
-       Realtime — fetch full row when payload is partial
-       ───────────────────────────────────────────────────────── */
     function subscribeProfiles() {
         var sb = getSB();
         if (!sb) return;
@@ -244,14 +309,12 @@
                     var row = payload.new || payload.old;
                     if (!row || !row.wallet_address) return;
 
-                    // Partial payload (missing username)? Fetch the full row.
                     if (row.username === undefined || row.username === null) {
-                        fetchProfile(row.wallet_address, /* force */ true).then(function (full) {
+                        fetchProfile(row.wallet_address, true).then(function (full) {
                             if (full) propagateProfile(row.wallet_address, full);
                         });
                         return;
                     }
-
                     propagateProfile(row.wallet_address, row);
                 })
             .subscribe();
@@ -259,9 +322,6 @@
         window.MSN._profileChannel = channel;
     }
 
-    /* ─────────────────────────────────────────────────────────
-       Fetch helpers
-       ───────────────────────────────────────────────────────── */
     async function fetchProfile(wallet, force) {
         if (!wallet) return null;
         if (!force && byWallet[wallet] && byWallet[wallet].username) {
@@ -288,9 +348,6 @@
         return data || [];
     }
 
-    /* ─────────────────────────────────────────────────────────
-       Retro-tag existing DOM
-       ───────────────────────────────────────────────────────── */
     function tagMessageWrappers() {
         ['publicMessagesContainer', 'privateMessagesContainer'].forEach(function (id) {
             var root = document.getElementById(id);
@@ -345,10 +402,8 @@
         });
     }
 
-    /* ─────────────────────────────────────────────────────────
-       Public API
-       ───────────────────────────────────────────────────────── */
     window.MSNIdentity = {
+        /* v2 — unchanged */
         labelForWallet:       labelForWallet,
         labelForUsername:     labelForUsername,
         fetchProfile:         fetchProfile,
@@ -356,7 +411,15 @@
         setUsernameForWallet: setUsernameForWallet,
         propagateProfile:     propagateProfile,
         byWallet:             function () { return byWallet; },
-        byUsername:           function () { return byUsername; }
+        byUsername:           function () { return byUsername; },
+
+        /* v3 — new */
+        resolve:              resolve,
+        remember:             rememberProfile,
+        enrichRow:            enrichRow,
+        enrichRows:           enrichRows,
+        displayNameFor:       displayNameFor,
+        avatarFor:            avatarFor
     };
 
     function boot() {
@@ -370,5 +433,5 @@
     } else {
         boot();
     }
-    console.log('[wallet-identity] loaded');
+    console.log('[wallet-identity] loaded v3');
 })();
