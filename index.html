@@ -379,17 +379,27 @@
     <script src="wallet-identity.js?v=1"></script>
 
     <!-- ═══════════════════════════════════════════════════════
-         ⚑ MOBILE SIDEBAR PROFILE
+         ⚑ MOBILE SIDEBAR PROFILE — MOBILE ONLY
          – Avatar click → edit profile
          – Builds the 2×2 actions grid (theme / rankings /
            refresh / mod) inside the profile block
-         – No-op on desktop (grid hidden via CSS at ≥769px)
+         – Guarded by isMobile(): NEVER touches the shared buttons
+           on desktop, so script.js's right sidebar keeps its cards.
     ═══════════════════════════════════════════════════════ -->
     <script>
     (function wireMobileProfile() {
         'use strict';
 
+        function isMobile() {
+            return window.matchMedia('(max-width: 768px)').matches;
+        }
+
         function buildActionsGrid() {
+            // ⚑ MOBILE ONLY. On desktop, script.js owns these buttons
+            // via .msn-right-sidebar. Running here would steal them
+            // into a display:none container.
+            if (!isMobile()) return;
+
             const profile = document.getElementById('sidebarUserProfileBig');
             if (!profile) return;
 
@@ -452,6 +462,10 @@
         }
 
         function wireAvatarClick() {
+            // ⚑ MOBILE ONLY. On desktop, profile-system.js opens the
+            // VIEW PROFILE modal on avatar click — not the edit flow.
+            if (!isMobile()) return;
+
             const avatar = document.getElementById('sidebarBigAvatar');
             const pencil = document.getElementById('sidebarChangeNameBtn');
             if (!avatar || !pencil || avatar.dataset.msnWired) return;
