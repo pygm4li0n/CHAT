@@ -461,10 +461,10 @@
             profile.appendChild(grid);
         }
 
-                function wireAvatarClick() {
+        function wireAvatarClick() {
             // ⚑ MOBILE ONLY. Avatar tap → VIEW PROFILE modal.
-            // The modal has its own "Edit Profile" button (wired by
-            // profile-system.js) so users still reach edit in one tap.
+            // Uses profile.refresh() — open() needs a username arg,
+            // refresh() reads self and calls open(me) for us.
             if (!isMobile()) return;
 
             const avatar = document.getElementById('sidebarBigAvatar');
@@ -478,14 +478,25 @@
             const trigger = function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                // Ensure profile-system.js is loaded, then open self profile
-                if (window.MSN && window.MSN.profile && typeof window.MSN.profile.open === 'function') {
-                    window.MSN.profile.open();
-                } else {
-                    // Fallback: click the header avatar handler if available
-                    const pencil = document.getElementById('sidebarChangeNameBtn');
-                    if (pencil) pencil.click();
+
+                const P = window.MSN && window.MSN.profile;
+
+                // Prefer refresh() — fills in the self username for us
+                if (P && typeof P.refresh === 'function') {
+                    P.refresh();
+                    return;
                 }
+
+                // Fallback: open() with the cached username explicitly
+                if (P && typeof P.open === 'function') {
+                    let me = null;
+                    try { me = localStorage.getItem('msn_chat_username'); } catch (err) {}
+                    if (me) { P.open(me); return; }
+                }
+
+                // Last resort: trigger the edit flow so the user isn't stuck
+                const pencil = document.getElementById('sidebarChangeNameBtn');
+                if (pencil) pencil.click();
             };
             avatar.addEventListener('click', trigger, true);
             avatar.addEventListener('keydown', function (e) {
