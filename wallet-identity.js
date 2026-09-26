@@ -7,6 +7,17 @@
    • Presence is deduped by wallet.
    • X auth ready: write x_handle/x_verified/x_avatar_url.
    Load AFTER script.js.
+
+   v2 fixes:
+   • rememberProfile MERGES instead of overwriting — survives
+     partial realtime payloads that omit `username`.
+   • displayNameFor no longer invents "anon".
+   • subscribeProfiles fetches the full row when the realtime
+     payload is partial, so propagation never writes a blank.
+   • updateMessagesFor / updateSidebarFor hard-guard against
+     writing "anon" or empty labels over existing text.
+   • setUsernameForWallet no longer uses a non-existent `id` col;
+     keys purely on wallet_address (the PK in this schema).
    ═══════════════════════════════════════════════════════════ */
 (function () {
     'use strict';
@@ -34,27 +45,34 @@
     var byWallet = Object.create(null);
     var byUsername = Object.create(null);
 
+    /* ─────────────────────────────────────────────────────────
+       Display resolution — never invent a name
+       ───────────────────────────────────────────────────────── */
     function displayNameFor(profile) {
         if (!profile) return null;
         return profile.display_name
             || (profile.x_verified && profile.x_handle ? '@' + profile.x_handle : null)
             || profile.username
-            || 'anon';
+            || null;
     }
     function avatarFor(profile) {
         if (!profile) return null;
         return profile.avatar_url || profile.x_avatar_url || null;
     }
 
+    /* ─────────────────────────────────────────────────────────
+       Cache — MERGE incoming fields, never blank existing ones
+       ───────────────────────────────────────────────────────── */
     function rememberProfile(p) {
         if (!p || !p.wallet_address) return;
+        var prev = byWallet[p.wallet_address] || {};
         byWallet[p.wallet_address] = {
-            username:     p.username     || null,
-            display_name: p.display_name || null,
-            avatar_url:   p.avatar_url   || null,
-            x_handle:     p.x_handle     || null,
-            x_verified:   !!p.x_verified,
-            x_avatar_url: p.x_avatar_url || null
+            username:     ('username'     in p) ? p.username     : prev.username,
+            display_name: ('display_name' in p) ? p.display_name : prev.display_name,
+            avatar_url:   ('avatar_url'   in p) ? p.avatar_url   : prev.avatar_url,
+            x_handle:     ('x_handle'     in p) ? p.x_handle     : prev.x_handle,
+            x_verified:   ('x_verified'   in p) ? !!p.x_verified : prev.x_verified,
+            x_avatar_url: ('x_avatar_url' in p) ? p.x_avatar_url : prev.x_avatar_url
         };
         if (p.username) byUsername[p.username] = p.wallet_address;
     }
@@ -68,6 +86,13 @@
         return w ? labelForWallet(w) : username;
     }
 
+    /* ─────────────────────────────────────────────────────────
+       DOM propagation — guarded against empty / "anon" writes
+       ───────────────────────────────────────────────────────── */
+    function isValidLabel(label) {
+        return !!label && label !== 'anon';
+    }
+
     function updateMessagesFor(wallet, profile) {
         if (!wallet) return;
         var label = displayNameFor(profile);
@@ -76,7 +101,7 @@
         document.querySelectorAll('.msg-wrapper[data-wallet="' + CSS.escape(wallet) + '"]')
             .forEach(function (w) {
                 var unameEl = w.querySelector('.msg-username');
-                if (unameEl && label) {
+                if (unameEl && isValidLabel(label)) {
                     for (var i = 0; i < unameEl.childNodes.length; i++) {
                         var n = unameEl.childNodes[i];
                         if (n.nodeType === 3 && n.nodeValue.trim()) {
@@ -104,9 +129,9 @@
         var avatar = avatarFor(profile);
         document.querySelectorAll('.sidebar-user-item[data-wallet="' + CSS.escape(wallet) + '"]')
             .forEach(function (item) {
-                if (label) item.setAttribute('data-username', label);
+                if (isValidLabel(label)) item.setAttribute('data-username', label);
                 var nameEl = item.querySelector('.user-name');
-                if (nameEl && label) {
+                if (nameEl && isValidLabel(label)) {
                     for (var i = 0; i < nameEl.childNodes.length; i++) {
                         var n = nameEl.childNodes[i];
                         if (n.nodeType === 3 && n.nodeValue.trim()) {
@@ -132,7 +157,7 @@
         var avatar = avatarFor(profile);
         var bigName = document.getElementById('sidebarBigName');
         var bigAv = document.getElementById('sidebarBigAvatar');
-        if (bigName && label) bigName.textContent = label;
+        if (bigName && isValidLabel(label)) bigName.textContent = label;
         if (bigAv && avatar) bigAv.innerHTML = '<img src="' + esc(avatar) + '" alt="">';
     }
 
@@ -144,7 +169,7 @@
             var cached = localStorage.getItem('msn_cached_wallet');
             if (cached && cached === wallet) {
                 var label = displayNameFor(profile);
-                if (label) {
+                if (isValidLabel(label)) {
                     localStorage.setItem('msn_chat_username', label);
                     localStorage.setItem('msn_last_username', label);
                 }
@@ -153,10 +178,14 @@
         } catch (e) {}
     }
 
+    /* ─────────────────────────────────────────────────────────
+       Rename — keyed purely on wallet_address (PK in this schema)
+       ───────────────────────────────────────────────────────── */
     async function setUsernameForWallet(wallet, newName) {
         var sb = getSB();
         if (!sb || !wallet || !newName) return { error: 'bad_input' };
 
+        // 1. Conflict check — another wallet already owns this name?
         var { data: conflict } = await sb.from('profiles')
             .select('wallet_address').eq('username', newName).maybeSingle();
 
@@ -164,20 +193,38 @@
             return { error: 'username_taken' };
         }
 
-        var payload = {
-            wallet_address: wallet,
-            username:       newName,
-            updated_at:     new Date().toISOString()
-        };
-        var { data, error } = await sb.from('profiles')
-            .upsert(payload, { onConflict: 'wallet_address' })
-            .select().single();
+        // 2. UPDATE by wallet_address (the anchor)
+        var { data: updated, error: updateErr } = await sb.from('profiles')
+            .update({
+                username:   newName,
+                updated_at: new Date().toISOString()
+            })
+            .eq('wallet_address', wallet)
+            .select()
+            .maybeSingle();
 
-        if (error) return { error: error.message };
-        propagateProfile(wallet, data);
-        return { data: data };
+        if (updateErr) return { error: updateErr.message };
+
+        // 3. No row for this wallet yet → insert a fresh profile
+        if (!updated) {
+            var { data: inserted, error: insertErr } = await sb.from('profiles')
+                .insert({
+                    wallet_address: wallet,
+                    username:       newName
+                })
+                .select()
+                .single();
+            if (insertErr) return { error: insertErr.message };
+            updated = inserted;
+        }
+
+        propagateProfile(wallet, updated);
+        return { data: updated };
     }
 
+    /* ─────────────────────────────────────────────────────────
+       Realtime — fetch full row when payload is partial
+       ───────────────────────────────────────────────────────── */
     function subscribeProfiles() {
         var sb = getSB();
         if (!sb) return;
@@ -190,6 +237,15 @@
                 function (payload) {
                     var row = payload.new || payload.old;
                     if (!row || !row.wallet_address) return;
+
+                    // Partial payload (missing username)? Fetch the full row.
+                    if (row.username === undefined || row.username === null) {
+                        fetchProfile(row.wallet_address, /* force */ true).then(function (full) {
+                            if (full) propagateProfile(row.wallet_address, full);
+                        });
+                        return;
+                    }
+
                     propagateProfile(row.wallet_address, row);
                 })
             .subscribe();
@@ -197,9 +253,14 @@
         window.MSN._profileChannel = channel;
     }
 
+    /* ─────────────────────────────────────────────────────────
+       Fetch helpers
+       ───────────────────────────────────────────────────────── */
     async function fetchProfile(wallet, force) {
         if (!wallet) return null;
-        if (!force && byWallet[wallet]) return byWallet[wallet];
+        if (!force && byWallet[wallet] && byWallet[wallet].username) {
+            return byWallet[wallet];
+        }
         var sb = getSB();
         if (!sb) return null;
         var { data, error } = await sb.from('profiles')
@@ -221,6 +282,9 @@
         return data || [];
     }
 
+    /* ─────────────────────────────────────────────────────────
+       Retro-tag existing DOM
+       ───────────────────────────────────────────────────────── */
     function tagMessageWrappers() {
         ['publicMessagesContainer', 'privateMessagesContainer'].forEach(function (id) {
             var root = document.getElementById(id);
@@ -254,7 +318,7 @@
         document.querySelectorAll('.msg-username, .sidebar-user-item[data-username]').forEach(function (el) {
             var link = el.querySelector && el.querySelector('.msn-username-link');
             var name = (link ? link.textContent : el.textContent || '').trim().split(/\s+/)[0];
-            if (name) names.add(name);
+            if (name && name !== 'anon') names.add(name);
         });
         if (!names.size) return;
         var sb = getSB();
@@ -275,6 +339,9 @@
         });
     }
 
+    /* ─────────────────────────────────────────────────────────
+       Public API
+       ───────────────────────────────────────────────────────── */
     window.MSNIdentity = {
         labelForWallet:       labelForWallet,
         labelForUsername:     labelForUsername,
