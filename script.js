@@ -1251,7 +1251,7 @@
     let knownMessageIds = new Set();
     let messageReactions = {};
     let privateMessageReactions = {};
-    const EMOJIS = ['❤️','😂','😮','😢','😡'];
+    const EMOJIS = ['👍','👎','❤️','😨'];
     let pendingImageUrl = null;
     let profilePicFile = null;
     const typingUsers = new Map();
@@ -1643,29 +1643,102 @@ function showSuccess(msg) {
             .on('postgres_changes', { event:'*', schema:'public', table:'private_message_reactions' }, () => loadReactions('private_message_reactions', true))
             .subscribe();
     }
+       /* ═══════════════════════════════════════════════════════════
+       REACTIONS — optimistic, self-healing, centered
+       ───────────────────────────────────────────────────────────
+       Flow on click:
+         1. flip local state (optimistic)
+         2. repaint the bar instantly
+         3. pulse the button
+         4. persist to Supabase
+         5. on error → roll back + toast
+       Realtime reconcile stays the ultimate source of truth.
+       ═══════════════════════════════════════════════════════════ */
     function updateReactionUI(wrapper, isPrivate) {
         const msgId = wrapper.getAttribute('data-msg-id');
         const bar = wrapper.querySelector('.reactions-bar');
         if (!bar) return;
+
         const reactions = (isPrivate ? privateMessageReactions : messageReactions)[msgId] || {};
+
         bar.innerHTML = EMOJIS.map(emoji => {
-            const data = reactions[emoji] || { count:0, users: new Set() };
-            const active = data.users.has(username) ? 'active' : '';
-            return `<button class="reaction-btn ${active}" data-emoji="${emoji}">${emoji} ${data.count}</button>`;
+            const data  = reactions[emoji] || { count: 0, users: new Set() };
+            const mine  = data.users && data.users.has(username);
+            const count = Number(data.count) || 0;
+            const countHTML = count > 0
+                ? `<span class="reaction-count">${count}</span>`
+                : '';
+            return `<button class="reaction-btn${mine ? ' active' : ''}"
+                            type="button"
+                            data-emoji="${emoji}"
+                            aria-label="React ${emoji}"
+                            aria-pressed="${mine ? 'true' : 'false'}">
+                        <span class="reaction-emoji">${emoji}</span>${countHTML}
+                    </button>`;
         }).join('');
-        bar.querySelectorAll('.reaction-btn').forEach(btn => {
-            btn.addEventListener('click', e => {
-                e.stopPropagation();
-                toggleReaction(msgId, btn.dataset.emoji, isPrivate);
-            });
-        });
+        /* No per-button listeners — the bar's delegation (bound in
+           buildMessageNode) handles every click and survives this
+           innerHTML rebuild. */
     }
-    async function toggleReaction(messageId, emoji, isPrivate) {
+
+    async function toggleReaction(messageId, emoji, isPrivate, btnEl) {
+        if (!username) { showError('Set your username first'); return; }
+
         const table = isPrivate ? 'private_message_reactions' : 'message_reactions';
-        const { data: existing } = await supabase.from(table)
-            .select('id').match({ message_id: messageId, username, emoji }).single();
-        if (existing) await supabase.from(table).delete().eq('id', existing.id);
-        else await supabase.from(table).insert({ message_id: messageId, username, emoji });
+        const store = isPrivate ? privateMessageReactions    : messageReactions;
+
+        /* ── 1. Optimistic flip ── */
+        if (!store[messageId]) store[messageId] = {};
+        if (!store[messageId][emoji]) store[messageId][emoji] = { count: 0, users: new Set() };
+        const bucket = store[messageId][emoji];
+        const wasActive = bucket.users.has(username);
+
+        if (wasActive) {
+            bucket.users.delete(username);
+            bucket.count = Math.max(0, bucket.count - 1);
+        } else {
+            bucket.users.add(username);
+            bucket.count += 1;
+        }
+
+        /* ── 2. Instant repaint ── */
+        const wrapper = document.querySelector(`.msg-wrapper[data-msg-id="${messageId}"]`);
+        if (wrapper) updateReactionUI(wrapper, isPrivate);
+
+        /* ── 3. Press feedback ── */
+        if (btnEl) {
+            btnEl.classList.add('pressing');
+            setTimeout(() => btnEl.classList.remove('pressing'), 320);
+        }
+
+        /* ── 4. Persist ──
+           Toggle-ON uses insert; a duplicate/unique error means
+           the row is already there — that's success, not failure.
+           Toggle-OFF deletes; 0-row match is fine. */
+        try {
+            if (wasActive) {
+                const { error } = await supabase.from(table)
+                    .delete()
+                    .match({ message_id: messageId, username, emoji });
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from(table)
+                    .insert({ message_id: messageId, username, emoji });
+                if (error && !/duplicate|unique/i.test(error.message || '')) throw error;
+            }
+        } catch (err) {
+            /* ── 5. Roll back ── */
+            console.warn('[reaction] save failed — rolling back:', err);
+            if (wasActive) {
+                bucket.users.add(username);
+                bucket.count += 1;
+            } else {
+                bucket.users.delete(username);
+                bucket.count = Math.max(0, bucket.count - 1);
+            }
+            if (wrapper) updateReactionUI(wrapper, isPrivate);
+            showError('Reaction failed — try again');
+        }
     }
 
     async function scrollToMessage(msgId) {
@@ -1768,6 +1841,20 @@ function showSuccess(msg) {
 
         bubble.innerHTML = innerHTML;
         wrapper.appendChild(bubble);
+
+        // ⚑ Bind reaction clicks once per message.
+        //   Event delegation → the handler survives every
+        //   innerHTML rebuild inside updateReactionUI().
+        const reactionsBarEl = bubble.querySelector('.reactions-bar');
+        if (reactionsBarEl) {
+            reactionsBarEl.addEventListener('click', (e) => {
+                const btn = e.target.closest('.reaction-btn');
+                if (!btn || !reactionsBarEl.contains(btn)) return;
+                e.preventDefault();
+                e.stopPropagation();
+                toggleReaction(msg.id, btn.dataset.emoji, isPrivate, btn);
+            });
+        }
 
         observeTweetsInWrapper(wrapper);
 
