@@ -1,23 +1,24 @@
 /* ═══════════════════════════════════════════════════════════
-   x-auth.js
+   x-auth.js — v5
    ───────────────────────────────────────────────────────────
    • Injects an X login button:
        – Desktop: left of #phantomConnectBtn in the header,
          with a VERIFY / VERIFIED label to its left
        – Mobile:  replaces #sidebarRefreshBtn in the 2×2 grid
-         (no label — the cell has no room)
    • Uses the SEPARATE X auth Supabase project for OAuth
    • On success, writes x_handle / x_verified / x_avatar_url /
      display_name to profiles (main app project), keyed by wallet
    • wallet-identity.js handles the rest via realtime
    Load AFTER wallet-identity.js
 
-   v4:
-   • Button is GRAY + still when not verified.
-   • Button turns COLORED + animated when verified.
-   • VERIFY / VERIFIED text label sits to the left (desktop).
-   • Loader dismiss on OAuth return.
-   • Session cache for instant first-click.
+   v5 fixes:
+   • Loader is dismissed ONLY on OAuth return, not on every load.
+     A sessionStorage flag (msn_x_oauth_pending) is set right
+     before the redirect and cleared ~1.5s after we're back.
+   • The head <script> in index.html also reads this flag and
+     hides the loader before loading-screen.js even runs.
+   • All other v4 behavior preserved (gray → colored button,
+     VERIFY / VERIFIED label, session cache, retries).
    ═══════════════════════════════════════════════════════════ */
 (function () {
     'use strict';
@@ -32,6 +33,21 @@
     var mainClient = null;
     var _sessionCache = null;
     var _sessionKnown = false;
+
+    /* ─── OAuth pending flag (survives the redirect) ────── */
+    function markOAuthPending() {
+        try { sessionStorage.setItem('msn_x_oauth_pending', '1'); } catch (e) {}
+    }
+    function clearOAuthPending() {
+        try { sessionStorage.removeItem('msn_x_oauth_pending'); } catch (e) {}
+    }
+    function isOAuthPending() {
+        try {
+            if (sessionStorage.getItem('msn_x_oauth_pending') === '1') return true;
+            if (window.__msnSkipBootLoader === true) return true;
+        } catch (e) {}
+        return false;
+    }
 
     function getAuth() {
         if (authClient) return authClient;
@@ -70,27 +86,29 @@
         var ov = document.getElementById('msnBootOverlay');
         if (ov) {
             ov.classList.add('done');
+            ov.style.display = 'none';
+            ov.style.opacity = '0';
+            ov.style.visibility = 'hidden';
+            ov.style.pointerEvents = 'none';
             setTimeout(function () {
                 if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
-            }, 600);
+            }, 400);
         }
     }
 
     /* ─────────────────────────────────────────────────────────
        Styles
-       ⚑ Default state: GRAY + static, gray icon
-       ⚑ .x-signed-in: COLOR gradient + sweep animation + white icon
+       ⚑ Default: GRAY + static
+       ⚑ .x-signed-in: COLOR gradient + sweep + white icon
        ───────────────────────────────────────────────────────── */
     function injectStyles() {
         if (document.getElementById('x-auth-styles')) return;
         var css = [
-            /* Wrapper (label + button) — desktop only */
             '.x-auth-wrap{',
             '  display:inline-flex!important;align-items:center!important;',
             '  gap:6px!important;flex-shrink:0!important;',
             '}',
 
-            /* Label — VERIFY / VERIFIED */
             '.x-auth-label{',
             '  font-family:var(--font-mono,ui-monospace,monospace)!important;',
             '  font-size:0.62rem!important;',
@@ -109,7 +127,7 @@
             '  text-shadow:0 0 10px rgba(29,155,240,.6)!important;',
             '}',
 
-            /* Base button — GRAY, static */
+            /* Base = GRAY, static */
             '.x-auth-btn{',
             '  position:relative!important;overflow:hidden!important;',
             '  width:44px!important;height:44px!important;',
@@ -131,7 +149,6 @@
             '  position:relative!important;z-index:1!important;',
             '  transition:fill .25s ease,filter .25s ease!important;',
             '}',
-            /* No sweep animation while gray */
             '.x-auth-btn::after{',
             '  content:""!important;position:absolute!important;',
             '  top:-60%!important;left:-70%!important;width:38%!important;height:220%!important;',
@@ -148,7 +165,7 @@
             '}',
             '.x-auth-btn:active{transform:scale(.96)!important;}',
 
-            /* ⚑ CONNECTED state — COLOR gradient + animated sweep + white icon */
+            /* VERIFIED = COLOR gradient + animation */
             '.x-auth-btn.x-signed-in{',
             '  background:linear-gradient(135deg,#1d9bf0 0%,#a855f7 38%,#ff2d95 68%,#00ffc6 100%)!important;',
             '  background-size:280% 280%!important;',
@@ -179,10 +196,7 @@
             '@keyframes xGs{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}',
             '@keyframes xSweep{0%,12%{left:-70%}55%,100%{left:140%}}',
 
-            /* Hide the label on mobile — the 2×2 grid has no room */
-            '@media (max-width: 768px){',
-            '  .x-auth-label{display:none!important;}',
-            '}'
+            '@media (max-width: 768px){ .x-auth-label{display:none!important;} }'
         ].join('\n');
         var tag = document.createElement('style');
         tag.id = 'x-auth-styles';
@@ -242,12 +256,20 @@
 
         try { localStorage.setItem('msn_x_pending_wallet', wallet); } catch (e) {}
 
+        // ⚑ Set the flag BEFORE the redirect so we know on return.
+        markOAuthPending();
+
         var cleanRedirect = location.origin + location.pathname;
         var { error } = await auth.auth.signInWithOAuth({
             provider: 'x',
             options: { redirectTo: cleanRedirect, scopes: 'users.read tweet.read' }
         });
-        if (error) console.warn('[x-auth] signIn error:', error);
+        if (error) {
+            // OAuth failed to even start — clear the flag so future
+            // normal loads don't skip the loader.
+            clearOAuthPending();
+            console.warn('[x-auth] signIn error:', error);
+        }
     }
 
     function forceIdentityRefresh(wallet) {
@@ -324,7 +346,6 @@
     function markButton(btn, signedIn) {
         if (!btn) return;
         btn.classList.toggle('x-signed-in', !!signedIn);
-
         var t = signedIn ? 'Verified via X — click to sign out' : 'Verify with X';
         btn.title = t;
         btn.setAttribute('aria-label', t);
@@ -342,15 +363,11 @@
         updateLabel(s);
     }
 
-    /* ─────────────────────────────────────────────────────────
-       Inject — desktop header (label + button, left of Phantom)
-       ───────────────────────────────────────────────────────── */
     function injectHeaderButton() {
         if (document.getElementById('xConnectBtn')) return true;
         var phantom = document.getElementById('phantomConnectBtn');
         if (!phantom || !phantom.parentNode) return false;
 
-        // Wrap: [VERIFY] [X button] inserted before Phantom
         var wrap = document.createElement('span');
         wrap.id = 'xAuthWrap';
         wrap.className = 'x-auth-wrap';
@@ -361,16 +378,12 @@
         label.textContent = 'VERIFY';
 
         var btn = buildButton('xConnectBtn');
-
         wrap.appendChild(label);
         wrap.appendChild(btn);
-
         phantom.parentNode.insertBefore(wrap, phantom);
 
-        // Restore state if we already know the session
         markButton(btn, !!_sessionCache);
         updateLabel(!!_sessionCache);
-
         return true;
     }
     function retryHeaderButton() {
@@ -381,9 +394,6 @@
         setTimeout(retryHeaderButton, 3000);
     }
 
-    /* ─────────────────────────────────────────────────────────
-       Inject — mobile 2×2 grid (button only, no label)
-       ───────────────────────────────────────────────────────── */
     function injectMobileGridButton() {
         if (document.getElementById('sidebarXBtn')) return;
         var refreshBtn = document.getElementById('sidebarRefreshBtn');
@@ -393,28 +403,22 @@
         markButton(btn, !!_sessionCache);
     }
 
-    function isOAuthReturn() {
-        try {
-            if (localStorage.getItem('msn_x_pending_wallet')) return true;
-        } catch (e) {}
-        var h = location.href;
-        if (/\?(.*&)?code=/.test(h)) return true;
-        if (/#(.*&)?access_token=/.test(h)) return true;
-        return false;
-    }
-
     function boot() {
         injectStyles();
 
-        if (isOAuthReturn()) {
+        // ⚑ Snapshot the flag ONCE at boot — if we're returning from
+        //   OAuth, the head <script> has already hidden the loader,
+        //   but we belt-and-suspenders it here for the first ~1s.
+        var returningFromOAuth = isOAuthPending();
+
+        if (returningFromOAuth) {
             dismissBootLoader();
-            setTimeout(dismissBootLoader, 50);
-            setTimeout(dismissBootLoader, 300);
+            setTimeout(dismissBootLoader, 100);
+            setTimeout(dismissBootLoader, 400);
             setTimeout(dismissBootLoader, 900);
         }
 
         retryHeaderButton();
-
         setTimeout(injectMobileGridButton, 900);
         setTimeout(injectMobileGridButton, 2400);
         setTimeout(injectMobileGridButton, 5400);
@@ -426,9 +430,20 @@
             _sessionCache = session;
             _sessionKnown = true;
             refreshButtons();
+
             if (session) {
-                dismissBootLoader();
                 applyXToProfile(session);
+
+                // ⚑ Only clear the pending flag if we were returning
+                //   from OAuth. On a normal load with a persisted
+                //   session, leave the flag alone (it's already null).
+                if (returningFromOAuth) {
+                    setTimeout(clearOAuthPending, 1500);
+                }
+            } else {
+                // No session on an OAuth-return load = failure.
+                // Clear so next normal load isn't affected.
+                if (returningFromOAuth) clearOAuthPending();
             }
         });
 
@@ -436,12 +451,17 @@
             _sessionCache = session;
             _sessionKnown = true;
             refreshButtons();
+
             if (session) {
-                dismissBootLoader();
                 applyXToProfile(session);
+                // SIGNED_IN during this boot cycle = OAuth just completed
+                if (event === 'SIGNED_IN' && returningFromOAuth) {
+                    setTimeout(clearOAuthPending, 1500);
+                }
             }
             if (event === 'SIGNED_OUT') {
                 try { history.replaceState(null, '', location.pathname); } catch (e) {}
+                clearOAuthPending();
             }
         });
     }
@@ -451,5 +471,5 @@
     } else {
         boot();
     }
-    console.log('[x-auth] loaded v4');
+    console.log('[x-auth] loaded v5');
 })();
