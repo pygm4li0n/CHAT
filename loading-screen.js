@@ -6,7 +6,7 @@
 
    Reveal sequence:
      1. wait for 'msn:app-ready' (or fallback signal)
-     2. settleApp()  → unhide input bar, force scroll to bottom
+     2. settleApp()  → force scroll to bottom
      3. dwell 800ms  → everything paints
      4. remove html.msn-booting → app fades in
      5. fade out the loader
@@ -21,6 +21,10 @@
        The <head> script already hid the overlay and released
        the boot gate on `msn:app-ready`. This file just exits
        early so no invisible work is done.
+
+   v7: Input bar is never hidden by the app anymore, so
+       settleApp() no longer touches it. Just scrolls the
+       message containers to the bottom.
    ============================================================ */
 (function () {
     'use strict';
@@ -197,21 +201,10 @@
     var done = false;
 
     function settleApp() {
-        // ⚑ Unhide the input bar ONLY if the name overlay is NOT
-        //   visible. On a fresh session, script.js intentionally
-        //   keeps the input bar hidden until the user enters a name;
-        //   we must not override that.
-        try {
-            var nOverlay = document.getElementById('nameOverlay');
-            var nameIsVisible = nOverlay && !nOverlay.classList.contains('hidden');
-            if (!nameIsVisible) {
-                var ib = document.getElementById('inputAreaBar');
-                if (ib && ib.classList.contains('hidden')) ib.classList.remove('hidden');
-            }
-        } catch (e) {}
-
-        // Force messages containers to the bottom so the user
-        // lands on the latest message, fully rendered
+        // ⚑ The input bar is never hidden by script.js anymore,
+        //   so we don't touch it here. Just scroll the message
+        //   containers to the bottom so the user lands on the
+        //   latest message, fully rendered.
         try {
             var pc = document.getElementById('publicMessagesContainer');
             if (pc && !pc.classList.contains('hidden')) pc.scrollTop = pc.scrollHeight;
