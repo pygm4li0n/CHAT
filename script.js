@@ -2825,7 +2825,6 @@ function showSuccess(msg) {
 
         localStorage.removeItem(STORAGE_KEY_NAME);
         username = '';
-        inputAreaBar.classList.add('hidden');
         nameOverlay.classList.remove('hidden');
         hideOverlayMessage();
         nameInput.value = prevName || '';
@@ -2909,7 +2908,6 @@ function showSuccess(msg) {
                     //   the badge on cold start.
                     const tokenList = document.getElementById('walletTokenList');
                     if (tokenList) tokenList.innerHTML = '';
-                    inputAreaBar.classList.add('hidden');
 
                     // 5. Refresh wallet UI
                     updatePhantomUI();
@@ -3015,8 +3013,6 @@ function showSuccess(msg) {
 
         await loadSettings();
         subscribeToSettings();
-
-        inputAreaBar.classList.add('hidden');
 
                 // ⚑ WALLET-FIRST: profile is looked up by wallet, not by cached username
         const connectedWallet = getWalletAddress() || (function () {
