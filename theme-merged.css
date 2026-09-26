@@ -3157,6 +3157,7 @@ html body .mod-message-box .mod-message-text {
    Overrides the earlier "TOKEN TRACKER — 2× bigger" block.
    Token tracker + CA pill share ONE border, ONE background,
    ONE height. A hairline divider separates the two segments.
+   Hover: container glows cyan. Segments stay transparent.
 ═════════════════════════════════════════════════════ */
 @media (min-width: 769px) {
 
@@ -3211,7 +3212,7 @@ html body .mod-message-box .mod-message-text {
         line-height: 1 !important;
         white-space: nowrap !important;
         gap: 8px !important;
-        transition: background 0.15s ease !important;
+        transition: none !important;
     }
 
     /* ── Hairline divider between segments ── */
@@ -3219,12 +3220,18 @@ html body .mod-message-box .mod-message-text {
         border-left: 1px solid var(--border-default, rgba(255, 255, 255, 0.10)) !important;
     }
 
-    /* ── Soft hover per segment ── */
+    /* ── Hover: NO rectangle fill on segments — stay transparent ── */
     .header-center .token-tracker:hover,
     .header-center .token-ca:hover {
-        background: rgba(255, 255, 255, 0.05) !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        background-image: none !important;
         box-shadow: none !important;
         border-color: transparent !important;
+    }
+    /* Preserve the divider line even on hover */
+    .header-center .token-ca:hover {
+        border-left: 1px solid var(--border-default, rgba(255, 255, 255, 0.10)) !important;
     }
 
     /* ── Tracker internals ── */
@@ -3304,9 +3311,12 @@ html body .mod-message-box .mod-message-text {
         opacity: 1 !important;
     }
 
-    /* ── Copied flash state ── */
+    /* ── Copied flash — no rectangle, icon brightens only ── */
     .header-center .token-ca.copied {
-        background: rgba(74, 222, 128, 0.10) !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        background-image: none !important;
+        box-shadow: none !important;
     }
     .header-center .token-ca.copied .ca-copy {
         opacity: 1 !important;
