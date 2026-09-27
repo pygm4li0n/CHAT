@@ -3834,7 +3834,7 @@ html body .msg-wrapper.sticker-msg .reaction-btn .reaction-count {
 /* ═════════════════════════════════════════════════════
    ⚑ DESKTOP — sticker username row on one line
    Wrapper grows to fit the name row; image + reactions
-   stay pinned at the sticker's fixed size.
+   stay pinned at 200px and hug the wrapper's own/received edge.
    ═════════════════════════════════════════════════════ */
 @media (min-width: 769px) {
 
@@ -3854,24 +3854,33 @@ html body .msg-wrapper.sticker-msg .reaction-btn .reaction-count {
         flex-wrap: nowrap !important;
     }
 
-    /* Image — stays at 200px, centered */
+    /* Image — stays at 200px */
     html body .msg-wrapper.sticker-msg .msg-image-wrap,
     html body .msg-wrapper.sticker-msg .msg-image-wrap img {
         width: 200px !important;
         max-width: 200px !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
     }
 
-    /* Reactions — stay at 200px, centered (unchanged) */
+    /* Reactions — stay at 200px */
     html body .msg-wrapper.sticker-msg .reactions-bar {
         width: 200px !important;
         max-width: 200px !important;
+    }
+
+    /* Own — sticker + reactions hug the right edge */
+    html body .msg-wrapper.sticker-msg.own .msg-image-wrap,
+    html body .msg-wrapper.sticker-msg.own .reactions-bar {
         margin-left: auto !important;
+        margin-right: 0 !important;
+    }
+
+    /* Received — sticker + reactions hug the left edge */
+    html body .msg-wrapper.sticker-msg:not(.own) .msg-image-wrap,
+    html body .msg-wrapper.sticker-msg:not(.own) .reactions-bar {
+        margin-left: 0 !important;
         margin-right: auto !important;
     }
 }
-
 /* ═══════════════════════════════════════════════════════════════════
    ███  END OF FILE  ███
    ═══════════════════════════════════════════════════════════════════ */
