@@ -3831,6 +3831,47 @@ html body .msg-wrapper.sticker-msg .reaction-btn .reaction-count {
     }
 }
 
+/* ═════════════════════════════════════════════════════
+   ⚑ DESKTOP — sticker username row on one line
+   Wrapper grows to fit the name row; image + reactions
+   stay pinned at the sticker's fixed size.
+   ═════════════════════════════════════════════════════ */
+@media (min-width: 769px) {
+
+    /* Wrapper — grow to fit the longest child, keep 200px floor */
+    html body .msg-wrapper.sticker-msg {
+        width: auto !important;
+        max-width: none !important;
+        flex: 0 0 auto !important;
+        min-width: 200px !important;
+    }
+
+    /* Username row — one line, no wrap */
+    html body .msg-wrapper.sticker-msg .msg-username {
+        width: auto !important;
+        max-width: none !important;
+        white-space: nowrap !important;
+        flex-wrap: nowrap !important;
+    }
+
+    /* Image — stays at 200px, centered */
+    html body .msg-wrapper.sticker-msg .msg-image-wrap,
+    html body .msg-wrapper.sticker-msg .msg-image-wrap img {
+        width: 200px !important;
+        max-width: 200px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    /* Reactions — stay at 200px, centered (unchanged) */
+    html body .msg-wrapper.sticker-msg .reactions-bar {
+        width: 200px !important;
+        max-width: 200px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    ███  END OF FILE  ███
    ═══════════════════════════════════════════════════════════════════ */
