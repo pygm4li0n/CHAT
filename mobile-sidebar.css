@@ -602,40 +602,37 @@
         max-height: 56px !important;
         overflow: hidden !important;
     }
-    .sidebar #walletTokenList:not(:has(✅)):not(:has(❌)) {
-        display: none !important;
-    }
-    .sidebar #walletTokenList > div:first-child { display: none !important; }
-    .sidebar #walletTokenList > div:not(:has(✅)):not(:has(❌)) {
-        display: none !important;
-    }
-    .sidebar #walletTokenList > div:has(✅),
-    .sidebar #walletTokenList > div:has(❌) {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        gap: 12px !important;
-        padding: 0 !important;
-        font-size: 0.95rem !important;
-        font-weight: 600 !important;
-        white-space: nowrap !important;
-    }
-    .sidebar #walletTokenList > div:has(✅) > span:first-child,
-    .sidebar #walletTokenList > div:has(❌) > span:first-child {
-        flex: 1 1 auto !important;
-        min-width: 0 !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        color: var(--text-primary) !important;
-    }
-    .sidebar #walletTokenList > div:has(✅) > span:last-child,
-    .sidebar #walletTokenList > div:has(❌) > span:last-child {
-        flex-shrink: 0 !important;
-        font-weight: 800 !important;
-        color: var(--accent-cyan, #20FF62) !important;
-        font-variant-numeric: tabular-nums !important;
-        font-size: 1rem !important;
-    }
+    .sidebar #walletTokenList:not(:has(.token-row.target)) {
+    display: none !important;
+}
+.sidebar #walletTokenList > div:first-child { display: none !important; }
+.sidebar #walletTokenList > div:not(.token-row.target) {
+    display: none !important;
+}
+.sidebar #walletTokenList > div.token-row.target {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    padding: 0 !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+}
+.sidebar #walletTokenList > div.token-row.target > span:first-child {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    color: var(--text-primary) !important;
+}
+.sidebar #walletTokenList > div.token-row.target > span:last-child {
+    flex-shrink: 0 !important;
+    font-weight: 800 !important;
+    color: var(--accent-cyan, #20FF62) !important;
+    font-variant-numeric: tabular-nums !important;
+    font-size: 1rem !important;
+}
 
     /* ═══════════════════════════════════════════════════
        ⚑ FOOTER — 44px one-line bar, connected left + wallet right
