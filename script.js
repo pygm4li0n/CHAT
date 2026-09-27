@@ -2358,10 +2358,10 @@ function showSuccess(msg) {
     }
 
     async function updateSidebarUI() {
-        const usersToFetch = [];
-        if (username) usersToFetch.push(username);
-        onlineUsers.forEach(u => usersToFetch.push(u.username));
-        await fetchAvatars(usersToFetch);
+        const usersToFetch = new Set();
+        if (username) usersToFetch.add(username);
+        onlineUsers.forEach(u => usersToFetch.add(u.username));
+        await fetchAvatars([...usersToFetch]);
 
         let html = '';
         const rendered = new Set();
