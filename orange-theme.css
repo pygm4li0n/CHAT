@@ -180,15 +180,6 @@ html.booting *::after {
     animation: none !important;
     transition: none !important;
 }
-html.booting {
-    animation: bootRelease 0s linear 1.2s forwards;
-}
-@keyframes bootRelease {
-    to { --boot-guard-released: 1; }
-}
-/* The rule below re-enables motion once the guard window elapses.
-   (Uses a sibling-free trick: the guard simply stops matching.) */
-html.booting:not(:has(body)) * { animation: none !important; }
 
 body {
     font-family: var(--font-main);
