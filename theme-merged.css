@@ -363,25 +363,6 @@ html, body {
 .msg-image-wrap img { max-width: 100% !important; height: auto; }
 .msg-image-wrap img { display: block; object-fit: contain; }
 
-.reactions-bar {
-    display: flex !important;
-    gap: 6px !important;
-    margin-top: 8px !important;
-    flex-wrap: nowrap !important;
-    overflow: visible !important;
-    max-width: 100% !important;
-}
-.reactions-bar .reaction-btn {
-    flex-shrink: 0 !important;
-    white-space: nowrap !important;
-}
-@media (min-width: 769px) {
-    .msg-bubble .reaction-btn { padding: 3px 8px; font-size: 0.68rem; }
-}
-@media (max-width: 768px) {
-    .msg-bubble .reaction-btn { padding: 3px 7px; font-size: 0.65rem; }
-}
-
 /* =====================================================
    X / TWITTER EMBEDS
 ===================================================== */
@@ -3440,6 +3421,149 @@ html body .mod-message-box .mod-message-text {
     text-shadow: 0 0 14px rgba(207,250,255,0.85) !important;
 }
 
+/* ═════════════════════════════════════════════════════
+   ⚑ REACTIONS — centered under every bubble, every theme
+   Highest specificity in the file. Wins on all 8 skins.
+   ═════════════════════════════════════════════════════ */
+html body .msg-bubble .reactions-bar {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    align-content: center !important;
+    align-self: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+    margin: 10px 0 0 0 !important;
+    padding: 0 !important;
+    gap: 8px !important;
+    float: none !important;
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    overflow: visible !important;
+}
+
+html body .msg-bubble .reaction-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    vertical-align: middle !important;
+    width: auto !important;
+    min-width: 46px !important;
+    max-width: none !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 11px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    float: none !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    gap: 5px !important;
+    font-size: 1.05rem !important;
+    line-height: 1 !important;
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid var(--border-default) !important;
+    border-radius: 18px !important;
+    cursor: pointer !important;
+    color: var(--text-secondary) !important;
+    transition: background .18s ease, border-color .18s ease,
+                color .18s ease, transform .12s ease,
+                box-shadow .2s ease !important;
+    -webkit-tap-highlight-color: transparent !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+}
+
+html body .msg-bubble .reaction-btn .reaction-emoji {
+    display: inline-block !important;
+    font-size: 1.25rem !important;
+    line-height: 1 !important;
+    vertical-align: middle !important;
+    transform: none !important;
+    position: static !important;
+    transition: transform 0.15s ease !important;
+}
+
+html body .msg-bubble .reaction-btn .reaction-count {
+    display: inline-block !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    font-variant-numeric: tabular-nums !important;
+    line-height: 1 !important;
+    color: inherit !important;
+    vertical-align: middle !important;
+    transform: none !important;
+    margin-left: 4px !important;
+}
+
+html body .msg-bubble .reaction-btn:hover {
+    background: var(--bg-hover) !important;
+    border-color: var(--border-strong) !important;
+    color: #fff !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35) !important;
+}
+html body .msg-bubble .reaction-btn:hover .reaction-emoji {
+    transform: scale(1.12) !important;
+}
+html body .msg-bubble .reaction-btn:active,
+html body .msg-bubble .reaction-btn.pressing {
+    transform: scale(0.92) !important;
+}
+html body .msg-bubble .reaction-btn.active {
+    background: rgba(0, 240, 255, 0.15) !important;
+    border-color: var(--accent-cyan) !important;
+    color: #fff !important;
+    box-shadow:
+        0 0 12px rgba(0, 240, 255, 0.35),
+        inset 0 0 8px rgba(0, 240, 255, 0.15) !important;
+}
+html body .msg-bubble .reaction-btn.active .reaction-emoji {
+    filter: drop-shadow(0 0 6px currentColor) !important;
+}
+html body .msg-bubble .reaction-btn.pressing .reaction-emoji {
+    animation: reactionPulse 0.32s cubic-bezier(.34, 1.56, .64, 1) !important;
+}
+@keyframes reactionPulse {
+    0%   { transform: scale(0.7); opacity: 0.5; }
+    60%  { transform: scale(1.28); }
+    100% { transform: scale(1);   opacity: 1; }
+}
+
+/* Widen bubbles enough to fit the 4 pills on one row */
+html body .msg-bubble:has(.reactions-bar) {
+    min-width: 240px !important;
+}
+
+@media (max-width: 768px) {
+    html body .msg-bubble .reactions-bar {
+        gap: 6px !important;
+        margin-top: 8px !important;
+    }
+    html body .msg-bubble .reaction-btn {
+        min-width: 42px !important;
+        height: 34px !important;
+        min-height: 34px !important;
+        padding: 0 9px !important;
+        font-size: 1rem !important;
+    }
+    html body .msg-bubble .reaction-btn .reaction-emoji { font-size: 1.18rem !important; }
+    html body .msg-bubble .reaction-btn .reaction-count { font-size: 0.8rem !important; }
+    html body .msg-bubble:has(.reactions-bar) { min-width: 205px !important; }
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    ███  END OF FILE  ███
