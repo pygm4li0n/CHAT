@@ -863,10 +863,10 @@
                     statusHtml = ' <span style="color:#ef4444;">❌ Not Verified</span>';
                 }
             }
-            html += `<div style="display:flex; justify-content:space-between; gap:4px; align-items:center;">
-                <span title="${mint}">${shortMint}${statusHtml}</span>
-                <span>${amount.toLocaleString()}</span>
-            </div>`;
+            html += `<div class="token-row${isTarget ? ' target' : ''}" style="display:flex; justify-content:space-between; gap:4px; align-items:center;">
+                    <span title="${mint}">${shortMint}${statusHtml}</span>
+                    <span>${amount.toLocaleString()}</span>
+        </div>`;
         });
         container.innerHTML = html;
     }
