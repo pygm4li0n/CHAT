@@ -3594,6 +3594,86 @@ html body .msg-bubble:has(.reactions-bar) {
     }
 }
 
+/* ═════════════════════════════════════════════════════
+   ⚑ MOBILE MESSAGE ALIGNMENT — own hugs right, others left
+   Bulletproof: dual technique (align-self + margin auto)
+   so nothing in any theme can override it.
+   ═════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+    /* Kill the reaction min-width that was stretching short bubbles */
+    html body .msg-bubble:has(.reactions-bar) {
+        min-width: 0 !important;
+    }
+
+    /* Symmetric container padding */
+    html body .messages-container {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
+    /* Base wrapper — hugs LEFT, shrinks to content */
+    html body .messages-container > .msg-wrapper,
+    html body #publicMessagesContainer > .msg-wrapper,
+    html body #privateMessagesContainer > .msg-wrapper {
+        align-self: flex-start !important;
+        margin-left: 0 !important;
+        margin-right: auto !important;
+        max-width: 84% !important;
+        width: auto !important;
+        flex: 0 0 auto !important;
+    }
+
+    /* Own wrapper — hugs RIGHT edge */
+    html body .messages-container > .msg-wrapper.own,
+    html body #publicMessagesContainer > .msg-wrapper.own,
+    html body #privateMessagesContainer > .msg-wrapper.own {
+        align-self: flex-end !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
+        max-width: 84% !important;
+        width: auto !important;
+        flex: 0 0 auto !important;
+    }
+
+    /* The bubble inside shrinks to content, not stretch */
+    html body .msg-wrapper > .msg-bubble {
+        width: fit-content !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    html body .msg-wrapper.own > .msg-bubble {
+        width: fit-content !important;
+        max-width: 100% !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
+    }
+
+    /* Sticker messages — same rule, no bubble */
+    html body .msg-wrapper.sticker-msg.own {
+        align-self: flex-end !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
+        max-width: 70% !important;
+    }
+    html body .msg-wrapper.sticker-msg:not(.own) {
+        align-self: flex-start !important;
+        margin-left: 0 !important;
+        margin-right: auto !important;
+        max-width: 70% !important;
+    }
+    html body .msg-wrapper.sticker-msg.own .msg-image-wrap {
+        margin-left: auto !important;
+        margin-right: 0 !important;
+    }
+    html body .msg-wrapper.sticker-msg:not(.own) .msg-image-wrap {
+        margin-left: 0 !important;
+        margin-right: auto !important;
+    }
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    ███  END OF FILE  ███
    ═══════════════════════════════════════════════════════════════════ */
