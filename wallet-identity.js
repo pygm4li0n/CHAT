@@ -567,7 +567,17 @@
                         });
                         return;
                     }
-                    propagateProfile(row.wallet_address, row);
+                    var prev = byWallet[row.wallet_address];
+                    var changed = !prev
+                        || prev.display_name !== row.display_name
+                        || prev.avatar_url   !== row.avatar_url
+                        || prev.x_handle     !== row.x_handle
+                        || prev.x_verified   !== row.x_verified
+                        || prev.x_avatar_url !== row.x_avatar_url;
+
+                    if (changed) {
+                        propagateProfile(row.wallet_address, row);
+                    }
                     scheduleRankRefresh();
                 })
             .subscribe();
@@ -575,9 +585,21 @@
         window.MSN._profileChannel = channel;
     }
 
-    /* ═══════════════════════════════════════════════════════
-       MESSAGE CONTAINER OBSERVER
-       ═══════════════════════════════════════════════════════ */
+       var _pendingWallets = new Set();
+    var _pendingFlush = null;
+
+    function _flushWalletBatch() {
+        _pendingFlush = null;
+        var list = Array.from(_pendingWallets);
+        _pendingWallets.clear();
+        if (!list.length) return;
+        fetchProfilesFor(list).then(function (rows) {
+            rows.forEach(function (p) {
+                updateMessagesFor(p.wallet_address, p);
+            });
+        });
+    }
+
     function processWrapper(wrap) {
         if (!wrap) return;
 
@@ -591,9 +613,10 @@
         if (wallet) {
             var p = byWallet[wallet];
             if (p) updateMessagesFor(wallet, p);
-            else fetchFreshProfile(wallet).then(function (fresh) {
-                if (fresh) updateMessagesFor(wallet, fresh);
-            });
+            else {
+                _pendingWallets.add(wallet);
+                if (!_pendingFlush) _pendingFlush = setTimeout(_flushWalletBatch, 30);
+            }
         }
 
         var parent = wrap.parentNode;
@@ -705,11 +728,28 @@
         setTimeout(seedFromDOM, 3000);
         setTimeout(seedFromDOM, 5500);
 
-        // Safety nets — interval catches late renders and edge cases
-        setInterval(function () {
+                // Safety net — runs 30s after boot, then stops.
+        // MutationObservers + realtime events cover every case after that.
+        var _safetyTicks = 0;
+        var _safetyTimer = setInterval(function () {
             ensureOwnClass();
             ensureSingleSelf();
+            if (++_safetyTicks >= 15) clearInterval(_safetyTimer);
         }, 2000);
+
+        document.addEventListener('msn:app-ready', function () {
+            _safetyTicks = 0;
+            if (!_safetyTimer) {
+                _safetyTimer = setInterval(function () {
+                    ensureOwnClass();
+                    ensureSingleSelf();
+                    if (++_safetyTicks >= 15) {
+                        clearInterval(_safetyTimer);
+                        _safetyTimer = null;
+                    }
+                }, 2000);
+            }
+        }, { once: true });
     }
 
     if (document.readyState === 'loading') {
