@@ -3440,7 +3440,7 @@ html body .msg-bubble .reactions-bar {
     text-align: center !important;
     margin: 10px 0 0 0 !important;
     padding: 0 !important;
-    gap: 8px !important;
+    gap: 7px !important;
     float: none !important;
     position: static !important;
     left: auto !important;
@@ -3455,11 +3455,11 @@ html body .msg-bubble .reaction-btn {
     justify-content: center !important;
     vertical-align: middle !important;
     width: auto !important;
-    min-width: 46px !important;
+    min-width: 40px !important;
     max-width: none !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    padding: 0 11px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 9px !important;
     margin: 0 !important;
     box-sizing: border-box !important;
     float: none !important;
@@ -3469,12 +3469,12 @@ html body .msg-bubble .reaction-btn {
     transform: none !important;
     flex: 0 0 auto !important;
     flex-shrink: 0 !important;
-    gap: 5px !important;
-    font-size: 1.05rem !important;
+    gap: 4px !important;
+    font-size: 0.9rem !important;
     line-height: 1 !important;
     background: rgba(255,255,255,0.05) !important;
     border: 1px solid var(--border-default) !important;
-    border-radius: 18px !important;
+    border-radius: 15px !important;
     cursor: pointer !important;
     color: var(--text-secondary) !important;
     transition: background .18s ease, border-color .18s ease,
@@ -3489,7 +3489,7 @@ html body .msg-bubble .reaction-btn {
 
 html body .msg-bubble .reaction-btn .reaction-emoji {
     display: inline-block !important;
-    font-size: 1.25rem !important;
+    font-size: 1.05rem !important;
     line-height: 1 !important;
     vertical-align: middle !important;
     transform: none !important;
@@ -3499,14 +3499,14 @@ html body .msg-bubble .reaction-btn .reaction-emoji {
 
 html body .msg-bubble .reaction-btn .reaction-count {
     display: inline-block !important;
-    font-size: 0.85rem !important;
+    font-size: 0.75rem !important;
     font-weight: 700 !important;
     font-variant-numeric: tabular-nums !important;
     line-height: 1 !important;
     color: inherit !important;
     vertical-align: middle !important;
     transform: none !important;
-    margin-left: 4px !important;
+    margin-left: 3px !important;
 }
 
 html body .msg-bubble .reaction-btn:hover {
@@ -3545,24 +3545,25 @@ html body .msg-bubble .reaction-btn.pressing .reaction-emoji {
 
 /* Widen bubbles enough to fit the 4 pills on one row */
 html body .msg-bubble:has(.reactions-bar) {
-    min-width: 200px !important;
+    min-width: 180px !important;
 }
 
 @media (max-width: 768px) {
     html body .msg-bubble .reactions-bar {
-        gap: 6px !important;
+        gap: 5px !important;
         margin-top: 8px !important;
     }
     html body .msg-bubble .reaction-btn {
-        min-width: 42px !important;
-        height: 34px !important;
-        min-height: 34px !important;
-        padding: 0 9px !important;
-        font-size: 1rem !important;
+        min-width: 36px !important;
+        height: 26px !important;
+        min-height: 26px !important;
+        padding: 0 7px !important;
+        font-size: 0.82rem !important;
+        border-radius: 13px !important;
     }
-    html body .msg-bubble .reaction-btn .reaction-emoji { font-size: 1.18rem !important; }
-    html body .msg-bubble .reaction-btn .reaction-count { font-size: 0.8rem !important; }
-    html body .msg-bubble:has(.reactions-bar) { min-width: 150px !important; }
+    html body .msg-bubble .reaction-btn .reaction-emoji { font-size: 0.95rem !important; }
+    html body .msg-bubble .reaction-btn .reaction-count { font-size: 0.65rem !important; }
+    html body .msg-bubble:has(.reactions-bar) { min-width: 140px !important; }
 }
 
 /* ═════════════════════════════════════════════════════
