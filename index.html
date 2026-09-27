@@ -698,10 +698,20 @@
             };
 
             function setTheme(themeId) {
-                if (!themes[themeId]) themeId = 'original';
-                themeLink.setAttribute('href', themes[themeId]);
-                localStorage.setItem(THEME_KEY, themeId);
-                highlightCurrentTheme();
+            if (!themes[themeId]) themeId = 'original';
+                 themeLink.setAttribute('href', themes[themeId]);
+                 localStorage.setItem(THEME_KEY, themeId);
+                 document.documentElement.dataset.theme = themeId;
+            if (document.body) {
+                 document.body.className = document.body.className
+                 .split(/\s+/)
+                 .filter(function (c) { return !/-theme$/.test(c); })
+                 .concat(themeId + '-theme')
+                 .join(' ')
+                 .trim();
+            }
+            highlightCurrentTheme();
+            setTheme(localStorage.getItem(THEME_KEY) || 'original');
             }
 
             const headerThemeBtn = document.getElementById('headerThemeBtn');
