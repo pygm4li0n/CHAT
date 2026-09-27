@@ -3675,41 +3675,131 @@ html body .msg-bubble:has(.reactions-bar) {
 }
 
 /* ═════════════════════════════════════════════════════
-   ⚑ STICKER MESSAGES — reactions centered under sticker
-   Sticker bubble is transparent/padding-0, so reactions
-   need their own spacing + centering.
+   ⚑ STICKER MESSAGES — wide stickers + centered reactions
+   Overrides the 70% cap from the alignment block above.
+   Reactions centered under the sticker on both breakpoints.
    ═════════════════════════════════════════════════════ */
+
+/* Wider sticker wrapper (own + received) */
+html body .messages-container > .msg-wrapper.sticker-msg,
+html body #publicMessagesContainer > .msg-wrapper.sticker-msg,
+html body #privateMessagesContainer > .msg-wrapper.sticker-msg,
+html body .messages-container > .msg-wrapper.sticker-msg.own,
+html body #publicMessagesContainer > .msg-wrapper.sticker-msg.own,
+html body #privateMessagesContainer > .msg-wrapper.sticker-msg.own,
+html body .messages-container > .msg-wrapper.sticker-msg:not(.own),
+html body #publicMessagesContainer > .msg-wrapper.sticker-msg:not(.own),
+html body #privateMessagesContainer > .msg-wrapper.sticker-msg:not(.own) {
+    max-width: 82% !important;
+    width: auto !important;
+    flex: 0 0 auto !important;
+}
+
+/* Own — keep flush right */
+html body .messages-container > .msg-wrapper.sticker-msg.own,
+html body #publicMessagesContainer > .msg-wrapper.sticker-msg.own,
+html body #privateMessagesContainer > .msg-wrapper.sticker-msg.own {
+    align-self: flex-end !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+}
+
+/* Received — keep flush left */
+html body .messages-container > .msg-wrapper.sticker-msg:not(.own),
+html body #publicMessagesContainer > .msg-wrapper.sticker-msg:not(.own),
+html body #privateMessagesContainer > .msg-wrapper.sticker-msg:not(.own) {
+    align-self: flex-start !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+}
+
+/* Bubble — vertical stack, image above, reactions below */
+html body .msg-wrapper.sticker-msg .msg-bubble {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Sticker image — full wrapper width */
+html body .msg-wrapper.sticker-msg .msg-image-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    display: block !important;
+}
+html body .msg-wrapper.sticker-msg .msg-image-wrap img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    object-fit: contain !important;
+    display: block !important;
+}
+
+/* Username row — centered above the sticker */
+html body .msg-wrapper.sticker-msg .msg-username {
+    justify-content: center !important;
+    width: 100% !important;
+}
+
+/* Reactions — CENTERED under the sticker (both breakpoints) */
+html body .msg-wrapper.sticker-msg .reactions-bar {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    align-self: center !important;
+    margin: 6px auto 0 !important;
+    padding: 0 !important;
+    gap: 6px !important;
+    width: auto !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+html body .msg-wrapper.sticker-msg .reaction-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 40px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 9px !important;
+    border-radius: 15px !important;
+    flex-shrink: 0 !important;
+}
+html body .msg-wrapper.sticker-msg .reaction-btn .reaction-emoji {
+    font-size: 1.05rem !important;
+}
+html body .msg-wrapper.sticker-msg .reaction-btn .reaction-count {
+    font-size: 0.75rem !important;
+}
+
+/* Mobile tweaks — slightly wider sticker, tighter pills */
 @media (max-width: 768px) {
-
-    /* Sticker bubble: stack image + reactions vertically, centered */
-    html body .msg-wrapper.sticker-msg .msg-bubble {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-        padding: 0 !important;
-        gap: 0 !important;
+    html body .messages-container > .msg-wrapper.sticker-msg,
+    html body #publicMessagesContainer > .msg-wrapper.sticker-msg,
+    html body #privateMessagesContainer > .msg-wrapper.sticker-msg,
+    html body .messages-container > .msg-wrapper.sticker-msg.own,
+    html body #publicMessagesContainer > .msg-wrapper.sticker-msg.own,
+    html body #privateMessagesContainer > .msg-wrapper.sticker-msg.own,
+    html body .messages-container > .msg-wrapper.sticker-msg:not(.own),
+    html body #publicMessagesContainer > .msg-wrapper.sticker-msg:not(.own),
+    html body #privateMessagesContainer > .msg-wrapper.sticker-msg:not(.own) {
+        max-width: 88% !important;
     }
 
-    /* Sticker image: keep it centered inside the bubble */
-    html body .msg-wrapper.sticker-msg .msg-image-wrap {
-        margin: 0 auto !important;
-        display: block !important;
-    }
-
-    /* Reactions: sit cleanly under the sticker, centered */
     html body .msg-wrapper.sticker-msg .reactions-bar {
-        margin-top: 6px !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        justify-content: center !important;
-        align-items: center !important;
-        align-self: center !important;
-        width: auto !important;
-        max-width: 100% !important;
+        gap: 5px !important;
+        margin-top: 5px !important;
     }
-
-    /* Each pill: same size as regular message reactions */
     html body .msg-wrapper.sticker-msg .reaction-btn {
         min-width: 36px !important;
         height: 26px !important;
@@ -3722,11 +3812,6 @@ html body .msg-bubble:has(.reactions-bar) {
     }
     html body .msg-wrapper.sticker-msg .reaction-btn .reaction-count {
         font-size: 0.65rem !important;
-    }
-
-    /* Username row above sticker: keep aligned with the sticker */
-    html body .msg-wrapper.sticker-msg .msg-username {
-        justify-content: center !important;
     }
 }
 
