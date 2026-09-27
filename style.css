@@ -54,6 +54,18 @@ body {
         radial-gradient(circle at 50% 50%, rgba(17, 24, 39, 1) 0%, #0a0e1a 100%);
     color: var(--text-primary);
 }
+
+/* Allow copy on real content (message text, names, addresses, etc.) */
+.msg-text, .msg-username, .msg-time,
+.reply-ref-block, .reply-indicator-bar,
+.wallet-address, .token-tracker,
+.sidebar-user-item .user-name, .sidebar-user-item .user-status-text,
+.msn-profile-card, .rankings-card,
+textarea, input, select, pre, code {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+}
+
 #particleCanvas {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     z-index: 0; pointer-events: none; opacity: 0.4;
@@ -246,13 +258,7 @@ body {
 }
 @keyframes chromeShimmer { 0%,100% { left: -100%; } 50% { left: 0%; } }
 .chat-header-bar .header-left { display: flex; align-items: center; gap: 10px; z-index: 1; }
-.chat-header-bar .header-icon { font-size: 1.5rem; filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.7)); animation: iconPulse 2.5s ease-in-out infinite; }
-@keyframes iconPulse { 0%,100% { filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.7)); } 50% { filter: drop-shadow(0 0 18px rgba(0, 240, 255, 1)); } }
-.chat-header-bar .header-title {
-    font-weight: 800; letter-spacing: 0.06em; font-size: 1.1rem;
-    color: var(--text-primary); text-transform: uppercase;
-    text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
-}
+
 /* Desktop logo */
 .header-logo {
     height: 65px;
@@ -274,9 +280,7 @@ body {
     align-items: center;
     z-index: 1;
 }
-.header-icon {
-    display: none;
-}
+
 .chat-header-bar .header-right { display: flex; align-items: center; gap: 8px; z-index: 1; flex-wrap: wrap; }
 .badge-pill {
     display: flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 22px;
@@ -799,10 +803,6 @@ button.send-btn-main:disabled { background: var(--bg-secondary); box-shadow: non
     white-space: nowrap;
     text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
 }
-.token-symbol {
-    color: #ffffff;
-    font-weight: 700;
-}
 .token-price {
     color: var(--text-primary);
 }
@@ -866,11 +866,9 @@ button.send-btn-main:disabled { background: var(--bg-secondary); box-shadow: non
     #messageInput { font-size: 0.8rem; padding: 10px 12px; }
     button.send-btn-main { padding: 10px 16px; font-size: 0.75rem; }
     .chat-header-bar { padding: 0 10px; justify-content: center; position: relative; }
-    .chat-header-bar .header-title { font-size: 0.9rem; }
     .badge-pill { font-size: 0.68rem; padding: 5px 10px; }
     .online-count-badge { font-size: 0.68rem; padding: 4px 10px; }
     .conn-text-full { display: none; }
-    .user-pill-name { display: none; }
     .typing-indicator { font-size: 0.9rem; }
     .sidebar-user-profile-big .big-avatar { width: 56px; height: 56px; font-size: 1.4rem; }
     .sidebar-user-profile-big .big-name { font-size: 1rem; }
