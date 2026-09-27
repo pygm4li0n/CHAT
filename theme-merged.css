@@ -3545,7 +3545,7 @@ html body .msg-bubble .reaction-btn.pressing .reaction-emoji {
 
 /* Widen bubbles enough to fit the 4 pills on one row */
 html body .msg-bubble:has(.reactions-bar) {
-    min-width: 240px !important;
+    min-width: 200px !important;
 }
 
 @media (max-width: 768px) {
@@ -3562,7 +3562,7 @@ html body .msg-bubble:has(.reactions-bar) {
     }
     html body .msg-bubble .reaction-btn .reaction-emoji { font-size: 1.18rem !important; }
     html body .msg-bubble .reaction-btn .reaction-count { font-size: 0.8rem !important; }
-    html body .msg-bubble:has(.reactions-bar) { min-width: 205px !important; }
+    html body .msg-bubble:has(.reactions-bar) { min-width: 150px !important; }
 }
 
 /* ═════════════════════════════════════════════════════
