@@ -1,27 +1,24 @@
 /* ═══════════════════════════════════════════════════════════
-   wallet-identity.js — v3
+   wallet-identity.js — v4
    ───────────────────────────────────────────────────────────
    Wallet is the source of truth. Username is a display label.
    X-verified identity (display_name / x_handle / x_avatar_url)
    wins everywhere: chat, sidebar, profile card, rankings.
 
-   v3 additions
-   ────────────
-   • MSNIdentity.resolve(nameOrWallet)
-       → { wallet, username, displayName, avatar, x_verified }
-   • MSNIdentity.remember(profileRow)    → cache only, no DOM
-   • MSNIdentity.enrichRow / enrichRows  → apply to rank rows
-   • propagateProfile also updates .rank-row[data-wallet]
-   • Dispatches 'msn:identity-changed' on every propagation
-
-   v2 fixes retained
-   ─────────────────
-   • rememberProfile MERGES — survives partial realtime payloads.
-   • displayNameFor never invents "anon".
-   • subscribeProfiles refetches the full row on partial payloads.
-   • updateMessagesFor / updateSidebarFor hard-guard against
-     writing "anon" over existing labels.
-   • setUsernameForWallet keys purely on wallet_address.
+   v4 fixes
+   ────────
+   • propagateProfile writes DB username to msn_chat_username,
+     NOT the display label — was making own messages (and
+     stickers) render as if from another user.
+   • displayNameFor / avatarFor: X-verified → X-only.
+     No wallet-stage fallback → no X-avatar/wallet-avatar flicker.
+   • rememberProfile uses !== undefined guards so
+     {x_verified: undefined} never wipes a valid true.
+   • enrichRow: RPC value wins; cache only fills gaps;
+     X-verified identity always overrides.
+   • ensureOwnClass: forces .own on any .msg-wrapper whose
+     data-wallet matches the connected wallet.
+   • Real-time propagation updates chat, sidebar, ranks.
    ═══════════════════════════════════════════════════════════ */
 (function () {
     'use strict';
@@ -44,47 +41,64 @@
                 return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m];
             });
     }
-    /* Solana base58 addresses: 32–48 chars, no whitespace. */
     function isWalletLike(s) {
         return typeof s === 'string'
             && s.length >= 32 && s.length <= 48
             && !/\s/.test(s);
     }
+    function myWallet() {
+        try { return localStorage.getItem('msn_cached_wallet') || null; } catch (e) { return null; }
+    }
 
     var byWallet = Object.create(null);
     var byUsername = Object.create(null);
 
+    /* ═══════════════════════════════════════════════════════
+       IDENTITY RESOLUTION
+       X-verified → X name + X avatar are the ONLY valid values.
+       Non-X → display_name || username; avatar_url || x_avatar_url.
+       ═══════════════════════════════════════════════════════ */
     function displayNameFor(profile) {
         if (!profile) return null;
         if (profile.x_verified) {
-            if (profile.display_name) return profile.display_name;
-            if (profile.x_handle) return '@' + profile.x_handle;
+            return profile.display_name
+                || (profile.x_handle ? '@' + profile.x_handle : null)
+                || profile.username
+                || null;
         }
         return profile.display_name || profile.username || null;
     }
     function avatarFor(profile) {
         if (!profile) return null;
-        if (profile.x_verified && profile.x_avatar_url) return profile.x_avatar_url;
+        // X-verified: X image is the ONLY source. No wallet-stage fallback,
+        // so the old uploaded avatar can never briefly replace the X one.
+        if (profile.x_verified) return profile.x_avatar_url || null;
         return profile.avatar_url || profile.x_avatar_url || null;
     }
 
+    /* ═══════════════════════════════════════════════════════
+       CACHE — MERGE, don't wipe
+       Only overwrite a field when the incoming value is not
+       undefined. `'key' in p` is true for `{key: undefined}`,
+       which used to blank valid X verification fields.
+       ═══════════════════════════════════════════════════════ */
     function rememberProfile(p) {
         if (!p || !p.wallet_address) return;
         var prev = byWallet[p.wallet_address] || {};
         byWallet[p.wallet_address] = {
-            username:     ('username'     in p) ? p.username     : prev.username,
-            display_name: ('display_name' in p) ? p.display_name : prev.display_name,
-            avatar_url:   ('avatar_url'   in p) ? p.avatar_url   : prev.avatar_url,
-            x_handle:     ('x_handle'     in p) ? p.x_handle     : prev.x_handle,
-            x_verified:   ('x_verified'   in p) ? !!p.x_verified : prev.x_verified,
-            x_avatar_url: ('x_avatar_url' in p) ? p.x_avatar_url : prev.x_avatar_url
+            username:     (p.username     !== undefined) ? p.username     : prev.username,
+            display_name: (p.display_name !== undefined) ? p.display_name : prev.display_name,
+            avatar_url:   (p.avatar_url   !== undefined) ? p.avatar_url   : prev.avatar_url,
+            x_handle:     (p.x_handle     !== undefined) ? p.x_handle     : prev.x_handle,
+            x_verified:   (p.x_verified   !== undefined) ? !!p.x_verified : prev.x_verified,
+            x_avatar_url: (p.x_avatar_url !== undefined) ? p.x_avatar_url : prev.x_avatar_url
         };
         if (p.username) byUsername[p.username] = p.wallet_address;
     }
 
-    /* ═════════════════════════════════════════════════════════
-       CANONICAL RESOLVER — single source of truth.
-       ═════════════════════════════════════════════════════════ */
+    /* ═══════════════════════════════════════════════════════
+       CANONICAL RESOLVER
+       ═══════════════════════════════════════════════════════ */
     function resolve(x) {
         if (!x || typeof x !== 'string') return null;
         var wallet = null;
@@ -112,6 +126,9 @@
 
     function isValidLabel(label) { return !!label && label !== 'anon'; }
 
+    /* ═══════════════════════════════════════════════════════
+       DOM PROPAGATION — chat
+       ═══════════════════════════════════════════════════════ */
     function updateMessagesFor(wallet, profile) {
         if (!wallet) return;
         var label = displayNameFor(profile);
@@ -141,6 +158,9 @@
             });
     }
 
+    /* ═══════════════════════════════════════════════════════
+       DOM PROPAGATION — sidebar
+       ═══════════════════════════════════════════════════════ */
     function updateSidebarFor(wallet, profile) {
         if (!wallet) return;
         var label = displayNameFor(profile);
@@ -169,7 +189,9 @@
             });
     }
 
-    /* ⚑ NEW — rankings rows (name + avatar, live) */
+    /* ═══════════════════════════════════════════════════════
+       DOM PROPAGATION — rankings rows
+       ═══════════════════════════════════════════════════════ */
     function updateRankRowsFor(wallet, profile) {
         if (!wallet) return;
         var label = displayNameFor(profile);
@@ -196,6 +218,21 @@
             });
     }
 
+    /* ═══════════════════════════════════════════════════════
+       WALLET-BASED OWNERSHIP ENFORCEMENT
+       If a message wrapper carries the connected wallet in
+       data-wallet but isn't marked .own, add the class.
+       Fixes alignment for messages sent before X verification
+       changed the local "username" value.
+       ═══════════════════════════════════════════════════════ */
+    function ensureOwnClass(root) {
+        var w = myWallet();
+        if (!w) return;
+        (root || document).querySelectorAll(
+            '.msg-wrapper[data-wallet="' + CSS.escape(w) + '"]:not(.own)'
+        ).forEach(function (el) { el.classList.add('own'); });
+    }
+
     function updateSelfBlock(profile) {
         if (!profile) return;
         var label = displayNameFor(profile);
@@ -206,26 +243,35 @@
         if (bigAv && avatar) bigAv.innerHTML = '<img src="' + esc(avatar) + '" alt="">';
     }
 
+    /* ═══════════════════════════════════════════════════════
+       MASTER PROPAGATE
+       Writes DB username (not display label) to localStorage so
+       script.js and stickers.js never store the X display name
+       as the sender of a message.
+       ═══════════════════════════════════════════════════════ */
     function propagateProfile(wallet, profile) {
         rememberProfile(profile);
 
         updateMessagesFor(wallet, profile);
         updateSidebarFor(wallet, profile);
         updateRankRowsFor(wallet, profile);
+        ensureOwnClass();
 
         try {
             var cached = localStorage.getItem('msn_cached_wallet');
             if (cached && cached === wallet) {
-                var label = displayNameFor(profile);
-                if (isValidLabel(label)) {
-                    localStorage.setItem('msn_chat_username', label);
-                    localStorage.setItem('msn_last_username', label);
+                // ⚑ Always store the DB username — this is the sender
+                //   identifier script.js and stickers.js use when
+                //   composing a message payload. Storing the display
+                //   label here made new messages compare as "not mine".
+                if (profile.username) {
+                    localStorage.setItem('msn_chat_username', profile.username);
+                    localStorage.setItem('msn_last_username', profile.username);
                 }
                 updateSelfBlock(profile);
             }
         } catch (e) {}
 
-        /* ⚑ Broadcast: profile card, ranks, anything else can listen */
         try {
             document.dispatchEvent(new CustomEvent('msn:identity-changed', {
                 detail: { wallet: wallet, profile: byWallet[wallet] || null }
@@ -233,9 +279,9 @@
         } catch (e) {}
     }
 
-    /* ═════════════════════════════════════════════════════════
-       ROW ENRICHMENT — apply identity to arbitrary row objects.
-       ═════════════════════════════════════════════════════════ */
+    /* ═══════════════════════════════════════════════════════
+       ROW ENRICHMENT — RPC wins, cache fills gaps, X wins
+       ═══════════════════════════════════════════════════════ */
     function enrichRow(row) {
         if (!row) return row;
         var wallet = row.wallet_address;
@@ -246,16 +292,21 @@
         var p = byWallet[wallet];
         if (!p) return row;
 
-        var dn = displayNameFor(p);
-        var av = avatarFor(p);
-
         var out = {};
         for (var k in row) {
             if (Object.prototype.hasOwnProperty.call(row, k)) out[k] = row[k];
         }
-        if (dn) out.username = dn;
-        if (av) out.avatar_url = av;
-        out.wallet_address = wallet;
+
+        if (p.x_verified) {
+            var xName = displayNameFor(p);
+            if (xName) out.username = xName;
+            if (p.x_avatar_url) out.avatar_url = p.x_avatar_url;
+        } else {
+            if (out.username == null && p.username) out.username = p.username;
+            if (out.avatar_url == null && p.avatar_url) out.avatar_url = p.avatar_url;
+        }
+
+        if (out.wallet_address == null) out.wallet_address = wallet;
         out.x_verified = !!p.x_verified;
         return out;
     }
@@ -264,6 +315,9 @@
         return rows.map(enrichRow);
     }
 
+    /* ═══════════════════════════════════════════════════════
+       RENAME
+       ═══════════════════════════════════════════════════════ */
     async function setUsernameForWallet(wallet, newName) {
         var sb = getSB();
         if (!sb || !wallet || !newName) return { error: 'bad_input' };
@@ -296,6 +350,9 @@
         return { data: updated };
     }
 
+    /* ═══════════════════════════════════════════════════════
+       REALTIME PROFILES
+       ═══════════════════════════════════════════════════════ */
     function subscribeProfiles() {
         var sb = getSB();
         if (!sb) return;
@@ -348,6 +405,9 @@
         return data || [];
     }
 
+    /* ═══════════════════════════════════════════════════════
+       DOM OBSERVERS
+       ═══════════════════════════════════════════════════════ */
     function tagMessageWrappers() {
         ['publicMessagesContainer', 'privateMessagesContainer'].forEach(function (id) {
             var root = document.getElementById(id);
@@ -358,7 +418,16 @@
                         if (node.nodeType !== 1) return;
                         var wrap = node.classList && node.classList.contains('msg-wrapper')
                             ? node : node.querySelector && node.querySelector('.msg-wrapper');
-                        if (!wrap || wrap.dataset.wallet) return;
+                        if (!wrap) return;
+
+                        // Force .own if data-wallet matches the connected wallet
+                        ensureOwnClass(wrap.parentNode || root);
+
+                        if (wrap.dataset.wallet) {
+                            var p0 = byWallet[wrap.dataset.wallet];
+                            if (p0) updateMessagesFor(wrap.dataset.wallet, p0);
+                            return;
+                        }
                         var unameEl = wrap.querySelector('.msg-username');
                         if (!unameEl) return;
                         var link = unameEl.querySelector('.msn-username-link');
@@ -383,9 +452,9 @@
             var name = (link ? link.textContent : el.textContent || '').trim().split(/\s+/)[0];
             if (name && name !== 'anon') names.add(name);
         });
-        if (!names.size) return;
+        if (!names.size) { ensureOwnClass(); return; }
         var sb = getSB();
-        if (!sb) return;
+        if (!sb) { ensureOwnClass(); return; }
         var { data } = await sb.from('profiles')
             .select('wallet_address, username, display_name, avatar_url, x_handle, x_verified, x_avatar_url')
             .in('username', Array.from(names));
@@ -400,10 +469,13 @@
             updateMessagesFor(p.wallet_address, p);
             updateSidebarFor(p.wallet_address, p);
         });
+        ensureOwnClass();
     }
 
+    /* ═══════════════════════════════════════════════════════
+       PUBLIC API
+       ═══════════════════════════════════════════════════════ */
     window.MSNIdentity = {
-        /* v2 — unchanged */
         labelForWallet:       labelForWallet,
         labelForUsername:     labelForUsername,
         fetchProfile:         fetchProfile,
@@ -413,13 +485,13 @@
         byWallet:             function () { return byWallet; },
         byUsername:           function () { return byUsername; },
 
-        /* v3 — new */
         resolve:              resolve,
         remember:             rememberProfile,
         enrichRow:            enrichRow,
         enrichRows:           enrichRows,
         displayNameFor:       displayNameFor,
-        avatarFor:            avatarFor
+        avatarFor:            avatarFor,
+        ensureOwnClass:       ensureOwnClass
     };
 
     function boot() {
@@ -427,11 +499,14 @@
         tagMessageWrappers();
         setTimeout(seedFromDOM, 1200);
         setTimeout(seedFromDOM, 3000);
+        // Safety net — if the DOM settles with a message that should be .own,
+        // make sure it gets fixed. Runs once more 6s in.
+        setTimeout(ensureOwnClass, 6000);
     }
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', boot);
     } else {
         boot();
     }
-    console.log('[wallet-identity] loaded v3');
+    console.log('[wallet-identity] loaded v4');
 })();
