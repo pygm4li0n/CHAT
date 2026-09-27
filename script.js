@@ -1127,11 +1127,13 @@
         if (!isNaN(newTokenReq) && newTokenReq >= 0) modTokenRequirement = newTokenReq;
         if (!isNaN(newCooldown) && [0,5,10,15].includes(newCooldown)) modCooldownSeconds = newCooldown;
         try {
-            const { error } = await supabase
-                .from('settings')
-                .upsert({ id: 1, token_requirement: modTokenRequirement, cooldown_seconds: modCooldownSeconds });
-            if (error) throw error;
-            showSuccess('Mod settings updated globally!');
+        const { error } = await supabase.rpc('save_mod_settings', {
+            p_wallet:            getWalletAddress(),
+            p_token_requirement: modTokenRequirement,
+            p_cooldown_seconds:  modCooldownSeconds
+        });
+        if (error) throw error;
+        showSuccess('Mod settings updated globally!');
         } catch (err) {
             console.error('Error saving settings:', err);
             showError('Failed to save settings: ' + err.message);
@@ -1147,11 +1149,14 @@
     });
 
     async function postModAnnouncement(message) {
-        try {
-            const { error } = await supabase.from('settings').upsert({ id: 1, mod_announcement: message }, { onConflict: 'id' });
-            if (error) throw error;
-            modAnnouncement = message;
-            showSuccess('Announcement posted!');
+    try {
+        const { error } = await supabase.rpc('save_mod_settings', {
+            p_wallet:           getWalletAddress(),
+            p_mod_announcement: message
+        });
+        if (error) throw error;
+        modAnnouncement = message;
+        showSuccess('Announcement posted!');
         } catch (err) {
             console.error('Error posting announcement:', err);
             showError('Failed to post announcement: ' + err.message);
