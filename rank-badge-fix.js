@@ -149,11 +149,15 @@
         attachObserver();
     }
 
-    /* ── Slow safety net ── */
-    setInterval(function () {
-        var o = document.getElementById('rankingsOverlay');
-        if (o && !o.classList.contains('hidden')) fixAll();
-    }, 1200);
+       /* ── Trigger on overlay open instead of polling ── */
+    document.addEventListener('click', function (e) {
+        var t = e.target;
+        if (t && t.closest && t.closest('#rankingsBtn')) {
+            setTimeout(fixAll, 50);
+            setTimeout(fixAll, 200);
+            setTimeout(fixAll, 600);
+        }
+    }, true);
 
     /* Expose for manual debugging */
     window.fixRankBadges = fixAll;
