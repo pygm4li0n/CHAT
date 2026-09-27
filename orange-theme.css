@@ -1056,27 +1056,6 @@ body {
     color: #1a0d00;
 }
 
-/* ⚑ FIX 4: error toast */
-.error-toast {
-    display: none;
-    padding: 10px 16px;
-    background: linear-gradient(180deg, #2a0d12 0%, #1c070b 100%);
-    border: 1px solid #ff4d5e;
-    border-left: 3px solid #ff4d5e;
-    border-radius: 3px;
-    margin: 8px 16px 0;
-    color: #ffd7dc;
-    font-size: 0.82rem;
-    font-family: var(--font-mono);
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    box-shadow:
-        inset 0 1px 0 rgba(255, 200, 210, 0.14),
-        0 0 18px rgba(255, 77, 94, 0.45);
-    z-index: 20;
-}
-.error-toast:not(:empty) { display: block; }
-
 .messages-container {
     flex: 1;
     overflow-y: auto;
