@@ -2741,12 +2741,65 @@ function showSuccess(msg) {
         setTimeout(() => refreshBtn.classList.remove('spinning'), 700);
     }
 
+        function refreshOwnMessagesInDOM(oldName, newName, newAvatar) {
+        var displayName = newName || username;
+        if (!displayName) return;
+        document.querySelectorAll('.msg-wrapper').forEach(function (w) {
+            var unameEl = w.querySelector('.msg-username');
+            if (!unameEl) return;
+            var link = unameEl.querySelector('.msn-username-link');
+            var currentName = '';
+            if (link) {
+                currentName = link.textContent.trim();
+            } else {
+                for (var i = 0; i < unameEl.childNodes.length; i++) {
+                    var n = unameEl.childNodes[i];
+                    if (n.nodeType === 3 && n.nodeValue.trim()) {
+                        currentName = n.nodeValue.trim();
+                        break;
+                    }
+                }
+            }
+            if (!currentName) return;
+            var matches = false;
+            if (oldName && currentName === oldName) matches = true;
+            if (currentName === displayName)        matches = true;
+            if (!matches) return;
+            if (link) {
+                link.textContent = displayName;
+            } else {
+                for (var j = 0; j < unameEl.childNodes.length; j++) {
+                    var t = unameEl.childNodes[j];
+                    if (t.nodeType === 3 && t.nodeValue.trim()) {
+                        t.nodeValue = t.nodeValue.replace(t.nodeValue.trim(), displayName);
+                        break;
+                    }
+                }
+            }
+            if (newAvatar) {
+                var av = w.querySelector('.msg-avatar');
+                if (av) {
+                    var img = av.querySelector('img');
+                    if (img) img.src = newAvatar;
+                    else av.innerHTML = '<img src="' + escapeHtml(newAvatar) + '" alt="" style="width:100%;height:100%;object-fit:cover;">';
+                }
+            }
+            try {
+                var wNow = getWalletAddress();
+                if (wNow) w.setAttribute('data-wallet', wNow);
+            } catch (e) {}
+        });
+    }
+
     async function applyUsername(name) {
         const wallet = getWalletAddress();
         if (!wallet) {
             showError('Connect Phantom before saving your profile.');
             return false;
         }
+
+        // ⚑ Capture OLD name BEFORE overwriting — needed for DOM refresh
+        const oldUsername = localStorage.getItem(LAST_USERNAME_KEY) || '';
 
         username = name;
         localStorage.setItem(STORAGE_KEY_NAME, name);
@@ -2785,6 +2838,9 @@ function showSuccess(msg) {
                 return false;
             }
         }
+
+                // ⚑ Force-refresh every message authored under the old name
+        try { refreshOwnMessagesInDOM(oldUsername, name, avatarUrlToUse); } catch (e) {}
 
         avatarCache[name] = avatarUrlToUse;
         if (sidebarBigAvatar) {
