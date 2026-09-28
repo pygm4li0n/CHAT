@@ -488,6 +488,7 @@
 
     let avatarCache = {};
     let userBalances = {};
+    window.userBalances = userBalances;   // ← add this
     let currentAvatarUrl = null;
     let modAnnouncement = '';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -872,18 +873,19 @@
     }
 
        function parseBalanceValue(v) {
-        if (v == null) return 0;
-        if (typeof v === 'number') return isFinite(v) ? v : 0;
-        var s = String(v).trim().toUpperCase();
-        s = s.replace(/[^0-9.,KMB]/g, '').replace(/,/g, '');
-        var mult = 1;
-        var last = s.slice(-1);
-        if (last === 'B') { mult = 1e9; s = s.slice(0, -1); }
-        else if (last === 'M') { mult = 1e6; s = s.slice(0, -1); }
-        else if (last === 'K') { mult = 1e3; s = s.slice(0, -1); }
-        var n = parseFloat(s);
-        return isFinite(n) ? n * mult : 0;
-    }
+    if (v == null) return 0;
+    if (typeof v === 'number') return isFinite(v) ? v : 0;
+    // First numeric token only — ignores "200,000 (12%)", "200K / 1M", "$1.5M"
+    var m = String(v).match(/([\d.,]+)\s*([KMB])?/i);
+    if (!m) return 0;
+    var n = parseFloat(m[1].replace(/,/g, ''));
+    if (!isFinite(n)) return 0;
+    var s = (m[2] || '').toUpperCase();
+    if (s === 'B') n *= 1e9;
+    else if (s === 'M') n *= 1e6;
+    else if (s === 'K') n *= 1e3;
+    return n;
+}
 
     function getBadge(balance) {
         var b = parseBalanceValue(balance);
@@ -3455,19 +3457,20 @@ function showSuccess(msg) {
   // Single source of truth — thresholds live ONLY here.
   // badgeFromName delegates to this so there's no drift.
    // Robust parse — handles numbers, "150,000", "$150,000.50", "1.5M", "320K"
-  function parseBalanceValue(v) {
+ function parseBalanceValue(v) {
     if (v == null) return 0;
     if (typeof v === 'number') return isFinite(v) ? v : 0;
-    var s = String(v).trim().toUpperCase();
-    s = s.replace(/[^0-9.,KMB]/g, '').replace(/,/g, '');
-    var mult = 1;
-    var last = s.slice(-1);
-    if (last === 'B') { mult = 1e9; s = s.slice(0, -1); }
-    else if (last === 'M') { mult = 1e6; s = s.slice(0, -1); }
-    else if (last === 'K') { mult = 1e3; s = s.slice(0, -1); }
-    var n = parseFloat(s);
-    return isFinite(n) ? n * mult : 0;
-  }
+    // First numeric token only — ignores "200,000 (12%)", "200K / 1M", "$1.5M"
+    var m = String(v).match(/([\d.,]+)\s*([KMB])?/i);
+    if (!m) return 0;
+    var n = parseFloat(m[1].replace(/,/g, ''));
+    if (!isFinite(n)) return 0;
+    var s = (m[2] || '').toUpperCase();
+    if (s === 'B') n *= 1e9;
+    else if (s === 'M') n *= 1e6;
+    else if (s === 'K') n *= 1e3;
+    return n;
+}
 
   // Single source of truth — thresholds live ONLY here.
   function badgeFromBalance(balance) {
