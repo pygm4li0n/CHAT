@@ -3103,6 +3103,7 @@ function showSuccess(msg) {
                     // 3. Wipe EVERY user-scoped cache
                     avatarCache = {};
                     userBalances = {};
+                    window.userBalances = userBalances;   // re-expose after reassignment
                     currentAvatarUrl = null;
                     pendingImageUrl = null;
                     knownMessageIds.clear();
@@ -3344,6 +3345,59 @@ function showSuccess(msg) {
         });
     }
     init();
+
+    
+    /* ═══════════════════════════════════════════════════════════
+       LIVE IDENTITY REPAINT
+       Fires when wallet-identity.js / x-auth.js apply new X data.
+       Repaints sidebar + every message + big profile card in place.
+       ═══════════════════════════════════════════════════════════ */
+    document.addEventListener('msn:identity-changed', function () {
+        try { updateSidebarUI(); } catch (e) { console.warn('[repaint] sidebar:', e); }
+
+        document.querySelectorAll('.msg-wrapper').forEach(function (wrapper) {
+            var replyBtn = wrapper.querySelector('.reply-btn');
+            var rawUser  = replyBtn && replyBtn.getAttribute('data-username');
+            if (!rawUser) return;
+
+            var newName   = displayNameForUser(rawUser);
+            var newAvatar = getAvatarURL(rawUser);
+
+            var avatarEl = wrapper.querySelector('.msg-avatar');
+            if (avatarEl && newAvatar) {
+                avatarEl.innerHTML = '<img src="' + escapeHtml(newAvatar) +
+                    '" alt="" style="width:100%;height:100%;object-fit:cover;">';
+            }
+
+            var unameEl = wrapper.querySelector('.msg-username');
+            if (!unameEl) return;
+            var link = unameEl.querySelector('.msn-username-link');
+            if (link) {
+                link.textContent = newName;
+            } else {
+                for (var i = 0; i < unameEl.childNodes.length; i++) {
+                    var n = unameEl.childNodes[i];
+                    if (n.nodeType === 3 && n.nodeValue.trim()) {
+                        n.nodeValue = n.nodeValue.replace(n.nodeValue.trim(), newName);
+                        break;
+                    }
+                }
+            }
+        });
+
+        if (username) {
+            var meName   = displayNameForUser(username);
+            var meAvatar = getAvatarURL(username);
+            if (sidebarBigAvatar) {
+                sidebarBigAvatar.innerHTML = meAvatar
+                    ? '<img src="' + escapeHtml(meAvatar) +
+                      '" style="width:100%;height:100%;object-fit:cover;">'
+                    : (meName[0] || '?').toUpperCase();
+            }
+            if (sidebarBigName) sidebarBigName.textContent = meName;
+        }
+    });
+
 /* ═══════════════════════════════════════════════════════════════
    SECTION 1 — TOKEN CA PILL
    Injects a copy-able contract address pill next to the header
