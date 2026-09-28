@@ -3583,7 +3583,18 @@ function showSuccess(msg) {
           0;
 
         const balRaw = parseBalanceValue(rawBalance);
-        const tier   = badgeFromBalance(balRaw);
+        let tier     = badgeFromBalance(balRaw);
+
+        // ⚑ If our balance-derived tier is Shrimp (profiles row is stale/0),
+        //   fall back to the RPC's own holder_tier — it computes from
+        //   on-chain data, which is fresher than the profiles table.
+        if (tier.name === 'Shrimp' && row.holder_tier) {
+            const rpcTier = badgeFromName(row.holder_tier);
+            if (rpcTier.name !== 'Shrimp') {
+                tier = rpcTier;
+            }
+        }
+
         const bal    = balRaw.toLocaleString();
         const walletAttr = row.wallet_address
           ? ' data-wallet="' + esc(row.wallet_address) + '"'
