@@ -3661,23 +3661,37 @@ function showSuccess(msg) {
 
 
       el.innerHTML = enriched.map(row => {
-        // ⚑ Priority order: cached balance > any RPC field > 0
-        const cachedBal  = row.username != null ? userBalances[row.username] : null;
-        const rawBalance =
-          (cachedBal != null && cachedBal !== 0) ? cachedBal :
-          row.token_balance ??
-          row.balance       ??
-          row.amount        ??
-          row.holding       ??
-          row.holdings      ??
-          row.tokens        ??
-          row.ui_amount     ??
-          row.uiAmountString ??
-          cachedBal ??
-          0;
+// ⚑ Priority: freshest chain value > any non-zero DB value > RPC field > 0
+const cachedBal = row.username != null ? userBalances[row.username] : null;
 
-        const balRaw = parseBalanceValue(rawBalance);
-        let tier     = badgeFromBalance(balRaw);
+// Log once per user so you can confirm which field the RPC uses.
+if (!window.__msnHolderLogged) window.__msnHolderLogged = new Set();
+if (row.username && !window.__msnHolderLogged.has(row.username)) {
+    window.__msnHolderLogged.add(row.username);
+    console.log('[rankings] RPC row for', row.username, row);
+}
+
+const rawBalance =
+  (cachedBal != null && cachedBal !== 0) ? cachedBal :
+  row.token_balance      ??
+  row.total_balance      ??      // ← common in holders RPCs
+  row.holder_balance     ??
+  row.balance_raw        ??
+  row.balance            ??
+  row.amount             ??
+  row.holding            ??
+  row.holdings           ??
+  row.tokens             ??
+  row.token_amount       ??
+  row.ui_amount          ??
+  row.ui_amount_string   ??
+  row.uiAmountString     ??
+  row.uiAmount           ??
+  cachedBal ??
+  0;
+
+const balRaw = parseBalanceValue(rawBalance);
+let tier     = badgeFromBalance(balRaw);
 
         // ⚑ If our balance-derived tier is Shrimp (profiles row is stale/0),
         //   fall back to the RPC's own holder_tier — it computes from
