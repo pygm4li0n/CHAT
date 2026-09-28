@@ -503,6 +503,11 @@
         } catch (e) { return null; }
     }
 
+        function cssEscape(s) {
+        if (window.CSS && CSS.escape) return CSS.escape(s);
+        return String(s).replace(/"/g, '\\"');
+    }
+
     function updateAppHeight() {
         const vv = window.visualViewport;
         const h = vv ? vv.height : window.innerHeight;
@@ -1654,6 +1659,99 @@ function showSuccess(msg) {
         };
     }
 
+        /* ═══════════════════════════════════════════════════════
+       Wallet lookup from a raw string.
+       Order: byUsername → byWallet (matches display_name/x_handle too)
+              → presence map → sidebar DOM → null.
+       ═══════════════════════════════════════════════════════ */
+    function walletForUsername(userName) {
+        if (!userName) return null;
+        var lower = String(userName).toLowerCase().trim();
+
+        // 1. byUsername map
+        if (window.MSNIdentity && window.MSNIdentity.byUsername) {
+            var map = window.MSNIdentity.byUsername();
+            if (map && map[userName]) return map[userName];
+            for (var u in map) {
+                if (String(u).toLowerCase() === lower) return map[u];
+            }
+        }
+
+        // 2. byWallet map — match username, display_name, or x_handle
+        if (window.MSNIdentity && window.MSNIdentity.byWallet) {
+            var wallets = window.MSNIdentity.byWallet();
+            for (var w in wallets) {
+                var p = wallets[w];
+                if (!p) continue;
+                if (p.username     && String(p.username).toLowerCase()     === lower) return w;
+                if (p.display_name && String(p.display_name).toLowerCase() === lower) return w;
+                if (p.x_handle) {
+                    var handle = '@' + String(p.x_handle).toLowerCase().replace(/^@+/, '');
+                    if (handle === lower) return w;
+                }
+            }
+        }
+
+        // 3. Presence map
+        var found = null;
+        onlineUsers.forEach(function (u) {
+            if (u.username === userName && u.wallet) found = u.wallet;
+        });
+        if (found) return found;
+
+        // 4. Sidebar DOM
+        var item = document.querySelector(
+            '.sidebar-user-item[data-username="' + cssEscape(userName) + '"]'
+        );
+        if (item && item.getAttribute('data-wallet')) {
+            return item.getAttribute('data-wallet');
+        }
+        return null;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       Resolve the private-chat indicator to the partner's
+       CURRENT name. Fetches from DB if the cache is empty.
+       ═══════════════════════════════════════════════════════ */
+    function refreshPrivatePartnerName() {
+        if (!activePrivateChat) return;
+        var partner = activePrivateChat;
+        var handle  = String(partner).replace(/^@+/, '');
+
+        function paint() {
+            var w = walletForUsername(partner);
+            var disp = resolveDisplay(partner, w);
+            if (privateChatUserDisp) privateChatUserDisp.textContent = disp.name;
+        }
+
+        paint();
+        if (walletForUsername(partner)) return;
+
+        (async function fetchPartner() {
+            var queries = [
+                { col: 'username',     val: partner },
+                { col: 'display_name', val: partner },
+                { col: 'x_handle',     val: handle  }
+            ];
+            for (var i = 0; i < queries.length; i++) {
+                try {
+                    var res = await supabase.from('profiles')
+                        .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address')
+                        .eq(queries[i].col, queries[i].val)
+                        .limit(1)
+                        .maybeSingle();
+                    if (res && res.data && res.data.wallet_address) {
+                        if (window.MSNIdentity && window.MSNIdentity.remember) {
+                            window.MSNIdentity.remember(res.data);
+                        }
+                        paint();
+                        return;
+                    }
+                } catch (e) { /* try next */ }
+            }
+        })();
+    }
+
     function renderAvatarHTML(user) {
         var disp = resolveDisplay(user);
         if (disp.avatar) return `<img src="${escapeHtml(disp.avatar)}" alt="${escapeHtml(disp.name)}" style="width:100%;height:100%;object-fit:cover;">`;
@@ -2347,9 +2445,9 @@ function showSuccess(msg) {
         } else {
             publicContainer.classList.add('hidden');
             privateContainer.classList.remove('hidden');
-            if(activePrivateChat) {
+         if(activePrivateChat) {
                 privateIndicatorBar.classList.remove('hidden');
-                privateChatUserDisp.textContent = activePrivateChat;
+                refreshPrivatePartnerName();
                 messageInput.placeholder = `Private message to ${activePrivateChat}...`;
             } else {
                 privateIndicatorBar.classList.add('hidden');
@@ -2370,12 +2468,12 @@ function showSuccess(msg) {
         if (tabName === 'private') {
             if (!activePrivateChat) {
                 const saved = localStorage.getItem(ACTIVE_CHAT_KEY);
-                if (saved) {
+        if (saved) {
                     activePrivateChat = saved;
                     acceptedPrivateChats.add(saved);
                     saveAcceptedChats();
                     privateIndicatorBar.classList.remove('hidden');
-                    privateChatUserDisp.textContent = saved;
+                    refreshPrivatePartnerName();
                     messageInput.placeholder = `Private message to ${saved}...`;
                 } else {
                     showError('Select a private chat partner from the sidebar first.');
@@ -2400,7 +2498,7 @@ function showSuccess(msg) {
             acceptedPrivateChats.add(partnerUsername);
             saveAcceptedChats();
             privateIndicatorBar.classList.remove('hidden');
-            privateChatUserDisp.textContent = partnerUsername;
+            refreshPrivatePartnerName();
             setReplyingTo(null);
             messageInput.placeholder = `Private message to ${partnerUsername}...`;
             switchTab('private');
@@ -2583,12 +2681,48 @@ function showSuccess(msg) {
         </div>`;
     }
 
-    function showRequestOverlay(fromUser, requestId) {
+      function showRequestOverlay(fromUser, requestId) {
         currentRequestData = { from_user: fromUser, id: requestId };
-        const url = getAvatarURL(fromUser);
-        requestAvatar.innerHTML = url ? `<img src="${escapeHtml(url)}">` : (fromUser[0]?.toUpperCase() || '?');
-        requestName.textContent = `${fromUser} wants to chat privately`;
         requestOverlay.classList.remove('hidden');
+        renderRequestOverlay();
+
+        if (!walletForUsername(fromUser)) {
+            (async function () {
+                var handle = String(fromUser).replace(/^@+/, '');
+                var queries = [
+                    { col: 'username',     val: fromUser },
+                    { col: 'display_name', val: fromUser },
+                    { col: 'x_handle',     val: handle   }
+                ];
+                for (var i = 0; i < queries.length; i++) {
+                    try {
+                        var res = await supabase.from('profiles')
+                            .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address')
+                            .eq(queries[i].col, queries[i].val)
+                            .limit(1)
+                            .maybeSingle();
+                        if (res && res.data && res.data.wallet_address) {
+                            if (window.MSNIdentity && window.MSNIdentity.remember) {
+                                window.MSNIdentity.remember(res.data);
+                            }
+                            renderRequestOverlay();
+                            return;
+                        }
+                    } catch (e) { /* try next */ }
+                }
+            })();
+        }
+    }
+
+    function renderRequestOverlay() {
+        if (!currentRequestData) return;
+        var fromUser = currentRequestData.from_user;
+        var wallet = walletForUsername(fromUser);
+        var disp   = resolveDisplay(fromUser, wallet);
+        requestAvatar.innerHTML = disp.avatar
+            ? `<img src="${escapeHtml(disp.avatar)}">`
+            : (disp.name[0] || '?').toUpperCase();
+        requestName.textContent = `${disp.name} wants to chat privately`;
     }
     function hideRequestOverlay() {
         requestOverlay.classList.add('hidden');
@@ -3456,7 +3590,7 @@ function showSuccess(msg) {
             if (savedActiveChat && acceptedPrivateChats.has(savedActiveChat)) {
                 activePrivateChat = savedActiveChat;
                 privateIndicatorBar.classList.remove('hidden');
-                privateChatUserDisp.textContent = savedActiveChat;
+                refreshPrivatePartnerName();
                 messageInput.placeholder = 'Type a message...';
             }
 
@@ -3518,7 +3652,13 @@ function showSuccess(msg) {
        Repaints sidebar + every message + big profile card in place.
        ═══════════════════════════════════════════════════════════ */
     document.addEventListener('msn:identity-changed', function () {
-        // 1. Sidebar user list
+        // Private chat partner indicator
+        refreshPrivatePartnerName();
+
+        // Request overlay (if open)
+        if (currentRequestData && !requestOverlay.classList.contains('hidden')) {
+            renderRequestOverlay();
+        }
         try { updateSidebarUI(); } catch (e) { console.warn('[repaint] sidebar:', e); }
 
         // 2. Every rendered message
