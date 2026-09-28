@@ -1549,8 +1549,17 @@ function showSuccess(msg) {
         else return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${timeStr}`;
     }
 
-    async function fetchAvatars(usernames) {
-        const unique = [...new Set(usernames.filter(u => u && (!avatarCache[u] || !(u in userBalances))))];
+        async function fetchAvatars(usernames) {
+        // ⚑ Re-fetch if avatar missing OR balance missing/zero.
+        //   Old filter skipped users who were in userBalances with 0,
+        //   which blocked the rankings re-fetch.
+        const unique = [...new Set(usernames.filter(u => {
+            if (!u) return false;
+            if (!avatarCache[u]) return true;
+            const bal = userBalances[u];
+            if (bal == null || bal === 0) return true;
+            return false;
+        }))];
         if (unique.length === 0) return;
         const { data, error } = await supabase.from('profiles')
             .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, token_balance, wallet_address')
@@ -2564,9 +2573,15 @@ function showSuccess(msg) {
             data.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
             knownMessageIds.clear();
 
+                        // ⚑ Only prime the cache — never overwrite a real balance
+            //   with a 0 from the message_feed view.
             data.forEach(msg => {
-                if (msg.avatar_url) avatarCache[msg.username] = msg.avatar_url;
-                if (msg.wallet_address) userBalances[msg.username] = msg.token_balance || 0;
+                if (msg.avatar_url && !avatarCache[msg.username]) {
+                    avatarCache[msg.username] = msg.avatar_url;
+                }
+                if (msg.wallet_address && !(msg.username in userBalances)) {
+                    userBalances[msg.username] = msg.token_balance || null;
+                }
             });
 
             const holder = document.createElement('div');
