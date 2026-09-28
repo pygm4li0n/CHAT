@@ -111,10 +111,10 @@
         return profile.avatar_url || profile.x_avatar_url || null;
     }
 
-    function rememberProfile(p) {
+       function rememberProfile(p) {
         if (!p || !p.wallet_address) return;
         var prev = byWallet[p.wallet_address] || {};
-        byWallet[p.wallet_address] = {
+        var next = {
             username:     (p.username     !== undefined) ? p.username     : prev.username,
             display_name: (p.display_name !== undefined) ? p.display_name : prev.display_name,
             avatar_url:   (p.avatar_url   !== undefined) ? p.avatar_url   : prev.avatar_url,
@@ -122,8 +122,25 @@
             x_verified:   (p.x_verified   !== undefined) ? !!p.x_verified : prev.x_verified,
             x_avatar_url: (p.x_avatar_url !== undefined) ? p.x_avatar_url : prev.x_avatar_url
         };
+        byWallet[p.wallet_address] = next;
         if (p.username) byUsername[p.username] = p.wallet_address;
-        schedulePersist();                       // ← v7
+        schedulePersist();
+
+        var changed =
+            prev.username     !== next.username     ||
+            prev.display_name !== next.display_name ||
+            prev.avatar_url   !== next.avatar_url   ||
+            prev.x_handle     !== next.x_handle     ||
+            prev.x_verified   !== next.x_verified   ||
+            prev.x_avatar_url !== next.x_avatar_url;
+
+        if (changed && !_hydrating) {
+            try {
+                document.dispatchEvent(new CustomEvent('msn:identity-changed', {
+                    detail: { wallet: p.wallet_address, profile: next }
+                }));
+            } catch (e) {}
+        }
     }
 
     function resolve(x) {
