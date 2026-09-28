@@ -1822,9 +1822,30 @@ function showSuccess(msg) {
 
         async function buildMessageNode(msg, isPrivate) {
         const user = isPrivate ? msg.from_user : msg.username;
-        if (!getAvatarURL(user)) await fetchAvatars([user]);
-        const isOwn = user === username;
-        const shownUser = displayNameForUser(user);
+        const msgWallet = msg.wallet_address || null;
+
+        // Rename-safe: resolve by wallet first so messages always show
+        // the latest name/avatar for that wallet, regardless of what
+        // username was stored on the row.
+        var resolved = null;
+        if (msgWallet && window.MSNIdentity && window.MSNIdentity.resolve) {
+            resolved = window.MSNIdentity.resolve(msgWallet);
+        }
+        if (!resolved && user && window.MSNIdentity && window.MSNIdentity.resolve) {
+            resolved = window.MSNIdentity.resolve(user);
+        }
+
+        if (!resolved || !resolved.avatar) {
+            if (!getAvatarURL(user)) await fetchAvatars([user]);
+        }
+
+        const isOwn      = user === username;
+        const shownUser  = (resolved && resolved.displayName)
+                            || displayNameForUser(user)
+                            || user;
+        const shownAvatar = (resolved && resolved.avatar)
+                            || getAvatarURL(user)
+                            || null;
 
         const wrapper = document.createElement('div');
         wrapper.className = 'msg-wrapper' + (isOwn ? ' own' : '');
@@ -1861,7 +1882,11 @@ function showSuccess(msg) {
         const badge = getBadgeForUser(user);
         const badgeHtml = badge ? `<span class="user-badge" title="${badge.name}">${badge.emoji}</span>` : '';
 
-        innerHTML += `<div class="msg-username"><span class="msg-avatar">${renderAvatarHTML(user)}</span> ${escapeHtml(shownUser)} ${badgeHtml}${isPrivate?' <span style="font-size:0.6rem;opacity:0.6;">🔒</span>':''} <span class="msg-time">${formatTime(msg.created_at)}</span>`;
+                const avatarInner = shownAvatar
+            ? `<img src="${escapeHtml(shownAvatar)}" alt="${escapeHtml(shownUser)}" style="width:100%;height:100%;object-fit:cover;">`
+            : (shownUser || '?')[0].toUpperCase();
+
+        innerHTML += `<div class="msg-username"><span class="msg-avatar">${avatarInner}</span> ${escapeHtml(shownUser)} ${badgeHtml}${isPrivate?' <span style="font-size:0.6rem;opacity:0.6;">🔒</span>':''} <span class="msg-time">${formatTime(msg.created_at)}</span>`;
         if (msg.edited_at) innerHTML += `<span class="msg-edited">(edited)</span>`;
         innerHTML += `</div>`;
 
@@ -3130,10 +3155,10 @@ function showSuccess(msg) {
                     // 6. If a new wallet is connected, load its profile
                     if (phantomConnected && newAddr) {
                         fetchAndDisplayAllTokens();
-
-                        try {
+                        
+                    try {
                             const { data } = await supabase.from('profiles')
-                                .select('username, avatar_url, token_balance')
+                                .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address, token_balance')
                                 .eq('wallet_address', newAddr)
                                 .maybeSingle();
 
@@ -3142,16 +3167,22 @@ function showSuccess(msg) {
                                 localStorage.setItem(STORAGE_KEY_NAME, username);
                                 localStorage.setItem(LAST_USERNAME_KEY, username);
 
+                                // Feed the identity cache (X-verified data wins)
+                                if (window.MSNIdentity && window.MSNIdentity.remember) {
+                                    window.MSNIdentity.remember(data);
+                                }
+
                                 avatarCache[username] = data.avatar_url || null;
                                 currentAvatarUrl = data.avatar_url || null;
+
+                                var meName   = displayNameForUser(username);
+                                var meAvatar = getAvatarURL(username);
                                 if (sidebarBigAvatar) {
-                                    if (data.avatar_url) {
-                                        sidebarBigAvatar.innerHTML = `<img src="${data.avatar_url}" style="width:100%;height:100%;object-fit:cover;">`;
-                                    } else {
-                                        sidebarBigAvatar.innerHTML = (username[0] || '?').toUpperCase();
-                                    }
+                                    sidebarBigAvatar.innerHTML = meAvatar
+                                        ? `<img src="${meAvatar}" style="width:100%;height:100%;object-fit:cover;">`
+                                        : (meName[0] || '?').toUpperCase();
                                 }
-                                if (sidebarBigName) sidebarBigName.textContent = username;
+                                if (sidebarBigName) sidebarBigName.textContent = meName;
                                 userBalances[username] = data.token_balance || 0;
                                 updateUserRank(userBalances[username]);
 
@@ -3252,16 +3283,27 @@ function showSuccess(msg) {
             profile = data;
         }
 
-        if (username && profile) {
+                if (username && profile) {
             await loadAcceptedChatsFromDB();
 
-            if(profile.avatar_url) {
-                avatarCache[username] = profile.avatar_url;
-                currentAvatarUrl = profile.avatar_url;
-                if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;">`;
-            } else {
-                if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = (username[0]||'?').toUpperCase();
+            // Feed the canonical identity cache so X-verified data wins
+            if (window.MSNIdentity && window.MSNIdentity.remember && profile.wallet_address) {
+                window.MSNIdentity.remember(profile);
             }
+
+            avatarCache[username] = profile.avatar_url || null;
+            currentAvatarUrl = profile.avatar_url || null;
+
+            // Prefer canonical identity for the visible name + avatar
+            var meName   = displayNameForUser(username);
+            var meAvatar = getAvatarURL(username);
+            if (sidebarBigAvatar) {
+                sidebarBigAvatar.innerHTML = meAvatar
+                    ? `<img src="${meAvatar}" style="width:100%;height:100%;object-fit:cover;">`
+                    : (meName[0] || '?').toUpperCase();
+            }
+            if (sidebarBigName) sidebarBigName.textContent = meName;
+
             if (profile.wallet_address) {
                 userBalances[username] = profile.token_balance || 0;
                 updateUserRank(userBalances[username]);
@@ -3269,7 +3311,6 @@ function showSuccess(msg) {
                 userBalances[username] = null;
                 updateUserRank(null);
             }
-            if (sidebarBigName) sidebarBigName.textContent = username;
             inputAreaBar.classList.remove('hidden');
             nameOverlay.classList.add('hidden');
             setReplyingTo(null);
@@ -3359,24 +3400,27 @@ function showSuccess(msg) {
 
         // 2. Every rendered message
         document.querySelectorAll('.msg-wrapper').forEach(function (wrapper) {
-            // Prefer data-author (raw username). Fall back to reply-btn,
-            // then to the wallet-cache lookup.
+            // Prefer data-wallet — rename-safe. Fall back to data-author
+            // (raw username), then to reply-btn's data-username.
+            var w = wrapper.getAttribute('data-wallet');
             var rawUser = wrapper.getAttribute('data-author');
             if (!rawUser) {
                 var replyBtn = wrapper.querySelector('.reply-btn');
                 rawUser = replyBtn && replyBtn.getAttribute('data-username');
             }
-            if (!rawUser) {
-                var w = wrapper.getAttribute('data-wallet');
-                if (w && window.MSNIdentity && window.MSNIdentity.byWallet) {
-                    var cached = window.MSNIdentity.byWallet()[w];
-                    if (cached && cached.username) rawUser = cached.username;
+            if (!w && !rawUser) return;
+
+            var newName = null, newAvatar = null;
+
+            if (w && window.MSNIdentity && window.MSNIdentity.resolve) {
+                var r = window.MSNIdentity.resolve(w);
+                if (r) {
+                    newName   = r.displayName || null;
+                    newAvatar = r.avatar      || null;
                 }
             }
-            if (!rawUser) return;
-
-            var newName   = displayNameForUser(rawUser);
-            var newAvatar = getAvatarURL(rawUser);
+            if (!newName)   newName   = displayNameForUser(rawUser);
+            if (!newAvatar) newAvatar = getAvatarURL(rawUser);
 
             // Avatar
             var avatarEl = wrapper.querySelector('.msg-avatar');
