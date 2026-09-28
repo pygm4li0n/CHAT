@@ -3579,6 +3579,29 @@ function showSuccess(msg) {
     });
   }
 
+      async function fetchBalanceFromChain(wallet) {
+    if (!wallet) return null;
+    try {
+      const pk = new solanaWeb3.PublicKey(wallet);
+      const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(
+        pk,
+        { programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') }
+      );
+      let balance = 0;
+      for (const acc of tokenAccounts.value) {
+        const info = acc.account.data.parsed.info;
+        if (info.mint === TOKEN_MINT_ADDRESS) {
+          balance += parseFloat(info.tokenAmount.uiAmountString);
+        }
+      }
+      return balance;
+    } catch (e) {
+      console.warn('[chain-balance] failed for', wallet, e);
+      return null;
+    }
+  }
+
+
   async function loadHolders() {
     const el = document.getElementById('holdersLeaderboard');
     if (!el) return;
@@ -3621,6 +3644,21 @@ function showSuccess(msg) {
       if (missing.length) {
         try { await fetchAvatars(missing); } catch (e) {}
       }
+
+        
+      // ⚑ Last resort: for any holder still showing 0, pull the real
+      //   balance straight from Solana. Fixes stale profiles + RPC.
+      const stillZero = enriched.filter(r =>
+        r.username && r.wallet_address &&
+        (userBalances[r.username] == null || userBalances[r.username] === 0)
+      );
+      for (const r of stillZero) {
+        const chainBal = await fetchBalanceFromChain(r.wallet_address);
+        if (chainBal != null && chainBal > 0) {
+          userBalances[r.username] = chainBal;
+        }
+      }
+
 
       el.innerHTML = enriched.map(row => {
         // ⚑ Priority order: cached balance > any RPC field > 0
