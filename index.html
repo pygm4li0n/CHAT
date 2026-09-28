@@ -90,45 +90,61 @@
                 '}',
                 '#xOAuthReturnOverlay.done { opacity: 0; visibility: hidden; pointer-events: none; }',
 
-             /* Logo — free-floating, soft glow */
+                /* Logo — 10% smaller, single accent glow, gentle pulse */
                 '.xr-icon {',
                 '  position: relative; z-index: 2;',
                 '  display: flex; align-items: center; justify-content: center;',
-                '  animation: xrPulse 2.4s ease-in-out infinite;',
+                '  animation: xrPulse 2.6s ease-in-out infinite;',
+                '  will-change: transform;',
                 '}',
                 '.xr-icon img,',
                 '.xr-icon .xr-logo-img {',
                 '  display: block;',
-                '  width: clamp(200px, 42vw, 420px);',
+                '  width: clamp(180px, 38vw, 380px);',
                 '  height: auto;',
-                '  max-width: 78vw;',
-                '  max-height: 55vh;',
+                '  max-width: 76vw;',
+                '  max-height: 50vh;',
                 '  object-fit: contain;',
                 '  filter:',
-                '    drop-shadow(0 10px 30px rgba(0,0,0,.6))',
-                '    drop-shadow(0 0 40px rgba(29,155,240,.45))',
-                '    drop-shadow(0 0 80px rgba(168,85,247,.30));',
+                '    drop-shadow(0 8px 24px rgba(0,0,0,.55))',
+                '    drop-shadow(0 0 36px rgba(29,155,240,.40));',
                 '}',
 
-                /* Caption — clean, subtle */
-                '.xr-text {',
+                /* Status row — spinner + caption inline */
+                '.xr-status {',
                 '  position: relative; z-index: 2;',
+                '  display: inline-flex; align-items: center; gap: 10px;',
+                '  margin: 0;',
+                '}',
+
+                /* Spinner — 14px ring, GPU-only rotation */
+                '.xr-spinner {',
+                '  display: inline-block;',
+                '  width: 14px; height: 14px;',
+                '  border-radius: 50%;',
+                '  border: 2px solid rgba(255,255,255,.14);',
+                '  border-top-color: #1d9bf0;',
+                '  animation: xrSpin 0.9s linear infinite;',
+                '  will-change: transform;',
+                '  flex-shrink: 0;',
+                '}',
+
+                /* Caption — clean, static */
+                '.xr-text {',
                 '  font-family: var(--font-mono, ui-monospace, Menlo, monospace);',
                 '  font-size: 0.72rem; font-weight: 800;',
                 '  letter-spacing: 0.36em; text-indent: 0.36em;',
-                '  color: rgba(255,255,255,.62); text-transform: uppercase;',
-                '  text-shadow: 0 0 18px rgba(29,155,240,.55);',
+                '  color: rgba(255,255,255,.68); text-transform: uppercase;',
                 '  margin: 0;',
-                '  animation: xrTextFade 2.4s ease-in-out infinite;',
+                '  white-space: nowrap;',
                 '}',
 
                 '@keyframes xrPulse {',
                 '  0%, 100% { transform: scale(1); }',
-                '  50% { transform: scale(1.03); }',
+                '  50% { transform: scale(1.02); }',
                 '}',
-                '@keyframes xrTextFade {',
-                '  0%, 100% { opacity: 0.62; }',
-                '  50% { opacity: 1; }',
+                '@keyframes xrSpin {',
+                '  to { transform: rotate(360deg); }',
                 '}'
             ].join('\n');
             (document.head || document.documentElement).appendChild(s);
@@ -147,7 +163,10 @@
                     '<div class="xr-icon">' +
                         '<img src="https://i.postimg.cc/2jd2fzMG/XVERIFIED.png" alt="" class="xr-logo-img">' +
                     '</div>' +
-                    '<div class="xr-text">Redirecting to app</div>';
+                    '<div class="xr-status">' +
+                        '<span class="xr-spinner" aria-hidden="true"></span>' +
+                        '<span class="xr-text">Redirecting to app</span>' +
+                    '</div>';
 
                 document.body.insertBefore(ov, document.body.firstChild);
             }
