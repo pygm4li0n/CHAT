@@ -1,20 +1,23 @@
 /* ═══════════════════════════════════════════════════════════
-   wallet-identity.js — v6
+   wallet-identity.js — v7
    ───────────────────────────────────────────────────────────
    Wallet is the source of truth. Username is a display label.
    X-verified identity wins everywhere: chat, sidebar, profile,
    rankings.
 
-   v6 fixes
-   ────────
-   • Ownership is enforced by WALLET first (survives X
-     connect/disconnect and any rename race).
-   • Sidebar dedupes to ONE entry for the connected wallet,
-     even if presence syncs an old username for the same wallet.
-   • Rankings re-fetch fresh profiles on overlay open.
-   • Message container observer runs ownership on every append.
-   • Name on sticker messages stays fully legible; only the
-     wrapper is fixed-width so reactions + image center cleanly.
+   v7 changes
+   ──────────
+   • Persists byWallet → localStorage on every remember()
+   • Synchronously hydrates byWallet at module init, BEFORE
+     script.js / profile-system.js run
+   • Sets window.__msnIdentityReady so a boot gate can release
+   • Everything else identical to v6
+
+   Requires load order:
+     wallet-identity.js  ←  you are here (must be FIRST)
+     script.js
+     profile-system.js
+     x-auth.js
    ═══════════════════════════════════════════════════════════ */
 (function () {
     'use strict';
@@ -24,6 +27,8 @@
     var PROFILE_COLS =
         'wallet_address, username, display_name, avatar_url, ' +
         'x_handle, x_verified, x_avatar_url';
+
+    var CACHE_KEY = 'msn_identity_cache';
 
     function getSB() {
         if (window.MSN && window.MSN.supabase) return window.MSN.supabase;
@@ -56,6 +61,38 @@
     var byUsername = Object.create(null);
 
     /* ═══════════════════════════════════════════════════════
+       PERSISTENCE — snapshot the cache to localStorage so the
+       next boot can paint verified names/avatars immediately.
+       ═══════════════════════════════════════════════════════ */
+    var _hydrating    = false;
+    var _persistTimer = null;
+
+    function persistNow() {
+        try {
+            var snap = {};
+            for (var w in byWallet) {
+                var p = byWallet[w];
+                if (!p) continue;
+                snap[w] = {
+                    wallet_address: w,
+                    username:       p.username     || null,
+                    display_name:   p.display_name || null,
+                    avatar_url:     p.avatar_url   || null,
+                    x_handle:       p.x_handle     || null,
+                    x_verified:     !!p.x_verified,
+                    x_avatar_url:   p.x_avatar_url || null
+                };
+            }
+            localStorage.setItem(CACHE_KEY, JSON.stringify(snap));
+        } catch (e) { /* quota / disabled storage — ignore */ }
+    }
+    function schedulePersist() {
+        if (_hydrating) return;                 // don't echo the hydrate pass
+        clearTimeout(_persistTimer);
+        _persistTimer = setTimeout(persistNow, 200);
+    }
+
+    /* ═══════════════════════════════════════════════════════
        IDENTITY RESOLUTION
        ═══════════════════════════════════════════════════════ */
     function displayNameFor(profile) {
@@ -86,6 +123,7 @@
             x_avatar_url: (p.x_avatar_url !== undefined) ? p.x_avatar_url : prev.x_avatar_url
         };
         if (p.username) byUsername[p.username] = p.wallet_address;
+        schedulePersist();                       // ← v7
     }
 
     function resolve(x) {
@@ -585,7 +623,7 @@
         window.MSN._profileChannel = channel;
     }
 
-       var _pendingWallets = new Set();
+    var _pendingWallets = new Set();
     var _pendingFlush = null;
 
     function _flushWalletBatch() {
@@ -708,7 +746,13 @@
         avatarFor:            avatarFor,
         ensureOwnClass:       ensureOwnClass,
         ensureSingleSelf:     ensureSingleSelf,
-        refreshRankProfiles:  refreshRankProfiles
+        refreshRankProfiles:  refreshRankProfiles,
+
+        // v7: debug + manual controls
+        persistNow:           persistNow,
+        clearCache:           function () {
+            try { localStorage.removeItem(CACHE_KEY); } catch (e) {}
+        }
     };
 
     /* ═══════════════════════════════════════════════════════
@@ -728,8 +772,7 @@
         setTimeout(seedFromDOM, 3000);
         setTimeout(seedFromDOM, 5500);
 
-                // Safety net — runs 30s after boot, then stops.
-        // MutationObservers + realtime events cover every case after that.
+        // Safety net — runs 30s after boot, then stops.
         var _safetyTicks = 0;
         var _safetyTimer = setInterval(function () {
             ensureOwnClass();
@@ -752,10 +795,34 @@
         }, { once: true });
     }
 
+    /* ═══════════════════════════════════════════════════════
+       SYNCHRONOUS HYDRATE — runs BEFORE boot()
+       Pulls the last session's identity from localStorage so
+       script.js's first resolve() already sees X data.
+       ═══════════════════════════════════════════════════════ */
+    (function hydrateFromStorage() {
+        _hydrating = true;
+        try {
+            var raw = localStorage.getItem(CACHE_KEY);
+            if (raw) {
+                var snap = JSON.parse(raw);
+                for (var w in snap) {
+                    if (snap[w]) rememberProfile(snap[w]);
+                }
+                console.log('[wallet-identity] hydrated',
+                    Object.keys(snap).length, 'profiles from cache');
+            }
+        } catch (e) {
+            console.warn('[wallet-identity] hydrate failed:', e);
+        }
+        _hydrating = false;
+        window.__msnIdentityReady = true;
+    })();
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', boot);
     } else {
         boot();
     }
-    console.log('[wallet-identity] loaded v6');
+    console.log('[wallet-identity] loaded v7 (persist + hydrate)');
 })();
