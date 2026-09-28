@@ -2742,6 +2742,75 @@ function showSuccess(msg) {
     }
 
     async function applyUsername(name) {
+            /* ⚑ Walks the DOM and updates every message authored by the given
+       old username (or the new one) — swaps in the new name + avatar.
+       Handles messages that predate the `data-wallet` attribute. */
+    function refreshOwnMessagesInDOM(oldName, newName, newAvatar) {
+        var displayName = newName || username;
+        if (!displayName) return;
+
+        document.querySelectorAll('.msg-wrapper').forEach(function (w) {
+            var unameEl = w.querySelector('.msg-username');
+            if (!unameEl) return;
+
+            // Read the currently-displayed name (link span, or raw text node)
+            var link = unameEl.querySelector('.msn-username-link');
+            var currentName = '';
+            if (link) {
+                currentName = link.textContent.trim();
+            } else {
+                for (var i = 0; i < unameEl.childNodes.length; i++) {
+                    var n = unameEl.childNodes[i];
+                    if (n.nodeType === 3 && n.nodeValue.trim()) {
+                        currentName = n.nodeValue.trim();
+                        break;
+                    }
+                }
+            }
+            if (!currentName) return;
+
+            // Match by old OR new name — messages may already show either
+            var matches = false;
+            if (oldName && currentName === oldName) matches = true;
+            if (currentName === displayName)        matches = true;
+            if (!matches) return;
+
+            // Update the visible name
+            if (link) {
+                link.textContent = displayName;
+            } else {
+                for (var j = 0; j < unameEl.childNodes.length; j++) {
+                    var t = unameEl.childNodes[j];
+                    if (t.nodeType === 3 && t.nodeValue.trim()) {
+                        t.nodeValue = t.nodeValue.replace(t.nodeValue.trim(), displayName);
+                        break;
+                    }
+                }
+            }
+
+            // Update the avatar (create <img> if none exists yet)
+            if (newAvatar) {
+                var av = w.querySelector('.msg-avatar');
+                if (av) {
+                    var img = av.querySelector('img');
+                    if (img) {
+                        img.src = newAvatar;
+                    } else {
+                        av.innerHTML = '<img src="' + escapeHtml(newAvatar) + '" alt="" style="width:100%;height:100%;object-fit:cover;">';
+                    }
+                }
+            }
+
+            // Tell wallet-identity to remember this message for future
+            // propagations (belt-and-braces).
+            try {
+                var walletNow = getWalletAddress && getWalletAddress();
+                if (walletNow) w.setAttribute('data-wallet', walletNow);
+            } catch (e) {}
+        });
+    }
+
+    async function applyUsername(name) {
         const wallet = getWalletAddress();
         if (!wallet) {
             showError('Connect Phantom before saving your profile.');
@@ -2752,6 +2821,9 @@ function showSuccess(msg) {
         localStorage.setItem(STORAGE_KEY_NAME, name);
         localStorage.setItem(LAST_USERNAME_KEY, name);
 
+                // Capture old name so we can refresh existing DOM messages below
+        const oldUsername = localStorage.getItem(LAST_USERNAME_KEY) || '';
+
         let avatarUrlToUse = currentAvatarUrl;
         if (profilePicFile) {
             try {
@@ -2760,7 +2832,13 @@ function showSuccess(msg) {
             } catch (err) { showError('Avatar upload failed: ' + err.message); }
         }
 
-                const walletAddr = getWalletAddress();
+        // ⚑ Save avatar to DB FIRST so the rename propagation below
+        //   carries the fresh avatar, not the stale one.
+        if (avatarUrlToUse) {
+            try { await upsertProfile({ avatar_url: avatarUrlToUse }); } catch (e) {}
+        }
+
+        const walletAddr = getWalletAddress();
         if (window.MSNIdentity && walletAddr) {
             const saveResult = await window.MSNIdentity.setUsernameForWallet(walletAddr, name);
             if (saveResult.error) {
@@ -2770,9 +2848,6 @@ function showSuccess(msg) {
                     showError('Profile save failed: ' + saveResult.error);
                 }
                 return false;
-            }
-            if (avatarUrlToUse !== undefined) {
-                await upsertProfile({ avatar_url: avatarUrlToUse });
             }
         } else {
             const { error: upsertErr } = await upsertProfile({
@@ -2785,6 +2860,12 @@ function showSuccess(msg) {
                 return false;
             }
         }
+
+        // ⚑ Force-refresh every message in the current DOM that was
+        //   authored under the OLD name. Fixes the case where messages
+        //   lack a `data-wallet` attribute (old schema) and therefore
+        //   were skipped by wallet-identity.js's updateMessagesFor().
+        try { refreshOwnMessagesInDOM(oldUsername, name, avatarUrlToUse); } catch (e) {}
 
         avatarCache[name] = avatarUrlToUse;
         if (sidebarBigAvatar) {
