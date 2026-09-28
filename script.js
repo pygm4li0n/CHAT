@@ -1829,6 +1829,7 @@ function showSuccess(msg) {
         const wrapper = document.createElement('div');
         wrapper.className = 'msg-wrapper' + (isOwn ? ' own' : '');
         wrapper.setAttribute('data-msg-id', msg.id);
+        wrapper.setAttribute('data-author', user);   // ← raw username, never display name
         if (msg.wallet_address) {
             wrapper.setAttribute('data-wallet', msg.wallet_address);
         } else if (isOwn && typeof getWalletAddress === 'function' && getWalletAddress()) {
