@@ -1562,11 +1562,30 @@ function showSuccess(msg) {
             if (bal == null || bal === 0) return true;
             return false;
         }))];
-        if (unique.length === 0) return;
-        const { data, error } = await supabase.from('profiles')
-            .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, token_balance, wallet_address')
-            .in('username', unique);
-        if (error) { console.warn('Error fetching profiles:', error); return; }
+               if (unique.length === 0) return;
+
+        // ⚑ Query BOTH by username and wallet — catches renamed users
+        const [byName, byWallet] = await Promise.all([
+            supabase.from('profiles')
+                .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, token_balance, wallet_address')
+                .in('username', unique),
+            supabase.from('profiles')
+                .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, token_balance, wallet_address')
+                .in('wallet_address', unique)
+        ]);
+        if (byName.error && byWallet.error) {
+            console.warn('Error fetching profiles:', byName.error || byWallet.error);
+            return;
+        }
+        // Dedup by wallet
+        const seenWallet = new Set();
+        const data = [...(byName.data || []), ...(byWallet.data || [])].filter(function (p) {
+            if (!p) return false;
+            var key = p.wallet_address || p.username;
+            if (!key || seenWallet.has(key)) return false;
+            seenWallet.add(key);
+            return true;
+        });
         (data || []).forEach(p => {
             const hasWallet = p.wallet_address && String(p.wallet_address).length > 0;
             const exists    = p.username in avatarCache;
@@ -1585,22 +1604,60 @@ function showSuccess(msg) {
     function getAvatarURL(user) {
         if (window.MSNIdentity && window.MSNIdentity.resolve) {
             const r = window.MSNIdentity.resolve(user);
-            if (r && r.avatar) return r.avatar;
+            if (r) {
+                // X-verified is strict — never fall back to cached avatar
+                if (r.x_verified) return r.avatar || null;
+                if (r.avatar) return r.avatar;
+            }
         }
         return avatarCache[user] || null;
     }
-    function displayNameForUser(user) {
+        function displayNameForUser(user) {
         if (window.MSNIdentity && window.MSNIdentity.resolve) {
             const r = window.MSNIdentity.resolve(user);
-            if (r && r.displayName) return r.displayName;
+            if (r) {
+                // X-verified is strict — never fall back to the phantom name
+                if (r.x_verified) return r.displayName || null;
+                if (r.displayName) return r.displayName;
+            }
         }
         return user;
     }
+
+    /* ═══════════════════════════════════════════════════════════
+       Unified display resolver.
+       X-verified users are STRICT: name/avatar come only from X.
+       Never fall back to the phantom (wallet) name/avatar.
+       ═══════════════════════════════════════════════════════════ */
+    function resolveDisplay(user, walletOverride) {
+        var r = null;
+        var w = walletOverride || null;
+
+        if (w && window.MSNIdentity && window.MSNIdentity.resolve) {
+            r = window.MSNIdentity.resolve(w);
+        }
+        if (!r && user && window.MSNIdentity && window.MSNIdentity.resolve) {
+            r = window.MSNIdentity.resolve(user);
+        }
+
+        if (r && r.x_verified) {
+            return {
+                name:   r.displayName || (r.wallet ? r.wallet.slice(0, 4) + '…' : '—'),
+                avatar: r.avatar || null,
+                isX:    true
+            };
+        }
+        return {
+            name:   (r && r.displayName) || displayNameForUser(user) || user || '—',
+            avatar: (r && r.avatar)      || getAvatarURL(user)      || null,
+            isX:    false
+        };
+    }
+
     function renderAvatarHTML(user) {
-        const url = getAvatarURL(user);
-        const name = displayNameForUser(user);
-        if (url) return `<img src="${escapeHtml(url)}" alt="${escapeHtml(name)}" style="width:100%;height:100%;object-fit:cover;">`;
-        return (name || '?')[0].toUpperCase();
+        var disp = resolveDisplay(user);
+        if (disp.avatar) return `<img src="${escapeHtml(disp.avatar)}" alt="${escapeHtml(disp.name)}" style="width:100%;height:100%;object-fit:cover;">`;
+        return (disp.name || '?')[0].toUpperCase();
     }
 
     function resizeImage(file, maxDim=750) {
@@ -1824,38 +1881,58 @@ function showSuccess(msg) {
         const user = isPrivate ? msg.from_user : msg.username;
         const msgWallet = msg.wallet_address || null;
 
-        // Rename-safe: resolve by wallet first so messages always show
-        // the latest name/avatar for that wallet, regardless of what
-        // username was stored on the row.
-        var resolved = null;
-        if (msgWallet && window.MSNIdentity && window.MSNIdentity.resolve) {
-            resolved = window.MSNIdentity.resolve(msgWallet);
-        }
-        if (!resolved && user && window.MSNIdentity && window.MSNIdentity.resolve) {
-            resolved = window.MSNIdentity.resolve(user);
+        // ⚑ If we have a wallet but no cached profile, fetch by wallet
+        if (msgWallet) {
+            var cachedProf = window.MSNIdentity && window.MSNIdentity.byWallet
+                             ? window.MSNIdentity.byWallet()[msgWallet]
+                             : null;
+            if (!cachedProf) {
+                if (window.MSNIdentity && window.MSNIdentity.remember) {
+                    window.MSNIdentity.remember({
+                        wallet_address: msgWallet,
+                        display_name:   msg.display_name,
+                        x_handle:       msg.x_handle,
+                        x_verified:     msg.x_verified,
+                        x_avatar_url:   msg.x_avatar_url,
+                        avatar_url:     msg.avatar_url,
+                        token_balance:  msg.token_balance
+                    });
+                }
+                var after = window.MSNIdentity && window.MSNIdentity.byWallet
+                            ? window.MSNIdentity.byWallet()[msgWallet]
+                            : null;
+                if ((!after || !after.username) && window.MSNIdentity && window.MSNIdentity.fetchProfile) {
+                    try { await window.MSNIdentity.fetchProfile(msgWallet, true); }
+                    catch (e) { /* ignore */ }
+                }
+            }
         }
 
-        if (!resolved || !resolved.avatar) {
-            if (!getAvatarURL(user)) await fetchAvatars([user]);
+        // Legacy username fallback — only for messages with no wallet
+        if (!msgWallet && !getAvatarURL(user)) {
+            await fetchAvatars([user]);
         }
 
         const isOwn      = user === username;
-        const shownUser  = (resolved && resolved.displayName)
-                            || displayNameForUser(user)
-                            || user;
-        const shownAvatar = (resolved && resolved.avatar)
-                            || getAvatarURL(user)
-                            || null;
+        const disp       = resolveDisplay(user, msgWallet);
+        const shownUser  = disp.name;
+        const shownAvatar = disp.avatar;
 
         const wrapper = document.createElement('div');
         wrapper.className = 'msg-wrapper' + (isOwn ? ' own' : '');
         wrapper.setAttribute('data-msg-id', msg.id);
-        wrapper.setAttribute('data-author', user);   // ← raw username, never display name
+        wrapper.setAttribute('data-author', user);
         if (msg.wallet_address) {
             wrapper.setAttribute('data-wallet', msg.wallet_address);
         } else if (isOwn && typeof getWalletAddress === 'function' && getWalletAddress()) {
             wrapper.setAttribute('data-wallet', getWalletAddress());
         }
+
+        // ⚑ Stamp profile fields so future repaints don't need a fetch
+        if (msg.display_name) wrapper.setAttribute('data-display-name', msg.display_name);
+        if (msg.x_handle)     wrapper.setAttribute('data-x-handle',     msg.x_handle);
+        if (msg.x_avatar_url) wrapper.setAttribute('data-x-avatar',     msg.x_avatar_url);
+        if (msg.x_verified)   wrapper.setAttribute('data-x-verified',   '1');
 
         const bubble = document.createElement('div');
         bubble.className = 'msg-bubble';
@@ -2409,11 +2486,31 @@ function showSuccess(msg) {
         }
     }
 
-    async function updateSidebarUI() {
-        const usersToFetch = new Set();
-        if (username) usersToFetch.add(username);
-        onlineUsers.forEach(u => usersToFetch.add(u.username));
+      async function updateSidebarUI() {
+        const usersToFetch  = new Set();
+        const walletsToFetch = new Set();
+
+               if (username) usersToFetch.add(username);
+        onlineUsers.forEach(u => {
+            usersToFetch.add(u.username);
+            // ⚑ Always refresh — never trust persisted cache for the sidebar
+            if (u.wallet) walletsToFetch.add(u.wallet);
+        });
+
         await fetchAvatars([...usersToFetch]);
+
+        // ⚑ Wallet-first lookup — rename-safe, always fresh
+        if (walletsToFetch.size && window.MSNIdentity && window.MSNIdentity.fetchProfilesFor) {
+            try {
+                var rows = await window.MSNIdentity.fetchProfilesFor([...walletsToFetch]);
+                (rows || []).forEach(function (p) {
+                    if (p.username) {
+                        avatarCache[p.username] = p.avatar_url || null;
+                        userBalances[p.username] = p.token_balance || null;
+                    }
+                });
+            } catch (e) { console.warn('[sidebar] wallet warm failed:', e); }
+        }
 
         let html = '';
         const rendered = new Set();
@@ -2598,12 +2695,31 @@ function showSuccess(msg) {
                 .select('*').order('sort_order', { ascending: false }).range(0, 29);
             if (error) throw error;
 
-            data.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+                       data.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
             knownMessageIds.clear();
 
-                        // ⚑ Only prime the cache — never overwrite a real balance
-            //   with a 0 from the message_feed view.
+            // ⚑ Pre-warm identity by WALLET (not username).
+            //   1. Remember profile fields the view already carries.
+            //   2. Batch-fetch any wallets not yet in the cache.
+                        var walletsToFetch = new Set();
             data.forEach(msg => {
+                if (msg.wallet_address) {
+                    // ⚑ Remember whatever the view carries — cheap, no fetch
+                    if (window.MSNIdentity && window.MSNIdentity.remember) {
+                        window.MSNIdentity.remember({
+                            wallet_address: msg.wallet_address,
+                            display_name:   msg.display_name,
+                            x_handle:       msg.x_handle,
+                            x_verified:     msg.x_verified,
+                            x_avatar_url:   msg.x_avatar_url,
+                            avatar_url:     msg.avatar_url,
+                            token_balance:  msg.token_balance
+                        });
+                    }
+                    // ⚑ ALWAYS re-fetch on boot — the persisted cache may be
+                    //   stale if the user renamed on another device/session.
+                    walletsToFetch.add(msg.wallet_address);
+                }
                 if (msg.avatar_url && !avatarCache[msg.username]) {
                     avatarCache[msg.username] = msg.avatar_url;
                 }
@@ -2611,6 +2727,13 @@ function showSuccess(msg) {
                     userBalances[msg.username] = msg.token_balance || null;
                 }
             });
+
+            // Fetch fresh BEFORE any message renders — kills the flash
+            if (walletsToFetch.size && window.MSNIdentity && window.MSNIdentity.fetchProfilesFor) {
+                try {
+                    await window.MSNIdentity.fetchProfilesFor([...walletsToFetch]);
+                } catch (e) { console.warn('[loadMessages] wallet warm failed:', e); }
+            }
 
             const holder = document.createElement('div');
             holder.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
@@ -3410,23 +3533,36 @@ function showSuccess(msg) {
             }
             if (!w && !rawUser) return;
 
-            var newName = null, newAvatar = null;
-
-            if (w && window.MSNIdentity && window.MSNIdentity.resolve) {
-                var r = window.MSNIdentity.resolve(w);
-                if (r) {
-                    newName   = r.displayName || null;
-                    newAvatar = r.avatar      || null;
+                        // ⚑ If wallet is known but not cached, remember from DOM data
+            //   and pull fresh if needed
+            if (w && window.MSNIdentity && window.MSNIdentity.byWallet) {
+                var cachedProf = window.MSNIdentity.byWallet()[w];
+                if (!cachedProf || !cachedProf.username) {
+                    if (window.MSNIdentity.remember) {
+                        window.MSNIdentity.remember({
+                            wallet_address: w,
+                            display_name:   wrapper.getAttribute('data-display-name'),
+                            x_handle:       wrapper.getAttribute('data-x-handle'),
+                            x_verified:     wrapper.getAttribute('data-x-verified') === '1',
+                            x_avatar_url:   wrapper.getAttribute('data-x-avatar')
+                        });
+                    }
+                    if (window.MSNIdentity.fetchProfile) {
+                        try { window.MSNIdentity.fetchProfile(w, true); } catch (e) {}
+                    }
                 }
             }
-            if (!newName)   newName   = displayNameForUser(rawUser);
-            if (!newAvatar) newAvatar = getAvatarURL(rawUser);
 
-            // Avatar
+            var disp = resolveDisplay(rawUser, w);
+            var newName   = disp.name;
+            var newAvatar = disp.avatar;
+
+            // Avatar — always repaint, fall back to initial when none
             var avatarEl = wrapper.querySelector('.msg-avatar');
-            if (avatarEl && newAvatar) {
-                avatarEl.innerHTML = '<img src="' + escapeHtml(newAvatar) +
-                    '" alt="" style="width:100%;height:100%;object-fit:cover;">';
+            if (avatarEl) {
+                avatarEl.innerHTML = newAvatar
+                    ? '<img src="' + escapeHtml(newAvatar) + '" alt="" style="width:100%;height:100%;object-fit:cover;">'
+                    : (newName[0] || '?').toUpperCase();
             }
 
             // Display name — works whether profile-system.js wrapped it
