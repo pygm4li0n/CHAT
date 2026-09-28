@@ -2741,7 +2741,6 @@ function showSuccess(msg) {
         setTimeout(() => refreshBtn.classList.remove('spinning'), 700);
     }
 
-    async function applyUsername(name) {
             /* ⚑ Walks the DOM and updates every message authored by the given
        old username (or the new one) — swaps in the new name + avatar.
        Handles messages that predate the `data-wallet` attribute. */
