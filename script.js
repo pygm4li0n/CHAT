@@ -3348,28 +3348,45 @@ function showSuccess(msg) {
     init();
 
     
-    /* ═══════════════════════════════════════════════════════════
+       /* ═══════════════════════════════════════════════════════════
        LIVE IDENTITY REPAINT
        Fires when wallet-identity.js / x-auth.js apply new X data.
        Repaints sidebar + every message + big profile card in place.
        ═══════════════════════════════════════════════════════════ */
     document.addEventListener('msn:identity-changed', function () {
+        // 1. Sidebar user list
         try { updateSidebarUI(); } catch (e) { console.warn('[repaint] sidebar:', e); }
 
+        // 2. Every rendered message
         document.querySelectorAll('.msg-wrapper').forEach(function (wrapper) {
-            var replyBtn = wrapper.querySelector('.reply-btn');
-            var rawUser  = replyBtn && replyBtn.getAttribute('data-username');
+            // Prefer data-author (raw username). Fall back to reply-btn,
+            // then to the wallet-cache lookup.
+            var rawUser = wrapper.getAttribute('data-author');
+            if (!rawUser) {
+                var replyBtn = wrapper.querySelector('.reply-btn');
+                rawUser = replyBtn && replyBtn.getAttribute('data-username');
+            }
+            if (!rawUser) {
+                var w = wrapper.getAttribute('data-wallet');
+                if (w && window.MSNIdentity && window.MSNIdentity.byWallet) {
+                    var cached = window.MSNIdentity.byWallet()[w];
+                    if (cached && cached.username) rawUser = cached.username;
+                }
+            }
             if (!rawUser) return;
 
             var newName   = displayNameForUser(rawUser);
             var newAvatar = getAvatarURL(rawUser);
 
+            // Avatar
             var avatarEl = wrapper.querySelector('.msg-avatar');
             if (avatarEl && newAvatar) {
                 avatarEl.innerHTML = '<img src="' + escapeHtml(newAvatar) +
                     '" alt="" style="width:100%;height:100%;object-fit:cover;">';
             }
 
+            // Display name — works whether profile-system.js wrapped it
+            // in .msn-username-link or it's a raw text node.
             var unameEl = wrapper.querySelector('.msg-username');
             if (!unameEl) return;
             var link = unameEl.querySelector('.msn-username-link');
@@ -3386,6 +3403,7 @@ function showSuccess(msg) {
             }
         });
 
+        // 3. Big "you" card in the sidebar
         if (username) {
             var meName   = displayNameForUser(username);
             var meAvatar = getAvatarURL(username);
