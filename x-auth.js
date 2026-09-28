@@ -307,9 +307,19 @@
         setTimeout(doRefresh, 1500);
     }
 
+    var _lastApply = { wallet: null, at: 0 };
     async function applyXToProfile(session) {
         var main = getMain();
         if (!main || !session) return;
+
+        // Debounce: if we applied for this wallet < 3s ago, skip
+        var _w = (function () {
+            try {
+                return getWallet() || localStorage.getItem('msn_x_pending_wallet') || '';
+            } catch (e) { return ''; }
+        })();
+        if (_w && _lastApply.wallet === _w && (Date.now() - _lastApply.at) < 3000) return;
+        if (_w) _lastApply = { wallet: _w, at: Date.now() };
 
         var m = session.user.user_metadata || {};
         var avatar = m.avatar_url || m.picture || m.profile_image_url || m.profile_image_url_https || m.avatar || '';
@@ -403,12 +413,11 @@
         updateLabel(!!_sessionCache);
         return true;
     }
-    function retryHeaderButton() {
+    function retryHeaderButton(attempt) {
         if (injectHeaderButton()) return;
-        setTimeout(retryHeaderButton, 200);
-        setTimeout(retryHeaderButton, 600);
-        setTimeout(retryHeaderButton, 1500);
-        setTimeout(retryHeaderButton, 3000);
+        attempt = (attempt || 0) + 1;
+        if (attempt > 20) return;   // ~6s max, then give up
+        setTimeout(function () { retryHeaderButton(attempt); }, 300);
     }
 
     function injectMobileGridButton() {
@@ -431,7 +440,7 @@
         //   inline <head> script in index.html now.
         var returningFromOAuth = isOAuthPending();
 
-        retryHeaderButton();
+        retryHeaderButton(0);
         setTimeout(injectMobileGridButton, 900);
         setTimeout(injectMobileGridButton, 2400);
         setTimeout(injectMobileGridButton, 5400);
