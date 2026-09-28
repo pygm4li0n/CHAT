@@ -871,10 +871,25 @@
         container.innerHTML = html;
     }
 
+       function parseBalanceValue(v) {
+        if (v == null) return 0;
+        if (typeof v === 'number') return isFinite(v) ? v : 0;
+        var s = String(v).trim().toUpperCase();
+        s = s.replace(/[^0-9.,KMB]/g, '').replace(/,/g, '');
+        var mult = 1;
+        var last = s.slice(-1);
+        if (last === 'B') { mult = 1e9; s = s.slice(0, -1); }
+        else if (last === 'M') { mult = 1e6; s = s.slice(0, -1); }
+        else if (last === 'K') { mult = 1e3; s = s.slice(0, -1); }
+        var n = parseFloat(s);
+        return isFinite(n) ? n * mult : 0;
+    }
+
     function getBadge(balance) {
-        if (balance >= 1000000) return { emoji: '🐋', name: 'Whale' };
-        if (balance >= 250000) return { emoji: '🐬', name: 'Dolphin' };
-        if (balance >= 100000) return { emoji: '🦀', name: 'Crab' };
+        var b = parseBalanceValue(balance);
+        if (b >= 1000000) return { emoji: '🐋', name: 'Whale' };
+        if (b >= 250000)  return { emoji: '🐬', name: 'Dolphin' };
+        if (b >= 100000)  return { emoji: '🦀', name: 'Crab' };
         return { emoji: '🦐', name: 'Shrimp' };
     }
     function getBadgeForUser(user) {
@@ -885,7 +900,7 @@
 
     function updateUserRank(balance) {
         if (!sidebarBigRank) return;
-        const bal = Number(balance);
+        const bal = parseBalanceValue(balance);
         if (!isFinite(bal) || bal <= 0) {
             sidebarBigRank.textContent = '';
             sidebarBigRank.classList.add('hidden');
@@ -3368,8 +3383,24 @@ function showSuccess(msg) {
 
   // Single source of truth — thresholds live ONLY here.
   // badgeFromName delegates to this so there's no drift.
+   // Robust parse — handles numbers, "150,000", "$150,000.50", "1.5M", "320K"
+  function parseBalanceValue(v) {
+    if (v == null) return 0;
+    if (typeof v === 'number') return isFinite(v) ? v : 0;
+    var s = String(v).trim().toUpperCase();
+    s = s.replace(/[^0-9.,KMB]/g, '').replace(/,/g, '');
+    var mult = 1;
+    var last = s.slice(-1);
+    if (last === 'B') { mult = 1e9; s = s.slice(0, -1); }
+    else if (last === 'M') { mult = 1e6; s = s.slice(0, -1); }
+    else if (last === 'K') { mult = 1e3; s = s.slice(0, -1); }
+    var n = parseFloat(s);
+    return isFinite(n) ? n * mult : 0;
+  }
+
+  // Single source of truth — thresholds live ONLY here.
   function badgeFromBalance(balance) {
-    const b = Number(balance) || 0;
+    const b = parseBalanceValue(balance);
     if (b >= 1_000_000) return { name: 'Whale',   emoji: '🐋', min: 1_000_000 };
     if (b >=   250_000) return { name: 'Dolphin', emoji: '🐬', min:   250_000 };
     if (b >=   100_000) return { name: 'Crab',    emoji: '🦀', min:   100_000 };
@@ -3511,7 +3542,7 @@ function showSuccess(msg) {
       el.innerHTML = enriched.map(row => {
         // Derive tier from the SAME balance number shown in the row.
         // No RPC field, no cached tier, no disagreement possible.
-        const balRaw = Number(row.token_balance || 0);
+        const balRaw = parseBalanceValue(row.token_balance);
         const tier   = badgeFromBalance(balRaw);
         const bal    = balRaw.toLocaleString();
         const walletAttr = row.wallet_address
