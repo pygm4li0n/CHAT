@@ -448,37 +448,39 @@
 
         setStatus('Saving…');
 
-        // Full save — falls back to basic fields if new columns don't exist yet
-        s.from('settings').upsert({
-            id: 1,
-            token_requirement:   tokenReq,
-            cooldown_seconds:    cooldown,
-            mod_announcement:    announce,
-            max_message_length:  cfg.maxMessageLength,
-            allow_images:        cfg.allowImages,
-            allow_dms:           cfg.allowDMs,
-            allow_reactions:     cfg.allowReactions,
-            banned_wallets:      cfg.bannedWallets,
-            muted_wallets:       cfg.mutedWallets,
-            word_filter:         cfg.wordFilter,
-            updated_at:          new Date().toISOString()
-        }, { onConflict: 'id' }).then(function (res) {
+        // Route through the RPC — same pattern as the legacy panel.
+        s.rpc('save_mod_settings_v2', {
+            p_wallet:             wallet(),
+            p_token_requirement:  tokenReq,
+            p_cooldown_seconds:   cooldown,
+            p_mod_announcement:   announce,
+            p_max_message_length: cfg.maxMessageLength,
+            p_allow_images:       cfg.allowImages,
+            p_allow_dms:          cfg.allowDMs,
+            p_allow_reactions:    cfg.allowReactions,
+            p_banned_wallets:     cfg.bannedWallets,
+            p_muted_wallets:      cfg.mutedWallets,
+            p_word_filter:        cfg.wordFilter
+        }).then(function (res) {
             if (res.error) {
-                // Retry with only the original schema fields
-                console.warn('[mod-panel] full save failed, retrying basic:', res.error.message);
-                s.from('settings').upsert({
-                    id: 1,
-                    token_requirement: tokenReq,
-                    cooldown_seconds:  cooldown,
-                    mod_announcement:  announce
-                }, { onConflict: 'id' }).then(function (r2) {
-                    if (r2.error) setStatus('Save failed', 'err');
-                    else          setStatus('Saved (basic)', 'ok');
+                console.error('[mod-panel] save_mod_settings_v2 failed:', res.error);
+                // Fallback: old RPC only (3 fields) — in case migration wasn't run
+                s.rpc('save_mod_settings', {
+                    p_wallet:            wallet(),
+                    p_token_requirement: tokenReq,
+                    p_cooldown_seconds:  cooldown
+                }).then(function (r2) {
+                    if (r2.error) {
+                        setStatus('Save failed: ' + (res.error.message || 'unknown'), 'err');
+                    } else {
+                        setStatus('Saved (basic only — run migration)', 'err');
+                    }
                 });
                 return;
             }
             setStatus('Saved', 'ok');
-        }).catch(function () {
+        }).catch(function (err) {
+            console.error('[mod-panel] save threw:', err);
             setStatus('Save failed', 'err');
         });
     }
