@@ -822,7 +822,7 @@
        Pulls the last session's identity from localStorage so
        script.js's first resolve() already sees X data.
        ═══════════════════════════════════════════════════════ */
-        (function hydrateFromStorage() {
+           (function hydrateFromStorage() {
         _hydrating = true;
         var hydratedCount = 0;
         var skippedCount  = 0;
