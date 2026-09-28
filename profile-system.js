@@ -39,6 +39,43 @@
             return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[m];
         });
     }
+   
+    /* ── Tier badge — single source of truth for profile card ── */
+    function parseBalanceValue(v) {
+        if (v == null) return 0;
+        if (typeof v === 'number') return isFinite(v) ? v : 0;
+        var s = String(v).trim().toUpperCase();
+        s = s.replace(/[^0-9.,KMB]/g, '').replace(/,/g, '');
+        var mult = 1;
+        var last = s.slice(-1);
+        if (last === 'B') { mult = 1e9; s = s.slice(0, -1); }
+        else if (last === 'M') { mult = 1e6; s = s.slice(0, -1); }
+        else if (last === 'K') { mult = 1e3; s = s.slice(0, -1); }
+        var n = parseFloat(s);
+        return isFinite(n) ? n * mult : 0;
+    }
+
+    function tierFor(balance) {
+        var b = parseBalanceValue(balance);
+        if (b >= 1_000_000) return { name: 'Whale',   emoji: '🐋' };
+        if (b >=   250_000) return { name: 'Dolphin', emoji: '🐬' };
+        if (b >=   100_000) return { name: 'Crab',    emoji: '🦀' };
+        return                     { name: 'Shrimp',  emoji: '🦐' };
+    }
+
+    /* Resolve balance from the fetched profile data using every possible field */
+    function resolveBalance(data) {
+        if (!data) return null;
+        var raw =
+            data.token_balance ??
+            data.balance       ??
+            data.amount        ??
+            data.holding       ??
+            data.holdings      ??
+            data.tokens        ??
+            0;
+        return parseBalanceValue(raw);
+    }
     function fmtNum(n) {
         var v = Number(n) || 0;
         if (v >= 1000000) return (v / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
@@ -240,6 +277,37 @@
         +   'font-size:.68em;font-weight:900;line-height:1;'
         +   'box-shadow:0 0 10px rgba(29,155,240,.7),0 0 4px rgba(29,155,240,.9) inset;'
         +   'vertical-align:middle;transform:translateY(-1px);'
+        + '}'
+
+        /* ⚑ Tier badge — Whale / Dolphin / Crab / Shrimp */
+        + '.msn-tier-badge{'
+        +   'display:inline-flex;align-items:center;justify-content:center;'
+        +   'min-width:1.15em;height:1.15em;padding:0 .35em;margin-left:.5em;'
+        +   'border-radius:999px;'
+        +   'background:rgba(255,255,255,.08);'
+        +   'border:1px solid var(--border-default,rgba(255,255,255,.18));'
+        +   'font-size:.9em;line-height:1;'
+        +   'vertical-align:middle;transform:translateY(-1px);'
+        +   'box-shadow:0 0 10px rgba(255,255,255,.10);'
+        + '}'
+        + '.msn-tier-badge.msn-tier-whale{'
+        +   'background:rgba(0,225,234,.15);'
+        +   'border-color:rgba(0,225,234,.55);'
+        +   'box-shadow:0 0 14px rgba(0,225,234,.45);'
+        + '}'
+        + '.msn-tier-badge.msn-tier-dolphin{'
+        +   'background:rgba(155,127,232,.15);'
+        +   'border-color:rgba(155,127,232,.55);'
+        +   'box-shadow:0 0 14px rgba(155,127,232,.45);'
+        + '}'
+        + '.msn-tier-badge.msn-tier-crab{'
+        +   'background:rgba(255,138,0,.15);'
+        +   'border-color:rgba(255,138,0,.55);'
+        +   'box-shadow:0 0 14px rgba(255,138,0,.45);'
+        + '}'
+        + '.msn-tier-badge.msn-tier-shrimp{'
+        +   'background:rgba(255,255,255,.06);'
+        +   'border-color:rgba(255,255,255,.18);'
         + '}'
 
         + '.msn-profile-signature{'
@@ -550,13 +618,14 @@
             current_streak: 0,
             created_at: null,
             wallet_address: wallet || null,
+            token_balance: null,
             achievements: [],
             hasProfile: false
         };
-
-        /* Rich select pulls X fields when the DB has them */
-        var richSel = 'username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address, xp, messages_count, updated_at';
-        var minSel  = 'username, avatar_url, wallet_address, xp';
+        /* Rich select pulls X fields when the DB has them.
+           Include token_balance so the tier badge works. */
+        var richSel = 'username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address, xp, messages_count, token_balance, updated_at';
+        var minSel  = 'username, avatar_url, wallet_address, xp, token_balance';
 
         var profile = null;
 
@@ -589,8 +658,19 @@
             out.xp             = Number(profile.xp || 0);
             out.level          = levelFromXp(out.xp);
             out.messages_count = Number(profile.messages_count || 0);
+            out.token_balance  = profile.token_balance ?? null;
             /* Feed canonical identity cache */
             rememberIdentity(profile);
+        }
+
+        // ⚑ Fallback: if the profiles row has no balance, check userBalances
+        //   which may have been populated by script.js from the message feed
+        //   or by an earlier fetchAvatars call.
+        if (out.token_balance == null && username) {
+            try {
+                var cached = window.userBalances && window.userBalances[username];
+                if (cached != null) out.token_balance = cached;
+            } catch (e) {}
         }
 
         /* ── Canonical identity overlay — X wins ── */
@@ -720,11 +800,21 @@
 
         var online = isSelf ? true : isUserOnline(data.username);
 
-        /* Canonical display name + X badge */
+       /* Canonical display name + X badge */
         var shownName = data.display_name || data.username || 'anon';
         var xBadge = data.x_verified
             ? '<span class="msn-x-badge" title="Verified on X" aria-label="Verified on X">𝕏</span>'
             : '';
+
+        /* ⚑ Tier badge — Whale / Dolphin / Crab / Shrimp */
+        var tierBadge = '';
+        var tier = tierFor(resolveBalance(data));
+        if (tier) {
+            tierBadge = '<span class="msn-tier-badge msn-tier-' + tier.name.toLowerCase() + '"'
+                + ' title="' + tier.name + '" aria-label="' + tier.name + '">'
+                + tier.emoji
+                + '</span>';
+        }
 
         var achHTML = '';
         if (data.achievements && data.achievements.length) {
@@ -762,7 +852,7 @@
             +         'title="' + (online ? 'Online' : 'Offline') + '"></span>'
             +   '</div>'
             +   '<div class="msn-profile-identity">'
-            +     '<h2 class="msn-profile-username">' + esc(shownName) + xBadge + '</h2>'
+            +     '<h2 class="msn-profile-username">' + esc(shownName) + tierBadge + xBadge + '</h2>'
             +     '<p class="msn-profile-signature">' + (data.signature ? esc(data.signature) : '') + '</p>'
             +     '<div class="msn-profile-meta">◆ Joined ' + esc(fmtDate(data.created_at)) + '</div>'
             +   '</div>'
