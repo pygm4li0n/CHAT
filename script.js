@@ -3539,10 +3539,35 @@ function showSuccess(msg) {
       const enriched = (window.MSNIdentity && window.MSNIdentity.enrichRows)
         ? window.MSNIdentity.enrichRows(data)
         : data;
+           // ⚑ Fetch any missing balances from the profiles table first
+      const missing = [];
+      enriched.forEach(r => {
+        const u = r.username;
+        if (!u) return;
+        const known = userBalances[u];
+        if (known == null || known === 0) missing.push(u);
+      });
+      if (missing.length) {
+        try { await fetchAvatars(missing); } catch (e) {}
+      }
+
       el.innerHTML = enriched.map(row => {
-        // Derive tier from the SAME balance number shown in the row.
-        // No RPC field, no cached tier, no disagreement possible.
-        const balRaw = parseBalanceValue(row.token_balance);
+        // ⚑ Priority order: cached balance > any RPC field > 0
+        const cachedBal  = row.username != null ? userBalances[row.username] : null;
+        const rawBalance =
+          (cachedBal != null && cachedBal !== 0) ? cachedBal :
+          row.token_balance ??
+          row.balance       ??
+          row.amount        ??
+          row.holding       ??
+          row.holdings      ??
+          row.tokens        ??
+          row.ui_amount     ??
+          row.uiAmountString ??
+          cachedBal ??
+          0;
+
+        const balRaw = parseBalanceValue(rawBalance);
         const tier   = badgeFromBalance(balRaw);
         const bal    = balRaw.toLocaleString();
         const walletAttr = row.wallet_address
