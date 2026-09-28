@@ -67,9 +67,10 @@
     var _hydrating    = false;
     var _persistTimer = null;
 
-    function persistNow() {
+       function persistNow() {
         try {
             var snap = {};
+            var now  = Date.now();
             for (var w in byWallet) {
                 var p = byWallet[w];
                 if (!p) continue;
@@ -80,7 +81,8 @@
                     avatar_url:     p.avatar_url   || null,
                     x_handle:       p.x_handle     || null,
                     x_verified:     !!p.x_verified,
-                    x_avatar_url:   p.x_avatar_url || null
+                    x_avatar_url:   p.x_avatar_url || null,
+                    cached_at:      now
                 };
             }
             localStorage.setItem(CACHE_KEY, JSON.stringify(snap));
@@ -111,16 +113,19 @@
         return profile.avatar_url || profile.x_avatar_url || null;
     }
 
-       function rememberProfile(p) {
+    function rememberProfile(p) {
         if (!p || !p.wallet_address) return;
         var prev = byWallet[p.wallet_address] || {};
+        // ⚑ Treat null AND undefined the same — never wipe a good cached
+        //   value with a partial update. Only overwrite when the incoming
+        //   field actually has content.
         var next = {
-            username:     (p.username     !== undefined) ? p.username     : prev.username,
-            display_name: (p.display_name !== undefined) ? p.display_name : prev.display_name,
-            avatar_url:   (p.avatar_url   !== undefined) ? p.avatar_url   : prev.avatar_url,
-            x_handle:     (p.x_handle     !== undefined) ? p.x_handle     : prev.x_handle,
-            x_verified:   (p.x_verified   !== undefined) ? !!p.x_verified : prev.x_verified,
-            x_avatar_url: (p.x_avatar_url !== undefined) ? p.x_avatar_url : prev.x_avatar_url
+            username:     (p.username     != null) ? p.username     : prev.username,
+            display_name: (p.display_name != null) ? p.display_name : prev.display_name,
+            avatar_url:   (p.avatar_url   != null) ? p.avatar_url   : prev.avatar_url,
+            x_handle:     (p.x_handle     != null) ? p.x_handle     : prev.x_handle,
+            x_verified:   (p.x_verified   != null) ? !!p.x_verified : prev.x_verified,
+            x_avatar_url: (p.x_avatar_url != null) ? p.x_avatar_url : prev.x_avatar_url
         };
         byWallet[p.wallet_address] = next;
         if (p.username) byUsername[p.username] = p.wallet_address;
@@ -817,17 +822,30 @@
        Pulls the last session's identity from localStorage so
        script.js's first resolve() already sees X data.
        ═══════════════════════════════════════════════════════ */
-    (function hydrateFromStorage() {
+        (function hydrateFromStorage() {
         _hydrating = true;
+        var hydratedCount = 0;
+        var skippedCount  = 0;
         try {
             var raw = localStorage.getItem(CACHE_KEY);
             if (raw) {
                 var snap = JSON.parse(raw);
+                var now  = Date.now();
+                // ⚑ Skip entries older than 5 minutes — they're likely stale.
+                //   script.js's first render will pick up the fresh fetch.
+                var MAX_AGE_MS = 5 * 60 * 1000;
                 for (var w in snap) {
-                    if (snap[w]) rememberProfile(snap[w]);
+                    var p = snap[w];
+                    if (!p) continue;
+                    if (p.cached_at && (now - p.cached_at) > MAX_AGE_MS) {
+                        skippedCount++;
+                        continue;
+                    }
+                    rememberProfile(p);
+                    hydratedCount++;
                 }
-                console.log('[wallet-identity] hydrated',
-                    Object.keys(snap).length, 'profiles from cache');
+                console.log('[wallet-identity] hydrated', hydratedCount,
+                    'profiles from cache (skipped', skippedCount, 'stale)');
             }
         } catch (e) {
             console.warn('[wallet-identity] hydrate failed:', e);
