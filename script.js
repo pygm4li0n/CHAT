@@ -3358,12 +3358,22 @@ function showSuccess(msg) {
 (function () {
   'use strict';
 
-  function badgeFromName(name) {
+    function badgeFromName(name) {
     const n = String(name || '').trim().toLowerCase();
     if (n === 'whale')   return { name: 'Whale',   emoji: '🐋' };
     if (n === 'dolphin') return { name: 'Dolphin', emoji: '🐬' };
     if (n === 'crab')    return { name: 'Crab',    emoji: '🦀' };
     return { name: 'Shrimp', emoji: '🦐' };
+  }
+
+  // Single source of truth — thresholds live ONLY here.
+  // badgeFromName delegates to this so there's no drift.
+  function badgeFromBalance(balance) {
+    const b = Number(balance) || 0;
+    if (b >= 1_000_000) return { name: 'Whale',   emoji: '🐋', min: 1_000_000 };
+    if (b >=   250_000) return { name: 'Dolphin', emoji: '🐬', min:   250_000 };
+    if (b >=   100_000) return { name: 'Crab',    emoji: '🦀', min:   100_000 };
+    return                     { name: 'Shrimp',  emoji: '🦐', min:    0 };
   }
 
   function esc(t) {
@@ -3499,8 +3509,11 @@ function showSuccess(msg) {
         ? window.MSNIdentity.enrichRows(data)
         : data;
       el.innerHTML = enriched.map(row => {
-        const tier = badgeFromName(row.holder_tier);
-        const bal  = Number(row.token_balance || 0).toLocaleString();
+        // Derive tier from the SAME balance number shown in the row.
+        // No RPC field, no cached tier, no disagreement possible.
+        const balRaw = Number(row.token_balance || 0);
+        const tier   = badgeFromBalance(balRaw);
+        const bal    = balRaw.toLocaleString();
         const walletAttr = row.wallet_address
           ? ' data-wallet="' + esc(row.wallet_address) + '"'
           : '';
@@ -3508,7 +3521,7 @@ function showSuccess(msg) {
           avatarHTML(row) +
           '<div class="rank-info">' +
             '<div class="rank-name">' + esc(row.username || 'anon') + '</div>' +
-            '<div class="rank-meta"><span class="rank-level">' + tier.emoji + ' ' + esc(tier.name.toUpperCase()) + '</span></div>' +
+            '<div class="rank-meta"><span class="rank-level" data-tier="' + tier.name.toLowerCase() + '">' + tier.emoji + ' ' + esc(tier.name.toUpperCase()) + '</span></div>' +
           '</div>' +
           '<div class="rank-stats"><span class="rank-score">' + bal + '</span></div>' +
         '</div>';
