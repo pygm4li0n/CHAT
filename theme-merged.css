@@ -3312,7 +3312,13 @@ html body .msg-wrapper.sticker-msg .reaction-btn .reaction-count {
    ═════════════════════════════════════════════════════ */
 @media (min-width: 769px) {
 
-    /* Wrapper — grow to fit the longest child, keep 200px floor */
+    /* Wrapper — grow to fit the longest child, keep 200px floor.
+       ⚑ Uses the SAME high-specificity selectors as the mobile rule
+       so `max-width: none` actually overrides the 260px cap and the
+       timestamp stops getting clipped on desktop. */
+    html body .messages-container > .msg-wrapper.sticker-msg,
+    html body #publicMessagesContainer > .msg-wrapper.sticker-msg,
+    html body #privateMessagesContainer > .msg-wrapper.sticker-msg,
     html body .msg-wrapper.sticker-msg {
         width: auto !important;
         max-width: none !important;
