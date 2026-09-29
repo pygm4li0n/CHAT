@@ -20,8 +20,8 @@
 (function () {
     'use strict';
 
-    var X_AUTH_URL = 'https://ygmahgaoblaqgmifndgo.supabase.co';
-    var X_AUTH_KEY = 'sb_publishable_qV3N0q_a4Y7m_AAo6hPfKQ_V6GNgX-G';
+    var X_AUTH_URL = 'https://uxrpjfsouwxnlcbhjilz.supabase.co';
+    var X_AUTH_KEY = 'sb_publishable_cLeBoHrdvg1b7WlnyJ-oVQ_6skjHc_H';
 
     var MAIN_URL = 'https://uxrpjfsouwxnlcbhjilz.supabase.co';
     var MAIN_KEY = 'sb_publishable_cLeBoHrdvg1b7WlnyJ-oVQ_6skjHc_H';
