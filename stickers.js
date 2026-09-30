@@ -538,11 +538,45 @@
         if (isCooldownActive()) { toast('Cooldown active — wait a moment'); return; }
 
         var tab = currentTab();
-        if (tab === 'whale') { toast('Stickers not available in whale chat'); return; }
-        var isPrivate = (tab === 'private');
-        var partner = isPrivate ? activePrivatePartner() : null;
-        if (isPrivate && !partner) { toast('No private partner selected.'); return; }
+var isPrivate = (tab === 'private');
+var isWhale   = (tab === 'whale');
+var partner = isPrivate ? activePrivatePartner() : null;
+if (isPrivate && !partner) { toast('No private partner selected.'); return; }
 
+// ── Whale tab — route through the whale RPC (same as sendWhaleMessage) ──
+if (isWhale) {
+    var wallet = getWalletAddress();
+    if (!wallet) { toast('Connect wallet first'); return; }
+
+    try {
+        var wres = await sb.rpc('post_whale_message', {
+            p_wallet:    wallet,
+            p_username:  me,
+            p_message:   '__sticker:' + key + '__',
+            p_image_url: null
+        });
+        if (wres.error) throw wres.error;
+        var inserted = wres.data;
+
+        try {
+            document.dispatchEvent(new CustomEvent('msn:render-local-message', {
+                detail: { message: inserted, isPrivate: false, isWhale: true }
+            }));
+        } catch (e) { /* ignore */ }
+
+        if (window.addXP && inserted && inserted.id) {
+            try { window.addXP(inserted.id); } catch (e) {}
+        }
+        closePicker();
+    } catch (err) {
+        if (/not_a_whale/.test(err.message || '')) {
+            toast('🐋 Whale chat is 1M+ holders only.');
+        } else {
+            toast('Sticker failed: ' + (err.message || err));
+        }
+    }
+    return;
+}
         var table = isPrivate ? 'private_messages' : 'messages';
         var payload = {
             message: '__sticker:' + key + '__',
