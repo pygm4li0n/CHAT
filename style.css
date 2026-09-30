@@ -604,6 +604,77 @@ html body .msg-bubble .reaction-btn.pressing .reaction-emoji {
     display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; pointer-events: none;
 }
 .msg-bubble:hover .msg-actions-container { opacity: 1; pointer-events: auto; }
+
+/* ═══════════════════════════════════════════════════════════
+   ⚑ MOBILE ACTIONS — vertical stack, tap to spawn
+   Right side for others · Left side for own
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+    .msg-actions-container {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform: scale(0.82);
+        transform-origin: top right;
+        transition: opacity 0.18s ease,
+                    visibility 0.18s ease,
+                    transform 0.18s cubic-bezier(.34,1.56,.64,1);
+        z-index: 4;
+    }
+
+    .msg-wrapper.own .msg-actions-container {
+        right: auto;
+        left: 6px;
+        transform-origin: top left;
+    }
+
+    .msg-wrapper.actions-open .msg-actions-container {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: scale(1);
+    }
+
+    .msg-actions-container .msg-action-btn {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        padding: 0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.82rem;
+        line-height: 1;
+        box-shadow:
+            0 2px 8px rgba(0,0,0,0.45),
+            inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+
+    .msg-actions-container .reply-btn {
+        font-size: 0;
+    }
+    .msg-actions-container .reply-btn::before {
+        content: '↩';
+        font-size: 0.95rem;
+        line-height: 1;
+    }
+
+    .msg-actions-container .edit-btn { font-size: 0.9rem; }
+    .msg-actions-container .delete-btn { font-size: 0.85rem; }
+
+    .msg-wrapper.actions-open .msg-bubble {
+        outline: 1px solid var(--accent-cyan, #01E1EA);
+        outline-offset: 2px;
+    }
+}
 .msg-action-btn {
     background: var(--bg-hover); border: 1px solid var(--border-default);
     color: var(--text-secondary); border-radius: 8px; padding: 3px 8px; font-size: 0.62rem; cursor: pointer;
