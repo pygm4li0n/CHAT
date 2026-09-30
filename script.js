@@ -3702,9 +3702,9 @@ function showSuccess(msg) {
         inputAreaBar.classList.remove('hidden');
         nameOverlay.classList.add('hidden');
         hideOverlayMessage();
-        setReplyingTo(null);
-        setActivePrivateChat(null);
-        switchTab('public');
+setReplyingTo(null);
+// Don't reset private chat — partner identity is wallet-anchored
+switchTab('public');
         await updateSidebarUI();
         setupTypingChannel();
         updateChatAccessibility();
@@ -3878,9 +3878,9 @@ function showSuccess(msg) {
         if (!saved) return;
 
         await loadMessages();
-        subscribeToRealtime();
-        setupPresence();
-        subscribeToPrivateRequests();
+subscribeToRealtime();
+// setupPresence() already runs inside applyUsername()
+subscribeToPrivateRequests();
         loadPendingRequests();
         loadReactions('message_reactions', false);
         loadReactions('private_message_reactions', true);
