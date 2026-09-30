@@ -236,6 +236,20 @@
                 50%      { opacity: 1;    transform: translateY(-4px) scale(1); }
             }
 
+            
+            /* ── "Loading older messages" indicator (pagination) ── */
+            .msn-older-loader {
+                align-self: center;
+                font-family: var(--font-mono, monospace);
+                font-size: 0.62rem;
+                letter-spacing: 0.18em;
+                text-transform: uppercase;
+                color: var(--text-muted, #426080);
+                padding: 10px 14px;
+                opacity: 0.85;
+                pointer-events: none;
+            }
+
             /* ── Pinned announcement (theme-aware) ── */
             .mod-message-box {
                 display: flex !important;
@@ -1284,6 +1298,13 @@
     const typingUsers = new Map();
     let typingChannel = null;
     let lastLoadedPrivatePartner = null;
+
+    // ⚑ Public-chat pagination state (infinite scroll upward)
+    const PUBLIC_PAGE_SIZE       = 50;
+    let oldestPublicSortOrder    = null;
+    let isLoadingOlderPublic     = false;
+    let hasMoreOlderPublic       = true;
+
     let acceptedPrivateChats;
     try {
         acceptedPrivateChats = new Set(JSON.parse(localStorage.getItem('msn_accepted_chats') || '[]'));
@@ -1408,6 +1429,93 @@
             else if (container === privateContainer && currentTab === 'private') updateScrollButtonVisibility(container);
         });
     });
+
+    
+    /* ═══════════════════════════════════════════════════════════
+       ⚑ INFINITE SCROLL — load older public messages when the
+       user scrolls near the top. Preserves viewport position.
+       ═══════════════════════════════════════════════════════════ */
+    async function loadOlderMessages() {
+        if (isLoadingOlderPublic)    return;
+        if (!hasMoreOlderPublic)     return;
+        if (oldestPublicSortOrder == null) return;
+
+        isLoadingOlderPublic = true;
+
+        const prevScrollHeight = publicContainer.scrollHeight;
+        const prevScrollTop    = publicContainer.scrollTop;
+
+        let loaderEl = publicContainer.querySelector('.msn-older-loader');
+        if (!loaderEl) {
+            loaderEl = document.createElement('div');
+            loaderEl.className = 'msn-older-loader';
+            loaderEl.textContent = 'Loading older messages…';
+            publicContainer.insertBefore(loaderEl, publicContainer.firstChild);
+        }
+
+        try {
+            const { data, error } = await supabase
+                .from('message_feed')
+                .select('*')
+                .lt('sort_order', oldestPublicSortOrder)
+                .order('sort_order', { ascending: false })
+                .limit(PUBLIC_PAGE_SIZE);
+            if (error) throw error;
+
+            if (!data || data.length === 0) {
+                hasMoreOlderPublic = false;
+                return;
+            }
+
+            data.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+            oldestPublicSortOrder = data[0].sort_order;
+            if (data.length < PUBLIC_PAGE_SIZE) hasMoreOlderPublic = false;
+
+            var walletsToFetch = new Set();
+            data.forEach(msg => {
+                if (msg.wallet_address) walletsToFetch.add(msg.wallet_address);
+                if (msg.username && msg.wallet_address) {
+                    avatarCache[msg.username]  = msg.avatar_url || null;
+                    userBalances[msg.username] = msg.token_balance || null;
+                }
+            });
+            if (walletsToFetch.size && window.MSNIdentity && window.MSNIdentity.fetchProfilesFor) {
+                try { await window.MSNIdentity.fetchProfilesFor([...walletsToFetch]); }
+                catch (e) { /* ignore */ }
+            }
+
+            const frag = document.createDocumentFragment();
+            for (const msg of data) {
+                if (knownMessageIds.has(msg.id)) continue;
+                knownMessageIds.add(msg.id);
+                const node = await buildMessageNode(msg, false);
+                frag.appendChild(node);
+            }
+
+            if (loaderEl) {
+                publicContainer.insertBefore(frag, loaderEl.nextSibling);
+            } else {
+                publicContainer.insertBefore(frag, publicContainer.firstChild);
+            }
+
+            const newScrollHeight = publicContainer.scrollHeight;
+            publicContainer.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop;
+
+        } catch (err) {
+            console.warn('[loadOlder] failed:', err);
+        } finally {
+            if (loaderEl && loaderEl.parentNode) loaderEl.remove();
+            isLoadingOlderPublic = false;
+        }
+    }
+
+    publicContainer.addEventListener('scroll', () => {
+        if (currentTab !== 'public') return;
+        if (publicContainer.scrollTop < 120) {
+            loadOlderMessages();
+        }
+    }, { passive: true });
 
     scrollBottomBtn.addEventListener('click', () => {
         const container = currentTab === 'public' ? publicContainer : privateContainer;
@@ -2807,19 +2915,34 @@ function showSuccess(msg) {
             }).subscribe();
     }
 
-    async function loadMessages() {
+        async function loadMessages() {
         setConnection('connecting');
         publicContainer.innerHTML = '';
         showMsgLoader(publicContainer, 'Loading messages');
 
+        // ⚑ Reset pagination state on every full reload
+        oldestPublicSortOrder = null;
+        isLoadingOlderPublic  = false;
+        hasMoreOlderPublic    = true;
+
         try {
             const { data, error } = await supabase
                 .from('message_feed')
-                .select('*').order('sort_order', { ascending: false }).range(0, 29);
+                .select('*')
+                .order('sort_order', { ascending: false })
+                .range(0, PUBLIC_PAGE_SIZE - 1);
             if (error) throw error;
 
-                       data.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+            data.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
             knownMessageIds.clear();
+
+                       // ⚑ Establish cursor for upward pagination
+            if (data.length > 0) {
+                oldestPublicSortOrder = data[0].sort_order;
+            }
+            if (data.length < PUBLIC_PAGE_SIZE) {
+                hasMoreOlderPublic = false;   // whole history fits in first page
+            }
 
             // ⚑ Pre-warm identity by WALLET (not username).
             //   1. Remember profile fields the view already carries.
