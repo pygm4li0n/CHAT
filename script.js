@@ -1571,6 +1571,47 @@
     }
     startAutoScrollLoop();
 
+    /* ═══════════════════════════════════════════════════════
+       ⚑ MOBILE — tap bubble to spawn actions
+       One open at a time. Click outside → close.
+       ═══════════════════════════════════════════════════════ */
+    document.addEventListener('click', function (e) {
+        if (window.innerWidth > 768) return;
+
+        const actionBtn = e.target.closest('.msg-action-btn');
+        if (actionBtn) {
+            const wrapper = actionBtn.closest('.msg-wrapper');
+            if (wrapper) wrapper.classList.remove('actions-open');
+            return;
+        }
+
+        if (e.target.closest('.msg-actions-container')) return;
+
+        if (e.target.closest('.msg-image-wrap') ||
+            e.target.closest('.reply-ref-block') ||
+            e.target.closest('.reaction-btn') ||
+            e.target.closest('.reactions-bar') ||
+            e.target.closest('.msn-username-link')) {
+            return;
+        }
+
+        const bubble = e.target.closest('.msg-bubble');
+        if (bubble) {
+            const wrapper = bubble.closest('.msg-wrapper');
+            if (!wrapper) return;
+
+            const wasOpen = wrapper.classList.contains('actions-open');
+            document.querySelectorAll('.msg-wrapper.actions-open')
+                .forEach(w => w.classList.remove('actions-open'));
+
+            if (!wasOpen) wrapper.classList.add('actions-open');
+            return;
+        }
+
+        document.querySelectorAll('.msg-wrapper.actions-open')
+            .forEach(w => w.classList.remove('actions-open'));
+    }, false);
+
     function pinToBottom(container, durationMs = 4000) {
         if (container && autoScroll) {
             container.scrollTop = container.scrollHeight;
