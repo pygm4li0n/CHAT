@@ -5,7 +5,8 @@
        – Desktop: left of #phantomConnectBtn, with a
          VERIFY / VERIFIED label to its left
        – Mobile:  replaces #sidebarRefreshBtn in the 2×2 grid
-   • Uses the SEPARATE X auth Supabase project for OAuth
+    • Uses the SAME Supabase project as the main app.
+     OAuth session is separate from DB writes.
    • On success, writes x_handle / x_verified / x_avatar_url /
      display_name to profiles (main app project), keyed by wallet
    • wallet-identity.js handles the rest via realtime
