@@ -1202,7 +1202,8 @@
         if (!('MutationObserver' in window)) return;
         var containers = [
             document.getElementById('publicMessagesContainer'),
-            document.getElementById('privateMessagesContainer')
+            document.getElementById('privateMessagesContainer'),
+            document.getElementById('whaleMessagesContainer')
         ];
         var mo = new MutationObserver(function (muts) {
             for (var i = 0; i < muts.length; i++) {
@@ -1657,8 +1658,11 @@
         if (me === targetUser) { toast("That's you"); return; }
         try {
             var ins = await sb.from('friends').insert({ user_a: me, user_b: targetUser, status: 'pending' });
-            if (ins.error) throw ins.error;
-            toast('Friend request sent to ' + targetUser);
+if (ins.error) {
+    if (ins.error.code === '23505') { toast('Friend request already sent'); return; }
+    throw ins.error;
+}
+toast('Friend request sent to ' + targetUser);
         } catch (e) {
             console.warn('[profile] addFriend failed:', e);
             toast('Friend requests coming soon');
@@ -1693,7 +1697,7 @@
         if (overlay) overlay.classList.remove('open');
         currentToken++;
         currentUsernameOpen = null;
-        _profileCache.clear();
+        // cache expires by TTL; cleared on msn:identity-changed
     }
 
     document.addEventListener('msn:identity-changed', function (e) {
