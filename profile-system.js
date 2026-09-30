@@ -3,9 +3,9 @@
    ────────────────────────────────────────────────────────────
    Drop-in. Load AFTER script.js + wallet-identity.js.
 
-     <script src="profile-system.js?v=14"></script>
+     <script src="profile-system.js?v=16"></script>
 
-   v9: fixed profiles SELECT, compact fit-no-scroll layout
+   v11: theme-responsive — respects every theme variable
    ============================================================ */
 (function () {
     'use strict';
@@ -146,14 +146,15 @@
     }
 
     /* ═══════════════════════════════════════════════════════
-       CSS — COMPACT HUD v9 (fits without scrolling)
+       CSS — THEME-RESPONSIVE HERO v11
+       Every color routed through theme variables with dark fallbacks.
        ═══════════════════════════════════════════════════════ */
     function injectStyles() {
         var old = document.getElementById('msn-profile-styles');
         if (old) old.remove();
         var css = `
 /* ═══════════════════════════════════════════════════════
-   MSN PROFILE CARD — compact HUD v9
+   MSN PROFILE CARD — theme-responsive hero v11
    ═══════════════════════════════════════════════════════ */
 
 .msn-profile-overlay{
@@ -163,711 +164,927 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:16px;
-    background:radial-gradient(ellipse at center, rgba(8,14,26,.92) 0%, rgba(2,4,10,.98) 100%);
-    backdrop-filter:blur(14px);
-    -webkit-backdrop-filter:blur(14px);
+    padding:20px;
+    background:
+        radial-gradient(ellipse 70% 50% at 50% 40%,
+            var(--accent-glow, rgba(0,240,255,.08)) 0%,
+            transparent 60%),
+        radial-gradient(ellipse at center,
+            var(--overlay-bg-1, rgba(8,14,26,.94)) 0%,
+            var(--overlay-bg-2, rgba(2,4,10,.985)) 100%);
+    backdrop-filter:blur(20px) saturate(1.2);
+    -webkit-backdrop-filter:blur(20px) saturate(1.2);
     opacity:0;
     pointer-events:none;
     transition:opacity .3s ease;
 }
 .msn-profile-overlay.open{opacity:1;pointer-events:auto;}
 
-/* ── Card — no scroll, compact ── */
+/* ── Card ── */
 .msn-profile-card{
     position:relative;
     width:100%;
-    max-width:500px;
-    max-height:calc(100vh - 32px);
+    max-width:560px;
+    max-height:calc(100vh - 40px);
     overflow:hidden;
-    padding:22px 24px 18px;
+    padding:0;
     background:
-        radial-gradient(ellipse 120% 80% at 50% 0%, rgba(0,240,255,.06) 0%, transparent 60%),
-        linear-gradient(180deg, #0d1528 0%, #050810 100%);
-    border-radius:20px;
+        radial-gradient(ellipse 100% 60% at 50% 0%,
+            var(--card-glow, rgba(0,240,255,.10)) 0%,
+            transparent 55%),
+        linear-gradient(180deg,
+            var(--bg-panel, #0c1526) 0%,
+            var(--bg-deep, #050810) 100%);
+    border-radius:26px;
     box-shadow:
-        0 0 0 1px rgba(0,240,255,.45),
-        0 0 0 2px rgba(0,0,0,.7),
-        0 0 40px rgba(0,240,255,.18),
-        0 0 110px rgba(0,240,255,.10),
-        0 30px 90px rgba(0,0,0,.9),
-        inset 0 1px 0 rgba(255,255,255,.05);
-    transform:scale(.92) translateY(20px);
+        0 0 0 1px var(--card-outline, rgba(0,240,255,.35)),
+        0 0 0 2px var(--card-outline-outer, rgba(0,0,0,.6)),
+        0 0 80px var(--card-bloom, rgba(0,240,255,.14)),
+        0 40px 100px rgba(0,0,0,.9),
+        inset 0 1px 0 var(--card-inner-highlight, rgba(255,255,255,.05));
+    transform:scale(.9) translateY(30px);
     opacity:0;
-    transition:transform .4s cubic-bezier(.16,1,.3,1), opacity .3s ease;
+    transition:transform .5s cubic-bezier(.16,1,.3,1), opacity .3s ease;
     font-family:var(--font-main, "Segoe UI", system-ui, sans-serif);
-    color:#fff;
+    color:var(--text-primary, #fff);
     text-align:left;
 }
-.msn-profile-overlay.open .msn-profile-card{
-    transform:scale(1) translateY(0);
-    opacity:1;
-}
 
-/* Orbiting scanner arcs */
+/* Scanner border — uses theme accents */
 .msn-profile-card::after{
     content:"";
     position:absolute;
-    inset:-1px;
-    border-radius:21px;
+    inset:0;
+    border-radius:26px;
     padding:1.5px;
     background:conic-gradient(from 0deg,
         transparent 0deg,
         transparent 70deg,
-        #00f0ff 90deg,
-        #b9f6ff 100deg,
-        #00f0ff 110deg,
+        var(--accent-cyan, #00f0ff) 90deg,
+        var(--accent-cyan-bright, #b9f6ff) 100deg,
+        var(--accent-cyan, #00f0ff) 110deg,
         transparent 130deg,
         transparent 250deg,
-        #a855f7 270deg,
-        #e6d4ff 280deg,
-        #a855f7 290deg,
+        var(--accent-purple, #a855f7) 270deg,
+        var(--accent-purple-bright, #e6d4ff) 280deg,
+        var(--accent-purple, #a855f7) 290deg,
         transparent 310deg,
         transparent 360deg);
     -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite:xor;
             mask-composite:exclude;
     pointer-events:none;
-    animation:msnBorderSpin 5s linear infinite;
-    filter:drop-shadow(0 0 6px rgba(0,240,255,.7));
+    animation:msnBorderSpin 6s linear infinite;
+    filter:drop-shadow(0 0 8px var(--accent-cyan, rgba(0,240,255,.6)));
+    z-index:2;
 }
 @keyframes msnBorderSpin{to{transform:rotate(360deg);}}
+
+.msn-profile-overlay.open .msn-profile-card{
+    transform:scale(1) translateY(0);
+    opacity:1;
+}
+
+/* ── Inner wrapper ── */
+.msn-card-inner{
+    position:relative;
+    padding:26px 26px 20px;
+    z-index:1;
+}
 
 /* ── Close button ── */
 .msn-profile-close{
     position:absolute;
-    top:12px;
-    right:12px;
-    width:30px;
-    height:30px;
+    top:14px;
+    right:14px;
+    width:32px;
+    height:32px;
     border-radius:50%;
-    border:1.5px solid rgba(0,240,255,.35);
-    background:rgba(10,16,30,.9);
-    color:#00f0ff;
+    border:1px solid var(--border-default, rgba(255,255,255,.12));
+    background:var(--bg-elevated, rgba(10,16,30,.7));
+    backdrop-filter:blur(8px);
+    color:var(--text-muted, #7d8ba6);
     cursor:pointer;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:.82rem;
+    font-size:.85rem;
     z-index:5;
-    transition:transform .35s cubic-bezier(.16,1,.3,1), border-color .2s, color .2s, box-shadow .2s;
+    transition:transform .35s cubic-bezier(.16,1,.3,1), border-color .2s, color .2s, background .2s;
 }
 .msn-profile-close:hover,
 .msn-profile-close:focus-visible{
     outline:none;
-    border-color:#ff2d55;
+    border-color:rgba(255,45,85,.6);
     color:#ff2d55;
-    transform:rotate(90deg) scale(1.1);
-    box-shadow:0 0 20px rgba(255,45,85,.6);
+    background:rgba(255,45,85,.1);
+    transform:rotate(90deg) scale(1.08);
 }
 
-/* ── HEADER ── */
-.msn-profile-head{
-    display:flex;
+/* ═══════════════════════════════════════════════════════
+   HERO — asymmetric avatar + identity
+   ═══════════════════════════════════════════════════════ */
+.msn-hero{
+    display:grid;
+    grid-template-columns:132px 1fr;
+    gap:22px;
     align-items:center;
-    gap:16px;
-    padding-bottom:14px;
-    margin-bottom:12px;
-    border-bottom:1px solid rgba(0,240,255,.15);
-}
-
-/* ── Avatar ── */
-.msn-profile-avatar-wrap{
+    padding-bottom:22px;
+    margin-bottom:18px;
     position:relative;
-    width:88px;
-    height:88px;
-    flex:0 0 auto;
 }
-.msn-profile-avatar-wrap::before{
+.msn-hero::after{
     content:"";
     position:absolute;
-    inset:-5px;
+    left:0; right:0; bottom:0;
+    height:1px;
+    background:linear-gradient(90deg,
+        transparent 0%,
+        var(--border-glow, rgba(0,240,255,.25)) 20%,
+        var(--border-subtle, rgba(0,240,255,.05)) 60%,
+        transparent 100%);
+}
+
+/* Avatar block */
+.msn-avatar-wrap{
+    position:relative;
+    width:132px;
+    height:132px;
+    flex-shrink:0;
+}
+.msn-avatar-wrap::before{
+    content:"";
+    position:absolute;
+    inset:-14px;
     border-radius:50%;
-    background:conic-gradient(from 0deg, transparent 0deg, #00f0ff 60deg, transparent 140deg, transparent 220deg, #a855f7 280deg, transparent 360deg);
-    animation:msnBorderSpin 3.5s linear infinite;
-    opacity:.85;
+    background:radial-gradient(circle,
+        var(--accent-glow, rgba(0,240,255,.20)) 0%,
+        var(--accent-glow-soft, rgba(0,240,255,.06)) 40%,
+        transparent 70%);
+    animation:msnAvatarHalo 4s ease-in-out infinite;
+    pointer-events:none;
+}
+@keyframes msnAvatarHalo{
+    0%,100%{transform:scale(1);opacity:.85;}
+    50%{transform:scale(1.08);opacity:1;}
+}
+.msn-avatar-ring{
+    position:absolute;
+    inset:-4px;
+    border-radius:50%;
+    background:conic-gradient(from 0deg,
+        transparent 0deg,
+        var(--accent-cyan, #00f0ff) 60deg,
+        transparent 140deg,
+        transparent 220deg,
+        var(--accent-purple, #a855f7) 280deg,
+        transparent 360deg);
+    animation:msnBorderSpin 4s linear infinite;
     z-index:0;
     pointer-events:none;
 }
-.msn-profile-avatar{
-    position:relative;
-    width:100%;
-    height:100%;
+.msn-avatar-ring::after{
+    content:"";
+    position:absolute;
+    inset:3px;
     border-radius:50%;
-    background:#050810;
-    border:2px solid #00f0ff;
+    background:var(--bg-deep, #050810);
+}
+.msn-avatar{
+    position:absolute;
+    inset:0;
+    border-radius:50%;
     overflow:hidden;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:2rem;
+    font-size:2.5rem;
     font-weight:900;
-    color:#fff;
-    z-index:1;
+    color:var(--text-primary, #fff);
+    z-index:2;
+    background:var(--bg-deep, #050810);
     box-shadow:
-        inset 0 0 30px rgba(0,0,0,.8),
-        0 0 30px rgba(0,240,255,.4);
-    text-shadow:0 0 16px rgba(0,240,255,.8);
+        inset 0 0 40px rgba(0,0,0,.9),
+        0 8px 30px rgba(0,0,0,.6);
+    text-shadow:0 0 20px var(--accent-cyan, rgba(0,240,255,.9));
 }
-.msn-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
+.msn-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
 
-.msn-profile-status-dot{
+.msn-status-dot{
     position:absolute;
-    bottom:0;
-    right:0;
-    width:18px;
-    height:18px;
+    right:4px;
+    bottom:4px;
+    width:24px;
+    height:24px;
     border-radius:50%;
-    background:#5a6b88;
-    border:3px solid #050810;
+    background:var(--status-offline, #5a6b88);
+    border:4px solid var(--bg-panel, #0c1526);
     z-index:3;
+    transition:background .25s, box-shadow .25s;
 }
-.msn-profile-status-dot.online{
-    background:#4ade80;
-    box-shadow:0 0 14px #4ade80, 0 0 28px rgba(74,222,128,.6);
+.msn-status-dot.online{
+    background:var(--status-online, #4ade80);
+    box-shadow:0 0 16px var(--status-online, #4ade80),
+               0 0 32px var(--status-online-glow, rgba(74,222,128,.5));
 }
-.msn-profile-status-dot.online::before{
+.msn-status-dot.online::before{
     content:"";
     position:absolute;
-    inset:-3px;
+    inset:-4px;
     border-radius:50%;
-    border:2px solid #4ade80;
+    border:2px solid var(--status-online, #4ade80);
     animation:msnPing 1.8s ease-out infinite;
     pointer-events:none;
 }
 @keyframes msnPing{
     0%{transform:scale(1);opacity:.9;}
-    100%{transform:scale(2.2);opacity:0;}
+    100%{transform:scale(2.3);opacity:0;}
 }
 
-/* ── Identity ── */
-.msn-profile-identity{
-    flex:1 1 auto;
-    min-width:0;
+/* Identity column */
+.msn-hero-info{
     display:flex;
     flex-direction:column;
     align-items:flex-start;
-    gap:6px;
+    gap:9px;
+    min-width:0;
 }
-.msn-profile-username{
-    margin:0;
-    font-size:1.25rem;
-    font-weight:900;
-    letter-spacing:.02em;
-    line-height:1.15;
-    color:#ffffff;
-    word-break:break-word;
-    display:inline-flex;
+.msn-hero-name-row{
+    display:flex;
     align-items:center;
     flex-wrap:wrap;
-    gap:6px;
-    text-shadow:
-        0 0 14px rgba(0,240,255,.45),
-        0 0 32px rgba(0,240,255,.22),
-        0 2px 6px rgba(0,0,0,.9);
-    animation:msnNameGlow 3.2s ease-in-out infinite;
+    gap:8px;
+    min-width:0;
 }
-.msn-profile-username > span{
-    text-shadow:none;
-    -webkit-text-fill-color:initial;
-}
-@keyframes msnNameGlow{
-    0%,100%{
-        text-shadow:
-            0 0 14px rgba(0,240,255,.45),
-            0 0 32px rgba(0,240,255,.22),
-            0 2px 6px rgba(0,0,0,.9);
-    }
-    50%{
-        text-shadow:
-            0 0 20px rgba(0,240,255,.75),
-            0 0 46px rgba(0,240,255,.38),
-            0 2px 6px rgba(0,0,0,.9);
-    }
-}
-
-.msn-profile-signature{
+.msn-hero-name{
     margin:0;
-    font-size:.78rem;
-    color:#b8c8e0;
-    font-style:italic;
-    line-height:1.35;
+    font-size:1.5rem;
+    font-weight:900;
+    letter-spacing:-.01em;
+    line-height:1.15;
+    color:var(--text-primary, #fff);
     word-break:break-word;
-    min-height:1.1em;
-    max-width:100%;
+    text-shadow:
+        0 0 20px var(--accent-glow, rgba(0,240,255,.4)),
+        0 2px 8px rgba(0,0,0,.9);
 }
 
-/* Meta pill row */
-.msn-profile-meta-row{
+/* Tier + X badges */
+.msn-tier-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:1.8em;
+    height:1.8em;
+    padding:0 .55em;
+    border-radius:999px;
+    background:var(--bg-elevated, rgba(255,255,255,.06));
+    border:1.5px solid var(--border-default, rgba(255,255,255,.18));
+    font-size:.72em;
+    line-height:1;
+    font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+    box-shadow:
+        inset 0 1px 0 var(--card-inner-highlight, rgba(255,255,255,.08)),
+        0 0 12px rgba(0,0,0,.4);
+}
+.msn-tier-badge.msn-tier-whale{
+    background:linear-gradient(135deg,
+        var(--accent-glow, rgba(0,240,255,.2)) 0%,
+        var(--accent-glow-soft, rgba(0,240,255,.05)) 100%);
+    border-color:var(--accent-cyan, rgba(0,240,255,.6));
+    box-shadow:0 0 20px var(--accent-cyan-glow, rgba(0,240,255,.5));
+}
+.msn-tier-badge.msn-tier-dolphin{
+    background:linear-gradient(135deg,
+        var(--accent-purple-glow, rgba(168,85,247,.2)) 0%,
+        var(--accent-purple-glow-soft, rgba(168,85,247,.05)) 100%);
+    border-color:var(--accent-purple, rgba(168,85,247,.6));
+    box-shadow:0 0 20px var(--accent-purple-glow, rgba(168,85,247,.5));
+}
+.msn-tier-badge.msn-tier-crab{
+    background:linear-gradient(135deg,
+        var(--accent-orange-glow, rgba(255,138,0,.2)) 0%,
+        var(--accent-orange-glow-soft, rgba(255,138,0,.05)) 100%);
+    border-color:var(--accent-orange, rgba(255,138,0,.6));
+    box-shadow:0 0 20px var(--accent-orange-glow, rgba(255,138,0,.5));
+}
+
+.msn-x-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:1.8em;
+    height:1.8em;
+    border-radius:50%;
+    background:linear-gradient(135deg, #1d9bf0 0%, #0a4a9a 100%);
+    color:#fff;
+    font-size:.72em;
+    font-weight:900;
+    line-height:1;
+    font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+    box-shadow:
+        0 0 16px rgba(29,155,240,.7),
+        inset 0 1px 0 rgba(255,255,255,.3);
+    flex-shrink:0;
+}
+
+.msn-hero-sig{
+    margin:0;
+    font-size:.82rem;
+    color:var(--text-secondary, #8fa2be);
+    line-height:1.4;
+    word-break:break-word;
+    max-width:100%;
+    min-height:1em;
+}
+
+/* Pill row */
+.msn-hero-pills{
     display:flex;
     flex-wrap:wrap;
     gap:6px;
     align-items:center;
-    width:100%;
+    margin-top:2px;
 }
-.msn-profile-meta{
+
+/* ── Copyable wallet ── */
+.msn-wallet-btn{
     display:inline-flex;
     align-items:center;
-    gap:5px;
-    padding:4px 10px;
-    font-size:.54rem;
-    color:#7dd3fc;
-    letter-spacing:.14em;
+    gap:7px;
+    padding:6px 11px;
+    font-size:.62rem;
+    color:var(--accent-green, #a7f3d0);
+    letter-spacing:.06em;
+    font-weight:800;
+    font-family:var(--font-mono, monospace);
+    background:linear-gradient(180deg,
+        var(--accent-green-glow, rgba(74,222,128,.10)) 0%,
+        var(--accent-green-glow-soft, rgba(74,222,128,.02)) 100%);
+    border:1px solid var(--accent-green-border, rgba(74,222,128,.28));
+    border-radius:8px;
+    line-height:1;
+    cursor:pointer;
+    transition:all .18s ease;
+    position:relative;
+}
+.msn-wallet-btn:hover{
+    border-color:var(--accent-green, rgba(74,222,128,.6));
+    background:linear-gradient(180deg,
+        var(--accent-green-glow-hover, rgba(74,222,128,.18)) 0%,
+        var(--accent-green-glow-soft, rgba(74,222,128,.05)) 100%);
+    box-shadow:0 0 16px var(--accent-green-shadow, rgba(74,222,128,.3));
+    color:var(--accent-green-bright, #c6f9d8);
+}
+.msn-wallet-btn:active{transform:scale(.97);}
+.msn-wallet-icon{font-size:.85rem;line-height:1;opacity:.9;}
+.msn-wallet-label{line-height:1;}
+.msn-wallet-copy{
+    font-size:.75rem;
+    line-height:1;
+    opacity:.7;
+    margin-left:2px;
+    transition:opacity .18s;
+}
+.msn-wallet-btn:hover .msn-wallet-copy{opacity:1;}
+.msn-wallet-btn.msn-copied{
+    background:linear-gradient(180deg,
+        var(--accent-green-glow-strong, rgba(74,222,128,.28)) 0%,
+        var(--accent-green-glow, rgba(74,222,128,.10)) 100%);
+    border-color:var(--accent-green, rgba(74,222,128,.9));
+    box-shadow:0 0 24px var(--accent-green-shadow-strong, rgba(74,222,128,.6));
+}
+
+/* Joined pill */
+.msn-joined-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 11px;
+    font-size:.6rem;
+    color:var(--accent-cyan, #7dd3fc);
+    letter-spacing:.12em;
     text-transform:uppercase;
     font-weight:800;
     font-family:var(--font-mono, monospace);
-    background:linear-gradient(180deg, rgba(0,240,255,.10) 0%, rgba(0,240,255,.03) 100%);
-    border:1px solid rgba(0,240,255,.28);
-    border-radius:999px;
+    background:linear-gradient(180deg,
+        var(--accent-glow-soft, rgba(0,240,255,.08)) 0%,
+        var(--accent-glow-faint, rgba(0,240,255,.02)) 100%);
+    border:1px solid var(--border-glow, rgba(0,240,255,.22));
+    border-radius:8px;
     line-height:1;
-    text-shadow:0 0 8px rgba(0,240,255,.35);
-    width:fit-content;
-    box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.06),
-        0 0 12px rgba(0,240,255,.08);
-}
-.msn-wallet-pill{
-    display:inline-flex;
-    align-items:center;
-    gap:5px;
-    padding:4px 10px;
-    font-size:.54rem;
-    color:#a7f3d0;
-    letter-spacing:.12em;
-    font-weight:800;
-    font-family:var(--font-mono, monospace);
-    background:linear-gradient(180deg, rgba(74,222,128,.10) 0%, rgba(74,222,128,.03) 100%);
-    border:1px solid rgba(74,222,128,.28);
-    border-radius:999px;
-    line-height:1;
-    text-shadow:0 0 8px rgba(74,222,128,.3);
-    box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.06),
-        0 0 12px rgba(74,222,128,.08);
-    cursor:help;
+    white-space:nowrap;
 }
 
-/* ── HUD row 1 — 4 columns ── */
-.msn-profile-hud{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:0;
-    padding:12px 4px;
-    margin-bottom:8px;
-    background:rgba(0,240,255,.04);
-    border:1px solid rgba(0,240,255,.2);
-    border-radius:10px;
+/* ═══════════════════════════════════════════════════════
+   XP FOCUS
+   ═══════════════════════════════════════════════════════ */
+.msn-xp-focus{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:14px 16px;
+    margin-bottom:14px;
+    background:linear-gradient(180deg,
+        var(--accent-glow-soft, rgba(0,240,255,.05)) 0%,
+        var(--accent-glow-faint, rgba(0,240,255,.01)) 100%);
+    border:1px solid var(--border-subtle-strong, rgba(0,240,255,.14));
+    border-radius:14px;
+    position:relative;
+    overflow:hidden;
 }
-.msn-profile-hud.msn-hud-3{
-    grid-template-columns:repeat(3,1fr);
+.msn-xp-focus::before{
+    content:"";
+    position:absolute;
+    top:0; left:0; right:0;
+    height:1px;
+    background:linear-gradient(90deg, transparent, var(--border-glow, rgba(0,240,255,.5)), transparent);
 }
-.msn-hud-stat{
+
+.msn-level-chip{
     display:flex;
     flex-direction:column;
     align-items:center;
     justify-content:center;
-    gap:5px;
-    padding:0 4px;
+    min-width:64px;
+    padding:8px 12px;
+    background:linear-gradient(135deg,
+        var(--accent-cyan, #00f0ff) 0%,
+        var(--accent-cyan-deep, #00b8d4) 100%);
+    border-radius:10px;
+    color:var(--accent-ink, #001018);
+    box-shadow:
+        0 0 24px var(--accent-cyan-shadow, rgba(0,240,255,.4)),
+        inset 0 1px 0 rgba(255,255,255,.5),
+        inset 0 -1px 0 rgba(0,0,0,.2);
+    flex-shrink:0;
     position:relative;
-    min-width:0;
 }
-.msn-hud-stat:not(:last-child)::after{
+.msn-level-chip::after{
     content:"";
     position:absolute;
-    right:0;
-    top:24%; bottom:24%;
-    width:1px;
-    background:linear-gradient(180deg, transparent, rgba(0,240,255,.4), transparent);
+    top:2px; left:2px; right:2px;
+    height:50%;
+    background:linear-gradient(180deg, rgba(255,255,255,.35) 0%, transparent 100%);
+    border-radius:8px 8px 50% 50%;
+    pointer-events:none;
 }
-.msn-hud-label{
-    font-size:.5rem;
-    font-weight:800;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    color:#6a7a96;
-    line-height:1;
+.msn-level-num{
     font-family:var(--font-mono, monospace);
-}
-.msn-hud-value{
-    font-family:var(--font-mono, monospace);
-    font-size:1.05rem;
+    font-size:1.35rem;
     font-weight:900;
-    color:#00f0ff;
     line-height:1;
-    font-variant-numeric:tabular-nums;
-    text-shadow:0 0 12px rgba(0,240,255,.7);
+    letter-spacing:-.02em;
+}
+.msn-level-lbl{
+    font-size:.48rem;
+    font-weight:800;
+    letter-spacing:.16em;
+    line-height:1;
+    margin-top:2px;
+    opacity:.75;
+    font-family:var(--font-mono, monospace);
 }
 
-/* ── XP progress bar ── */
-.msn-xp-bar{
-    margin:0 0 8px;
-    padding:8px 12px 9px;
-    background:rgba(0,240,255,.03);
-    border:1px solid rgba(0,240,255,.14);
-    border-radius:8px;
+.msn-xp-details{
+    flex:1;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
 }
-.msn-xp-bar-track{
+.msn-xp-row{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:8px;
+    font-family:var(--font-mono, monospace);
+}
+.msn-xp-row-label{
+    font-size:.55rem;
+    font-weight:800;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--text-muted, #6a7a96);
+}
+.msn-xp-row-val{
+    font-size:.72rem;
+    font-weight:900;
+    color:var(--accent-cyan, #00f0ff);
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.01em;
+}
+.msn-xp-track{
     position:relative;
-    height:6px;
-    background:rgba(0,0,0,.55);
+    height:8px;
+    background:var(--xp-track, rgba(0,0,0,.55));
     border-radius:999px;
     overflow:hidden;
-    box-shadow:inset 0 0 6px rgba(0,0,0,.8);
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.8);
 }
-.msn-xp-bar-fill{
+.msn-xp-fill{
     height:100%;
     border-radius:999px;
-    background:linear-gradient(90deg, #00f0ff 0%, #67e8f9 50%, #a855f7 100%);
+    background:linear-gradient(90deg,
+        var(--accent-cyan, #00f0ff) 0%,
+        var(--accent-cyan-bright, #67e8f9) 50%,
+        var(--accent-purple, #a855f7) 100%);
     box-shadow:
-        0 0 12px rgba(0,240,255,.7),
-        0 0 24px rgba(0,240,255,.35);
-    transition:width .8s cubic-bezier(.16,1,.3,1);
+        0 0 12px var(--accent-cyan-shadow, rgba(0,240,255,.6)),
+        0 0 24px var(--accent-cyan-glow, rgba(0,240,255,.3));
     position:relative;
+    transition:width .9s cubic-bezier(.16,1,.3,1);
 }
-.msn-xp-bar-fill::after{
+.msn-xp-fill::after{
     content:"";
     position:absolute;
     inset:0;
     background:linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
-    animation:msnXpShine 2.6s linear infinite;
+    animation:msnXpShine 2.4s linear infinite;
     border-radius:999px;
 }
 @keyframes msnXpShine{
     0%{transform:translateX(-100%);}
     100%{transform:translateX(200%);}
 }
-.msn-xp-bar-label{
+
+/* ═══════════════════════════════════════════════════════
+   STATS — asymmetric grid
+   ═══════════════════════════════════════════════════════ */
+.msn-stats{
+    display:grid;
+    grid-template-columns:1.35fr 1fr 1fr 1fr;
+    gap:1px;
+    margin-bottom:14px;
+    background:var(--border-subtle, rgba(0,240,255,.08));
+    border:1px solid var(--border-subtle-strong, rgba(0,240,255,.14));
+    border-radius:14px;
+    overflow:hidden;
+}
+.msn-stat{
     display:flex;
-    justify-content:space-between;
-    margin-top:5px;
-    font-family:var(--font-mono, monospace);
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:14px 6px;
+    background:linear-gradient(180deg,
+        var(--accent-glow-faint, rgba(0,240,255,.03)) 0%,
+        var(--accent-glow-trace, rgba(0,240,255,.005)) 100%);
+    transition:background .2s ease;
+    min-width:0;
+}
+.msn-stat:hover{
+    background:linear-gradient(180deg,
+        var(--accent-glow-soft, rgba(0,240,255,.09)) 0%,
+        var(--accent-glow-faint, rgba(0,240,255,.02)) 100%);
+}
+.msn-stat-lbl{
     font-size:.5rem;
     font-weight:800;
-    letter-spacing:.12em;
-    color:#6a7a96;
-    text-transform:uppercase;
-}
-
-/* ── Last active strip ── */
-.msn-profile-strip{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    padding:7px 12px;
-    margin-bottom:10px;
-    background:rgba(74,222,128,.05);
-    border:1px solid rgba(74,222,128,.20);
-    border-radius:8px;
-    font-family:var(--font-mono, monospace);
-    font-size:.52rem;
     letter-spacing:.16em;
     text-transform:uppercase;
-    color:#4ade80;
+    color:var(--text-muted, #6a7a96);
+    line-height:1;
+    font-family:var(--font-mono, monospace);
 }
-.msn-strip-dot{
-    width:7px;
-    height:7px;
+.msn-stat-val{
+    font-family:var(--font-mono, monospace);
+    font-size:1.15rem;
+    font-weight:900;
+    color:var(--accent-cyan, #00f0ff);
+    line-height:1;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:-.02em;
+    text-shadow:0 0 14px var(--accent-cyan-shadow, rgba(0,240,255,.6));
+    display:flex;
+    align-items:baseline;
+    gap:2px;
+}
+.msn-stat-val .msn-stat-sub{
+    font-size:.6em;
+    color:var(--text-muted, #6a7a96);
+    font-weight:800;
+    text-shadow:none;
+}
+.msn-stat.msn-stat-fire .msn-stat-val{
+    color:var(--accent-orange, #ffb066);
+    text-shadow:0 0 14px var(--accent-orange-glow, rgba(255,140,0,.6));
+}
+
+/* ═══════════════════════════════════════════════════════
+   LAST ACTIVE
+   ═══════════════════════════════════════════════════════ */
+.msn-last-active{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:9px 14px;
+    margin-bottom:14px;
+    background:var(--accent-green-glow-soft, rgba(74,222,128,.04));
+    border:1px solid var(--accent-green-border-soft, rgba(74,222,128,.14));
+    border-radius:10px;
+    font-family:var(--font-mono, monospace);
+    font-size:.55rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+}
+.msn-la-dot{
+    width:8px;
+    height:8px;
     border-radius:50%;
-    background:#4ade80;
-    box-shadow:0 0 10px #4ade80, 0 0 18px rgba(74,222,128,.6);
+    background:var(--status-online, #4ade80);
+    box-shadow:0 0 10px var(--status-online, #4ade80),
+               0 0 20px var(--status-online-glow, rgba(74,222,128,.5));
     animation:msnStripPulse 1.6s ease-in-out infinite;
     flex-shrink:0;
 }
 @keyframes msnStripPulse{
     0%,100%{opacity:1;transform:scale(1);}
-    50%{opacity:.5;transform:scale(.8);}
+    50%{opacity:.55;transform:scale(.85);}
 }
-.msn-strip-label{
+.msn-la-label{
     font-weight:800;
-    color:#6ee7a7;
+    color:var(--accent-green-mid, #6ee7a7);
     flex-shrink:0;
 }
-.msn-strip-value{
+.msn-la-val{
     margin-left:auto;
     font-weight:900;
-    color:#a7f3d0;
-    text-shadow:0 0 8px rgba(74,222,128,.4);
+    color:var(--accent-green, #a7f3d0);
+    text-shadow:0 0 10px var(--accent-green-shadow, rgba(74,222,128,.4));
 }
 
-/* ── Tier badge ── */
-.msn-tier-badge{
-    display:inline-flex;
+/* ═══════════════════════════════════════════════════════
+   ACHIEVEMENTS
+   ═══════════════════════════════════════════════════════ */
+.msn-ach-header{
+    display:flex;
     align-items:center;
-    justify-content:center;
-    min-width:1.6em;
-    height:1.6em;
-    padding:0 .45em;
-    border-radius:999px;
-    background:rgba(255,255,255,.08);
-    border:1.5px solid rgba(255,255,255,.25);
-    font-size:.75em;
-    line-height:1;
-    font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif;
-    animation:msnTierPulse 2.5s ease-in-out infinite;
+    gap:10px;
+    margin-bottom:8px;
 }
-.msn-tier-badge.msn-tier-whale{
-    background:rgba(0,240,255,.18);
-    border-color:#00f0ff;
-    box-shadow:0 0 16px rgba(0,240,255,.6);
-}
-.msn-tier-badge.msn-tier-dolphin{
-    background:rgba(168,85,247,.18);
-    border-color:#a855f7;
-    box-shadow:0 0 16px rgba(168,85,247,.6);
-}
-.msn-tier-badge.msn-tier-crab{
-    background:rgba(255,138,0,.18);
-    border-color:#ff8a00;
-    box-shadow:0 0 16px rgba(255,138,0,.6);
-}
-@keyframes msnTierPulse{
-    0%,100%{transform:scale(1);}
-    50%{transform:scale(1.08);}
-}
-
-/* ── X badge ── */
-.msn-x-badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    width:1.6em;
-    height:1.6em;
-    border-radius:50%;
-    background:linear-gradient(135deg, #1d9bf0 0%, #0a4a9a 100%);
-    color:#fff;
-    font-size:.75em;
-    font-weight:900;
-    line-height:1;
-    font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif;
-    box-shadow:0 0 14px rgba(29,155,240,.8);
-    flex-shrink:0;
-}
-
-/* ── Section label ── */
-.msn-profile-section-label{
+.msn-ach-header-label{
     font-size:.52rem;
     font-weight:800;
     letter-spacing:.2em;
     text-transform:uppercase;
-    color:#6a7a96;
-    margin:0 0 8px 2px;
+    color:var(--text-muted, #6a7a96);
+    font-family:var(--font-mono, monospace);
     display:flex;
     align-items:center;
-    gap:10px;
-    font-family:var(--font-mono, monospace);
+    gap:6px;
+    flex-shrink:0;
 }
-.msn-profile-section-label::before{
+.msn-ach-header-label::before{
     content:"◆";
-    color:#00f0ff;
-    font-size:.65rem;
+    color:var(--accent-cyan, #00f0ff);
+    font-size:.7rem;
 }
-.msn-profile-section-label::after{
+.msn-ach-header::after{
     content:"";
     flex:1;
     height:1px;
-    background:linear-gradient(90deg, rgba(0,240,255,.3), transparent);
+    background:linear-gradient(90deg, var(--border-glow, rgba(0,240,255,.25)), transparent);
+}
+.msn-ach-count{
+    font-size:.5rem;
+    color:var(--text-muted, #6a7a96);
+    font-family:var(--font-mono, monospace);
+    font-weight:800;
+    letter-spacing:.08em;
+    flex-shrink:0;
 }
 
-/* ── Achievements — compact row of 6 ── */
-.msn-achievements-grid{
+.msn-achievements{
     display:grid;
     grid-template-columns:repeat(6,minmax(0,1fr));
-    gap:6px;
-    margin:0 0 12px;
+    gap:7px;
+    margin-bottom:18px;
     width:100%;
-    box-sizing:border-box;
 }
-.msn-ach-slot{
+.msn-ach{
     aspect-ratio:1/1;
-    border-radius:7px;
-    background:#0a1220;
-    border:1px solid rgba(0,240,255,.15);
+    border-radius:9px;
+    background:var(--bg-elevated, rgba(255,255,255,.02));
+    border:1px solid var(--border-subtle, rgba(0,240,255,.10));
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:.95rem;
+    font-size:1.05rem;
     line-height:1;
-    transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    transition:all .22s ease;
     min-width:0;
     overflow:hidden;
     opacity:0;
-    transform:translateY(6px) scale(.9);
-    animation:msnAchIn .45s cubic-bezier(.16,1,.3,1) forwards;
+    transform:translateY(5px) scale(.92);
+    animation:msnAchIn .5s cubic-bezier(.16,1,.3,1) forwards;
 }
-.msn-ach-slot:nth-child(1){animation-delay:.20s;}
-.msn-ach-slot:nth-child(2){animation-delay:.26s;}
-.msn-ach-slot:nth-child(3){animation-delay:.32s;}
-.msn-ach-slot:nth-child(4){animation-delay:.38s;}
-.msn-ach-slot:nth-child(5){animation-delay:.44s;}
-.msn-ach-slot:nth-child(6){animation-delay:.50s;}
+.msn-ach:nth-child(1){animation-delay:.24s;}
+.msn-ach:nth-child(2){animation-delay:.30s;}
+.msn-ach:nth-child(3){animation-delay:.36s;}
+.msn-ach:nth-child(4){animation-delay:.42s;}
+.msn-ach:nth-child(5){animation-delay:.48s;}
+.msn-ach:nth-child(6){animation-delay:.54s;}
 @keyframes msnAchIn{
     to{opacity:1;transform:translateY(0) scale(1);}
 }
-.msn-ach-slot.unlocked{
-    border-color:#00f0ff;
-    background:rgba(0,240,255,.1);
-    box-shadow:0 0 14px rgba(0,240,255,.4);
+.msn-ach.unlocked{
+    border-color:var(--accent-cyan-glow, rgba(0,240,255,.5));
+    background:linear-gradient(180deg,
+        var(--accent-glow-soft, rgba(0,240,255,.12)) 0%,
+        var(--accent-glow-faint, rgba(0,240,255,.03)) 100%);
+    box-shadow:
+        0 0 16px var(--accent-cyan-glow, rgba(0,240,255,.35)),
+        inset 0 1px 0 var(--card-inner-highlight, rgba(255,255,255,.08));
 }
-.msn-ach-slot.empty{
-    opacity:.3;
+.msn-ach.locked{
+    opacity:.22;
     border-style:dashed;
-    font-size:.75rem;
-    color:#6a7a96;
 }
-.msn-ach-slot:hover{
-    transform:translateY(-3px) scale(1.05);
-    border-color:#00f0ff;
-    box-shadow:0 0 18px rgba(0,240,255,.5);
+.msn-ach.locked::before{
+    content:"·";
+    color:var(--text-muted, #64748b);
+    font-size:1.2rem;
+    font-weight:900;
+}
+.msn-ach:hover{
+    transform:translateY(-3px) scale(1.06);
+    border-color:var(--accent-cyan, rgba(0,240,255,.7));
+    box-shadow:0 0 22px var(--accent-cyan-glow, rgba(0,240,255,.5));
 }
 
-/* ── Actions ── */
-.msn-profile-actions{
+/* ═══════════════════════════════════════════════════════
+   ACTIONS
+   ═══════════════════════════════════════════════════════ */
+.msn-actions{
     display:flex;
-    gap:8px;
+    gap:10px;
 }
-.msn-action-btn{
+.msn-act-btn{
     flex:1;
-    padding:11px 12px;
-    border-radius:9px;
+    padding:13px 16px;
+    border-radius:11px;
     font-weight:900;
     font-size:.72rem;
-    letter-spacing:.08em;
+    letter-spacing:.1em;
     text-transform:uppercase;
     cursor:pointer;
-    border:1.5px solid rgba(0,240,255,.3);
-    background:#0a1220;
-    color:#fff;
-    transition:all .22s ease;
+    border:1px solid var(--border-glow-soft, rgba(0,240,255,.18));
+    background:linear-gradient(180deg,
+        var(--accent-glow-soft, rgba(0,240,255,.05)) 0%,
+        var(--accent-glow-faint, rgba(0,240,255,.01)) 100%);
+    color:var(--text-primary, #e0f4ff);
+    transition:all .2s ease;
     font-family:var(--font-mono, monospace);
 }
-.msn-action-btn:hover{
-    border-color:#00f0ff;
-    color:#00f0ff;
-    box-shadow:0 0 18px rgba(0,240,255,.4);
-    transform:translateY(-2px);
+.msn-act-btn:hover{
+    border-color:var(--accent-cyan, rgba(0,240,255,.5));
+    background:linear-gradient(180deg,
+        var(--accent-glow, rgba(0,240,255,.12)) 0%,
+        var(--accent-glow-faint, rgba(0,240,255,.03)) 100%);
+    color:var(--accent-cyan, #00f0ff);
+    box-shadow:0 0 20px var(--accent-cyan-glow, rgba(0,240,255,.25));
+    transform:translateY(-1px);
 }
-.msn-action-btn:active{transform:translateY(0) scale(.97);}
-.msn-action-btn.primary{
-    background:linear-gradient(135deg, #00f0ff 0%, #00b8d4 100%);
-    color:#001018;
-    border-color:#00f0ff;
-    box-shadow:0 0 30px rgba(0,240,255,.5);
-    text-shadow:0 1px 0 rgba(255,255,255,.4);
+.msn-act-btn:active{transform:translateY(0) scale(.98);}
+.msn-act-btn.primary{
+    background:linear-gradient(180deg,
+        var(--accent-cyan, #00f0ff) 0%,
+        var(--accent-cyan-deep, #00b8d4) 100%);
+    color:var(--accent-ink, #001018);
+    border-color:var(--accent-cyan, #00f0ff);
+    box-shadow:
+        0 0 30px var(--accent-cyan-shadow, rgba(0,240,255,.4)),
+        inset 0 1px 0 rgba(255,255,255,.5),
+        inset 0 -1px 0 rgba(0,0,0,.15);
+    text-shadow:0 1px 0 rgba(255,255,255,.35);
 }
-.msn-action-btn.primary:hover{
-    color:#001018;
-    filter:brightness(1.1);
-    box-shadow:0 0 44px rgba(0,240,255,.8);
+.msn-act-btn.primary:hover{
+    filter:brightness(1.08);
+    box-shadow:
+        0 0 44px var(--accent-cyan-shadow, rgba(0,240,255,.7)),
+        inset 0 1px 0 rgba(255,255,255,.6),
+        inset 0 -1px 0 rgba(0,0,0,.15);
 }
 
-/* ── Loader ── */
+/* ═══════════════════════════════════════════════════════
+   LOADER + EMPTY
+   ═══════════════════════════════════════════════════════ */
 .msn-profile-loader{
     display:flex;
     flex-direction:column;
     align-items:center;
     justify-content:center;
-    gap:14px;
-    padding:50px 10px;
-    color:#00f0ff;
+    gap:16px;
+    padding:80px 10px;
+    color:var(--accent-cyan, #00f0ff);
     font-family:var(--font-mono, monospace);
     font-size:.68rem;
-    letter-spacing:.22em;
+    letter-spacing:.24em;
     text-transform:uppercase;
-    text-shadow:0 0 10px rgba(0,240,255,.6);
+    text-shadow:0 0 12px var(--accent-cyan-shadow, rgba(0,240,255,.6));
 }
-.msn-profile-loader-dots{
+.msn-loader-dots{
     display:inline-flex;
     gap:8px;
 }
-.msn-profile-loader-dots span{
-    width:9px;
-    height:9px;
+.msn-loader-dots span{
+    width:10px;
+    height:10px;
     border-radius:50%;
-    background:#00f0ff;
+    background:var(--accent-cyan, #00f0ff);
     animation:msnLoaderPulse 1.3s ease-in-out infinite;
-    box-shadow:0 0 10px #00f0ff;
+    box-shadow:0 0 12px var(--accent-cyan, #00f0ff);
 }
-.msn-profile-loader-dots span:nth-child(2){animation-delay:.15s;}
-.msn-profile-loader-dots span:nth-child(3){animation-delay:.3s;}
+.msn-loader-dots span:nth-child(2){animation-delay:.15s;}
+.msn-loader-dots span:nth-child(3){animation-delay:.3s;}
 @keyframes msnLoaderPulse{
     0%,100%{opacity:.25;transform:translateY(0) scale(.85);}
     50%{opacity:1;transform:translateY(-5px) scale(1.15);}
 }
 
 .msn-profile-empty{
-    padding:50px 16px;
+    padding:60px 16px;
     text-align:center;
-    color:#6a7a96;
+    color:var(--text-muted, #6a7a96);
     font-family:var(--font-mono, monospace);
     font-size:.68rem;
-    letter-spacing:.2em;
+    letter-spacing:.22em;
     text-transform:uppercase;
 }
 
-/* ── Username clickable affordance ── */
+/* ── Username affordance ── */
 .msg-username .msn-username-link{
     cursor:pointer;
     transition:color .2s ease, text-shadow .2s ease;
 }
 .msg-username:hover .msn-username-link{
-    color:#00f0ff;
-    text-shadow:0 0 12px rgba(0,240,255,.8);
+    color:var(--accent-cyan, #00f0ff);
+    text-shadow:0 0 12px var(--accent-cyan-shadow, rgba(0,240,255,.8));
 }
 .msg-username .msg-avatar{cursor:pointer;}
 
 /* ── Mobile ── */
-@media (max-width:480px){
-    .msn-profile-overlay{padding:10px;}
-    .msn-profile-card{
-        max-width:100%;
-        padding:20px 18px 16px;
-        border-radius:18px;
+@media (max-width:520px){
+    .msn-profile-overlay{padding:12px;}
+    .msn-profile-card{border-radius:22px;}
+    .msn-profile-card::after{border-radius:22px;}
+    .msn-card-inner{padding:22px 18px 18px;}
+    .msn-hero{
+        grid-template-columns:96px 1fr;
+        gap:16px;
+        padding-bottom:16px;
+        margin-bottom:14px;
     }
-    .msn-profile-head{gap:14px;padding-bottom:12px;margin-bottom:10px;}
-    .msn-profile-avatar-wrap{width:78px;height:78px;}
-    .msn-profile-avatar{font-size:1.75rem;}
-    .msn-profile-status-dot{width:16px;height:16px;border-width:3px;}
-    .msn-profile-username{font-size:1.1rem;gap:5px;}
-    .msn-profile-signature{font-size:.72rem;}
-    .msn-profile-meta{font-size:.5rem;padding:3px 8px;}
-    .msn-wallet-pill{font-size:.5rem;padding:3px 8px;}
-    .msn-profile-hud{padding:10px 3px;margin-bottom:7px;}
-    .msn-hud-value{font-size:.95rem;}
-    .msn-hud-label{font-size:.46rem;}
-    .msn-xp-bar{padding:7px 10px 8px;margin-bottom:7px;}
-    .msn-profile-strip{padding:6px 10px;margin-bottom:8px;font-size:.5rem;}
-    .msn-tier-badge{min-width:1.5em;height:1.5em;font-size:.72em;}
-    .msn-x-badge{width:1.5em;height:1.5em;font-size:.72em;}
-    .msn-ach-slot{font-size:.85rem;border-radius:6px;}
-    .msn-achievements-grid{gap:5px;margin-bottom:10px;}
-    .msn-action-btn{padding:10px 8px;font-size:.66rem;letter-spacing:.05em;}
+    .msn-avatar-wrap{width:96px;height:96px;}
+    .msn-avatar{font-size:1.85rem;}
+    .msn-status-dot{width:20px;height:20px;border-width:3px;}
+    .msn-hero-name{font-size:1.15rem;}
+    .msn-hero-sig{font-size:.72rem;}
+    .msn-tier-badge{min-width:1.65em;height:1.65em;font-size:.68em;}
+    .msn-x-badge{width:1.65em;height:1.65em;font-size:.68em;}
+    .msn-wallet-btn{font-size:.54rem;padding:5px 9px;gap:5px;}
+    .msn-joined-pill{font-size:.52rem;padding:5px 9px;}
+    .msn-xp-focus{padding:12px 14px;gap:12px;margin-bottom:11px;}
+    .msn-level-chip{min-width:56px;padding:7px 10px;}
+    .msn-level-num{font-size:1.15rem;}
+    .msn-level-lbl{font-size:.42rem;}
+    .msn-xp-row-val{font-size:.64rem;}
+    .msn-stats{margin-bottom:11px;}
+    .msn-stat{padding:11px 4px;gap:5px;}
+    .msn-stat-lbl{font-size:.44rem;}
+    .msn-stat-val{font-size:1rem;}
+    .msn-last-active{padding:7px 12px;font-size:.5rem;margin-bottom:11px;}
+    .msn-achievements{gap:5px;margin-bottom:14px;}
+    .msn-ach{font-size:.92rem;border-radius:7px;}
+    .msn-act-btn{padding:11px 10px;font-size:.66rem;letter-spacing:.06em;}
 }
 
 @media (prefers-reduced-motion: reduce){
     .msn-profile-card,
     .msn-profile-card::after,
-    .msn-profile-avatar-wrap::before,
-    .msn-profile-status-dot.online::before,
-    .msn-profile-username,
-    .msn-ach-slot,
-    .msn-profile-loader-dots span,
-    .msn-tier-badge,
-    .msn-xp-bar-fill::after,
-    .msn-strip-dot{
+    .msn-avatar-wrap::before,
+    .msn-avatar-ring,
+    .msn-status-dot.online::before,
+    .msn-ach,
+    .msn-loader-dots span,
+    .msn-xp-fill::after,
+    .msn-la-dot{
         animation:none !important;
     }
     .msn-profile-card{transition:none !important;}
-    .msn-ach-slot{opacity:1 !important;transform:none !important;}
+    .msn-ach{opacity:1 !important;transform:none !important;}
 }
 `;
         var tag = document.createElement('style');
         tag.id = 'msn-profile-styles';
-        tag.setAttribute('data-version', '9');
+        tag.setAttribute('data-version', '11');
         tag.textContent = css;
         document.head.appendChild(tag);
     }
 
-    /* ── Overlay markup ───────────────────────────────────── */
+    /* ── Overlay ─────────────────────────────────────────── */
     var overlay, bodyEl;
     function injectOverlay() {
         if (document.getElementById('msnProfileOverlay')) return;
@@ -942,13 +1159,58 @@
         containers.forEach(function (c) { if (c) mo.observe(c, { childList: true, subtree: true }); });
     }
 
+    /* ── Wallet copy handler ── */
+    function setupWalletCopy() {
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest && e.target.closest('.msn-wallet-btn');
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            var addr = btn.getAttribute('data-wallet');
+            if (!addr) return;
+
+            var finish = function () {
+                btn.classList.add('msn-copied');
+                var copyIcon = btn.querySelector('.msn-wallet-copy');
+                if (!copyIcon) return;
+                var prev = copyIcon.textContent;
+                copyIcon.textContent = '✓';
+                setTimeout(function () {
+                    btn.classList.remove('msn-copied');
+                    copyIcon.textContent = prev;
+                }, 1300);
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(addr).then(finish).catch(function () {
+                    try {
+                        var ta = document.createElement('textarea');
+                        ta.value = addr;
+                        ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        finish();
+                    } catch (err) {}
+                });
+            } else {
+                try {
+                    var ta = document.createElement('textarea');
+                    ta.value = addr;
+                    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    finish();
+                } catch (err) {}
+            }
+        }, true);
+    }
+
     /* ═══════════════════════════════════════════════════════
-       ⚑ FIXED: fetchProfileData
-       - REMOVED `created_at` from profiles SELECT (column may
-         not exist → broke the entire query → not-found)
-       - All optional queries use timeout so nothing stalls
-       - `created_at` for the "Joined" pill comes ONLY from
-         messages.created_at (which always exists)
+       Profile fetch — parallel + 30s cache
        ═══════════════════════════════════════════════════════ */
     var _profileCache = new Map();
     var _PROFILE_CACHE_MS = 30000;
@@ -985,11 +1247,9 @@
             achievements: [], hasProfile: false
         };
 
-        // ⚑ SAFE select — only columns that definitely exist
         var richSel = 'username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address, xp, messages_count, token_balance, updated_at';
         var minSel  = 'username, avatar_url, wallet_address, xp, token_balance';
 
-        // ── 1. Profile lookup ──
         var profile = null;
         if (wallet) {
             try {
@@ -1022,7 +1282,6 @@
             rememberIdentity(profile);
         }
 
-        // ── 2. Balance cache ──
         if (out.token_balance == null && username) {
             try {
                 var cached = window.userBalances && window.userBalances[username];
@@ -1030,7 +1289,6 @@
             } catch (e) {}
         }
 
-        // ── 3. Identity resolve ──
         var resolved = resolveIdentity(out.wallet_address || username);
         if (resolved) {
             if (resolved.displayName) out.display_name = resolved.displayName;
@@ -1046,12 +1304,10 @@
             out.x_verified = !!profile.x_verified;
         }
 
-        // ── 4. XP progress ──
         var a = xpForLevel(out.level), b = xpForLevel(out.level + 1);
         out.xp_in_level = out.xp - a;
         out.xp_needed   = b - a;
 
-        // ── 5. Parallel queries — ALL with timeouts so nothing blocks ──
         var tasks = [];
 
         tasks.push(_timeout(
@@ -1066,7 +1322,6 @@
             3500
         ));
 
-        // First message date — source of "Joined" pill
         tasks.push(_timeout(
             sb.from('messages')
                 .select('created_at')
@@ -1081,7 +1336,6 @@
             3500
         ));
 
-        // Last active
         tasks.push(_timeout(
             sb.from('messages')
                 .select('created_at')
@@ -1096,7 +1350,6 @@
             3500
         ));
 
-        // Message count (only if we don't already have it)
         if (!out.messages_count) {
             tasks.push(_timeout(
                 sb.from('messages')
@@ -1109,7 +1362,6 @@
             ));
         }
 
-        // Streak
         if (out.wallet_address && !isSelf) {
             tasks.push(_timeout(
                 sb.rpc('get_streak_by_wallet', { p_wallet: out.wallet_address })
@@ -1120,7 +1372,6 @@
             ));
         }
 
-        // Reactions given
         tasks.push(_timeout(
             sb.from('message_reactions')
                 .select('*', { count: 'exact', head: true })
@@ -1131,7 +1382,6 @@
             3500
         ));
 
-        // Private messages
         tasks.push(_timeout(
             sb.from('private_messages')
                 .select('*', { count: 'exact', head: true })
@@ -1142,7 +1392,6 @@
             3500
         ));
 
-        // Rank
         tasks.push(_timeout(
             sb.rpc('get_activity_leaderboard', { p_limit: 100 })
                 .then(function (res) {
@@ -1166,11 +1415,9 @@
 
         if (isSelf) out.current_streak = readSelfStreakFromDOM();
 
-        // Fallback for "joined" pill
         if (!out.created_at && out.last_active_at) out.created_at = out.last_active_at;
         if (!out.created_at && profile && profile.updated_at) out.created_at = profile.updated_at;
 
-        // Only "not-found" if we have NOTHING at all
         if (!out.hasProfile && !out.created_at && !out.messages_count) {
             return { error: 'not-found' };
         }
@@ -1193,28 +1440,16 @@
 
     function renderLoading() {
         bodyEl.innerHTML = ''
-            + '<div class="msn-profile-loader">'
-            +   '<span class="msn-profile-loader-dots"><span></span><span></span><span></span></span>'
-            +   '<span>Loading…</span>'
+            + '<div class="msn-card-inner">'
+            +   '<div class="msn-profile-loader">'
+            +     '<span class="msn-loader-dots"><span></span><span></span><span></span></span>'
+            +     '<span>Loading…</span>'
+            +   '</div>'
             + '</div>';
     }
     function renderError(msg) {
-        bodyEl.innerHTML = '<div class="msn-profile-empty">⚠ ' + esc(msg || 'Profile unavailable') + '</div>';
-    }
-
-    function renderXpBar(data) {
-        var inLv = Number(data.xp_in_level || 0);
-        var need = Number(data.xp_needed || 100) || 100;
-        var pct  = Math.min(100, Math.max(0, (inLv / need) * 100));
-        return ''
-            + '<div class="msn-xp-bar" title="' + inLv + ' / ' + need + ' XP to next level">'
-            +   '<div class="msn-xp-bar-track">'
-            +     '<div class="msn-xp-bar-fill" style="width:' + pct.toFixed(1) + '%"></div>'
-            +   '</div>'
-            +   '<div class="msn-xp-bar-label">'
-            +     '<span>LV ' + (data.level || 1) + '</span>'
-            +     '<span>' + inLv + ' / ' + need + ' XP</span>'
-            +   '</div>'
+        bodyEl.innerHTML = '<div class="msn-card-inner">'
+            + '<div class="msn-profile-empty">⚠ ' + esc(msg || 'Profile unavailable') + '</div>'
             + '</div>';
     }
 
@@ -1230,108 +1465,129 @@
         var online    = isSelf ? true : isUserOnline(data.username);
         var shownName = data.display_name || data.username || 'anon';
 
+        var xpIn   = Number(data.xp_in_level || 0);
+        var xpNeed = Number(data.xp_needed || 100) || 100;
+        var xpPct  = Math.min(100, Math.max(0, (xpIn / xpNeed) * 100));
+
         var xBadge = data.x_verified
-            ? '<span class="msn-x-badge" title="Verified on X" aria-label="Verified on X">𝕏</span>'
+            ? '<span class="msn-x-badge" title="Verified on X">𝕏</span>'
             : '';
 
         var tierBadge = '';
         var tier = tierFor(resolveBalance(data));
         if (tier) {
             tierBadge = '<span class="msn-tier-badge msn-tier-' + tier.name.toLowerCase() + '"'
-                + ' title="' + tier.name + '" aria-label="' + tier.name + '">'
-                + tier.emoji + '</span>';
+                + ' title="' + tier.name + '">' + tier.emoji + '</span>';
         }
 
-        var rankText;
+        var rankVal = '—';
+        var rankSub = '';
         if (rank != null) {
-            rankText = '#' + rank;
-            if (rankTotal) rankText += '/' + rankTotal;
-        } else if (data.wallet_address) {
-            rankText = '—';
-        } else {
-            rankText = 'N/A';
+            rankVal = '#' + rank;
+            if (rankTotal) rankSub = '<span class="msn-stat-sub">/' + rankTotal + '</span>';
+        } else if (!data.wallet_address) {
+            rankVal = 'N/A';
         }
 
-        var metaPills = '<div class="msn-profile-meta">◉ Joined ' + esc(fmtDate(data.created_at)) + '</div>';
-        var walletPill = '';
+        var walletBtn = '';
         if (data.wallet_address) {
-            walletPill = '<span class="msn-wallet-pill" title="' + esc(data.wallet_address) + '">'
-                + '👛 ' + esc(shortWallet(data.wallet_address)) + '</span>';
+            walletBtn = '<button class="msn-wallet-btn" type="button" '
+                + 'data-wallet="' + esc(data.wallet_address) + '" '
+                + 'title="Click to copy full address">'
+                + '<span class="msn-wallet-icon">👛</span>'
+                + '<span class="msn-wallet-label">' + esc(shortWallet(data.wallet_address)) + '</span>'
+                + '<span class="msn-wallet-copy">📋</span>'
+                + '</button>';
         } else if (data.x_handle) {
-            walletPill = '<span class="msn-wallet-pill">@' + esc(data.x_handle) + '</span>';
+            walletBtn = '<span class="msn-joined-pill">@' + esc(data.x_handle) + '</span>';
         }
-        if (walletPill) metaPills += walletPill;
+
+        var joinedPill = '<span class="msn-joined-pill">◉ Joined ' + esc(fmtDate(data.created_at)) + '</span>';
 
         var achHTML = '';
+        var unlocked = 0;
         if (data.achievements && data.achievements.length) {
+            unlocked = data.achievements.length;
             achHTML = data.achievements.map(function (a) {
-                return '<div class="msn-ach-slot unlocked" title="' + esc(a.achievement_code) + '">🏆</div>';
+                return '<div class="msn-ach unlocked" title="' + esc(a.achievement_code) + '">🏆</div>';
             }).join('');
             for (var i = data.achievements.length; i < 6; i++) {
-                achHTML += '<div class="msn-ach-slot empty" title="Locked">·</div>';
+                achHTML += '<div class="msn-ach locked" title="Locked"></div>';
             }
         } else {
             for (var j = 0; j < 6; j++) {
-                achHTML += '<div class="msn-ach-slot empty" title="Coming soon">·</div>';
+                achHTML += '<div class="msn-ach locked" title="Coming soon"></div>';
             }
         }
 
         var actionsHTML = '';
         if (isSelf) {
-            actionsHTML = '<button class="msn-action-btn" data-msn-profile-action="edit">⚙ Edit Profile</button>';
+            actionsHTML = '<button class="msn-act-btn" data-msn-profile-action="edit">⚙ Edit Profile</button>';
         } else {
             actionsHTML = ''
-                + '<button class="msn-action-btn" data-msn-profile-action="friend">+ Friend</button>'
-                + '<button class="msn-action-btn primary" data-msn-profile-action="message">▶ Message</button>';
+                + '<button class="msn-act-btn" data-msn-profile-action="friend">+ Add Friend</button>'
+                + '<button class="msn-act-btn primary" data-msn-profile-action="message">▶ Message</button>';
         }
 
-        // ⚑ Streak only shows if there IS a streak
-        var showStreakRow = streak > 0;
+        var streakClass = streak > 0 ? ' msn-stat-fire' : '';
 
         bodyEl.innerHTML = ''
-            + '<div class="msn-profile-head">'
-            +   '<div class="msn-profile-avatar-wrap">'
-            +     '<div class="msn-profile-avatar">' + avatarHTML(data) + '</div>'
-            +     '<span class="msn-profile-status-dot' + (online ? ' online' : '') + '" '
-            +         'title="' + (online ? 'Online' : 'Offline') + '"></span>'
+            + '<div class="msn-card-inner">'
+
+            + '<div class="msn-hero">'
+            +   '<div class="msn-avatar-wrap">'
+            +     '<div class="msn-avatar-ring"></div>'
+            +     '<div class="msn-avatar">' + avatarHTML(data) + '</div>'
+            +     '<span class="msn-status-dot' + (online ? ' online' : '') + '"></span>'
             +   '</div>'
-            +   '<div class="msn-profile-identity">'
-            +     '<h2 class="msn-profile-username">' + esc(shownName) + tierBadge + xBadge + '</h2>'
-            +     '<p class="msn-profile-signature">' + (data.signature ? esc(data.signature) : '') + '</p>'
-            +     '<div class="msn-profile-meta-row">' + metaPills + '</div>'
+            +   '<div class="msn-hero-info">'
+            +     '<div class="msn-hero-name-row">'
+            +       '<h2 class="msn-hero-name">' + esc(shownName) + '</h2>'
+            +       tierBadge + xBadge
+            +     '</div>'
+            +     '<p class="msn-hero-sig">' + (data.signature ? esc(data.signature) : '') + '</p>'
+            +     '<div class="msn-hero-pills">' + walletBtn + joinedPill + '</div>'
             +   '</div>'
             + '</div>'
 
-            /* HUD row 1: Level / XP / Messages / Rank */
-            + '<div class="msn-profile-hud">'
-            +   '<div class="msn-hud-stat"><span class="msn-hud-label">Level</span><span class="msn-hud-value">' + level + '</span></div>'
-            +   '<div class="msn-hud-stat"><span class="msn-hud-label">XP</span><span class="msn-hud-value">' + esc(fmtNum(xp)) + '</span></div>'
-            +   '<div class="msn-hud-stat"><span class="msn-hud-label">Msgs</span><span class="msn-hud-value">' + esc(fmtNum(msgs)) + '</span></div>'
-            +   '<div class="msn-hud-stat"><span class="msn-hud-label">Rank</span><span class="msn-hud-value">' + esc(rankText) + '</span></div>'
+            + '<div class="msn-xp-focus">'
+            +   '<div class="msn-level-chip">'
+            +     '<span class="msn-level-num">' + level + '</span>'
+            +     '<span class="msn-level-lbl">LVL</span>'
+            +   '</div>'
+            +   '<div class="msn-xp-details">'
+            +     '<div class="msn-xp-row">'
+            +       '<span class="msn-xp-row-label">Experience</span>'
+            +       '<span class="msn-xp-row-val">' + xpIn.toLocaleString() + ' / ' + xpNeed.toLocaleString() + ' XP</span>'
+            +     '</div>'
+            +     '<div class="msn-xp-track"><div class="msn-xp-fill" style="width:' + xpPct.toFixed(1) + '%"></div></div>'
+            +   '</div>'
             + '</div>'
 
-            /* XP progress bar */
-            + renderXpBar(data)
-
-            /* HUD row 2: Reactions / Private / Streak */
-            + '<div class="msn-profile-hud msn-hud-3">'
-            +   '<div class="msn-hud-stat"><span class="msn-hud-label">Reactions</span><span class="msn-hud-value">' + esc(fmtNum(reactions)) + '</span></div>'
-            +   '<div class="msn-hud-stat"><span class="msn-hud-label">Private</span><span class="msn-hud-value">' + esc(fmtNum(privMsgs)) + '</span></div>'
-            +   '<div class="msn-hud-stat"><span class="msn-hud-label">Streak</span><span class="msn-hud-value">' + (showStreakRow ? '🔥 ' + streak : '—') + '</span></div>'
+            + '<div class="msn-stats">'
+            +   '<div class="msn-stat"><span class="msn-stat-lbl">Total XP</span><span class="msn-stat-val">' + esc(fmtNum(xp)) + '</span></div>'
+            +   '<div class="msn-stat"><span class="msn-stat-lbl">Messages</span><span class="msn-stat-val">' + esc(fmtNum(msgs)) + '</span></div>'
+            +   '<div class="msn-stat"><span class="msn-stat-lbl">Rank</span><span class="msn-stat-val">' + rankVal + rankSub + '</span></div>'
+            +   '<div class="msn-stat' + streakClass + '"><span class="msn-stat-lbl">Streak</span><span class="msn-stat-val">' + (streak > 0 ? streak : '—') + '</span></div>'
             + '</div>'
 
-            /* Last active */
-            + '<div class="msn-profile-strip">'
-            +   '<span class="msn-strip-dot"></span>'
-            +   '<span class="msn-strip-label">LAST ACTIVE</span>'
-            +   '<span class="msn-strip-value">' + esc(timeAgo(data.last_active_at || data.created_at)) + '</span>'
+            + '<div class="msn-last-active">'
+            +   '<span class="msn-la-dot"></span>'
+            +   '<span class="msn-la-label">Last active</span>'
+            +   '<span class="msn-la-val">' + esc(timeAgo(data.last_active_at || data.created_at)) + '</span>'
             + '</div>'
 
-            + '<div class="msn-profile-section-label">Achievements</div>'
-            + '<div class="msn-achievements-grid">' + achHTML + '</div>'
-            + '<div class="msn-profile-actions">' + actionsHTML + '</div>';
+            + '<div class="msn-ach-header">'
+            +   '<span class="msn-ach-header-label">Achievements</span>'
+            +   '<span class="msn-ach-count">' + unlocked + ' / 6</span>'
+            + '</div>'
+            + '<div class="msn-achievements">' + achHTML + '</div>'
 
-        var actions = bodyEl.querySelector('.msn-profile-actions');
+            + '<div class="msn-actions">' + actionsHTML + '</div>'
+
+            + '</div>';
+
+        var actions = bodyEl.querySelector('.msn-actions');
         if (actions) {
             actions.addEventListener('click', function (e) {
                 var btn = e.target.closest('[data-msn-profile-action]');
@@ -1485,6 +1741,7 @@
     function boot() {
         injectStyles();
         injectOverlay();
+        setupWalletCopy();
         decorateUsernames(document.getElementById('publicMessagesContainer'));
         decorateUsernames(document.getElementById('privateMessagesContainer'));
         setupUsernameObserver();
@@ -1495,5 +1752,5 @@
         boot();
     }
 
-    console.log('[profile-system] loaded v9 — compact + fixed SELECT + timeout guards');
+    console.log('[profile-system] loaded v11 — theme-responsive hero');
 })();
