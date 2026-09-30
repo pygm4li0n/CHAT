@@ -1444,7 +1444,8 @@
     let pendingPrivateRequests = new Map();
     let knownMessageIds = new Set();
     let messageReactions = {};
-    let privateMessageReactions = {};
+let privateMessageReactions = {};
+let whaleMessageReactions = {};   // whale chat reuses the message_reactions table
     const EMOJIS = ['👍','👎','❤️','😨'];
     let pendingImageUrl = null;
     let profilePicFile = null;
@@ -2118,34 +2119,44 @@ function showSuccess(msg) {
         fileInput.value = '';
     }
 
-    async function loadReactions(table, isPrivate) {
-        const { data, error } = await supabase.from(table).select('*');
-        if (error) return;
+    async function loadReactions(table, isPrivate, isWhale) {
+    const { data, error } = await supabase.from(table).select('*');
+    if (error) return;
 
-        const target = isPrivate ? privateMessageReactions : messageReactions;
-        for (const key of Object.keys(target)) delete target[key];
+    const target = isWhale
+        ? whaleMessageReactions
+        : (isPrivate ? privateMessageReactions : messageReactions);
 
-        (data || []).forEach(r => {
-            if (!target[r.message_id]) target[r.message_id] = {};
-            if (!target[r.message_id][r.emoji]) {
-                target[r.message_id][r.emoji] = { count: 0, users: new Set() };
-            }
-            target[r.message_id][r.emoji].count++;
-            target[r.message_id][r.emoji].users.add(r.username);
-        });
+    for (const key of Object.keys(target)) delete target[key];
 
-        // ⚑ Repaint ONLY the container this data belongs to.
-        //   Repainting both was wiping whichever loaded first.
-        const container = isPrivate ? privateContainer : publicContainer;
-        if (!container) return;
-        container.querySelectorAll('.msg-wrapper').forEach(w => {
-            updateReactionUI(w, isPrivate);
-        });
-    }
-    function subscribeReactions() {
+    (data || []).forEach(r => {
+        if (!target[r.message_id]) target[r.message_id] = {};
+        if (!target[r.message_id][r.emoji]) {
+            target[r.message_id][r.emoji] = { count: 0, users: new Set() };
+        }
+        target[r.message_id][r.emoji].count++;
+        target[r.message_id][r.emoji].users.add(r.username);
+    });
+
+    // ⚑ Repaint ONLY the container this data belongs to.
+    const container = isWhale
+        ? whaleContainer
+        : (isPrivate ? privateContainer : publicContainer);
+    if (!container) return;
+    container.querySelectorAll('.msg-wrapper').forEach(w => {
+        updateReactionUI(w, isPrivate, isWhale);
+    });
+}
+        function subscribeReactions() {
         if (reactionsChannel) supabase.removeChannel(reactionsChannel);
         reactionsChannel = supabase.channel('pub-react')
-            .on('postgres_changes', { event:'*', schema:'public', table:'message_reactions' }, () => loadReactions('message_reactions', false))
+            .on('postgres_changes', { event:'*', schema:'public', table:'message_reactions' }, () => {
+                // Public + whale share the same table — repaint both.
+                loadReactions('message_reactions', false);
+                if (whaleContainer && whaleContainer.querySelectorAll('.msg-wrapper').length) {
+                    loadReactions('message_reactions', false, true);
+                }
+            })
             .subscribe();
         if (privReactionsChannel) supabase.removeChannel(privReactionsChannel);
         privReactionsChannel = supabase.channel('priv-react')
@@ -2163,12 +2174,15 @@ function showSuccess(msg) {
          5. on error → roll back + toast
        Realtime reconcile stays the ultimate source of truth.
        ═══════════════════════════════════════════════════════════ */
-    function updateReactionUI(wrapper, isPrivate) {
-        const msgId = wrapper.getAttribute('data-msg-id');
-        const bar = wrapper.querySelector('.reactions-bar');
-        if (!bar) return;
+    function updateReactionUI(wrapper, isPrivate, isWhale) {
+    const msgId = wrapper.getAttribute('data-msg-id');
+    const bar = wrapper.querySelector('.reactions-bar');
+    if (!bar) return;
 
-        const reactions = (isPrivate ? privateMessageReactions : messageReactions)[msgId] || {};
+    const store = isWhale
+        ? whaleMessageReactions
+        : (isPrivate ? privateMessageReactions : messageReactions);
+    const reactions = store[msgId] || {};
 
         bar.innerHTML = EMOJIS.map(emoji => {
             const data  = reactions[emoji] || { count: 0, users: new Set() };
@@ -2190,11 +2204,15 @@ function showSuccess(msg) {
            innerHTML rebuild. */
     }
 
-    async function toggleReaction(messageId, emoji, isPrivate, btnEl) {
-        if (!username) { showError('Set your username first'); return; }
+    async function toggleReaction(messageId, emoji, isPrivate, isWhale, btnEl) {
+    if (!username) { showError('Set your username first'); return; }
 
-        const table = isPrivate ? 'private_message_reactions' : 'message_reactions';
-        const store = isPrivate ? privateMessageReactions    : messageReactions;
+    // Whale reactions reuse the public message_reactions table.
+    // Message IDs are UUIDs — no collision risk.
+    const table = isPrivate ? 'private_message_reactions' : 'message_reactions';
+    const store = isWhale
+        ? whaleMessageReactions
+        : (isPrivate ? privateMessageReactions : messageReactions);
 
         /* ── 1. Optimistic flip ── */
         if (!store[messageId]) store[messageId] = {};
@@ -2212,8 +2230,8 @@ function showSuccess(msg) {
 
         /* ── 2. Instant repaint ── */
         const wrapper = document.querySelector(`.msg-wrapper[data-msg-id="${messageId}"]`);
-        if (wrapper) updateReactionUI(wrapper, isPrivate);
-
+        if (wrapper) updateReactionUI(wrapper, isPrivate, isWhale);
+        
         /* ── 3. Press feedback ── */
         if (btnEl) {
             btnEl.classList.add('pressing');
@@ -2245,7 +2263,7 @@ function showSuccess(msg) {
                 bucket.users.delete(username);
                 bucket.count = Math.max(0, bucket.count - 1);
             }
-            if (wrapper) updateReactionUI(wrapper, isPrivate);
+            if (wrapper) updateReactionUI(wrapper, isPrivate, isWhale);
             showError('Reaction failed — try again');
         }
     }
@@ -2287,7 +2305,7 @@ function showSuccess(msg) {
         return html;
     }
 
-        async function buildMessageNode(msg, isPrivate) {
+        async function buildMessageNode(msg, isPrivate, isWhale) {
         const user = isPrivate ? msg.from_user : msg.username;
         const msgWallet = msg.wallet_address || null;
 
@@ -2393,7 +2411,7 @@ function showSuccess(msg) {
                 if (!btn || !reactionsBarEl.contains(btn)) return;
                 e.preventDefault();
                 e.stopPropagation();
-                toggleReaction(msg.id, btn.dataset.emoji, isPrivate, btn);
+                toggleReaction(msg.id, btn.dataset.emoji, isPrivate, isWhale, btn);
             });
         }
 
@@ -2430,7 +2448,7 @@ function showSuccess(msg) {
             if (editBtn) editBtn.addEventListener('click', (e) => { e.stopPropagation(); startEditMessage(msg, isPrivate); });
             if (deleteBtn) deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteMessage(msg, isPrivate); });
         }
-        updateReactionUI(wrapper, isPrivate);
+        updateReactionUI(wrapper, isPrivate, isWhale);
 
         return wrapper;
     }
@@ -3217,8 +3235,8 @@ function showSuccess(msg) {
                 if (rows.length === 0) {
                     holder.innerHTML = '<div class="empty-chat-hint">🐋 No whale messages yet — you can start.</div>';
                 } else {
-                    for (const msg of rows) {
-                        const node = await buildMessageNode(msg, false);
+                                        for (const msg of rows) {
+                        const node = await buildMessageNode(msg, false, true);
                         knownWhaleIds.add(msg.id);
                         holder.appendChild(node);
                     }
@@ -3227,9 +3245,12 @@ function showSuccess(msg) {
                 whaleContainer.innerHTML = '';
                 while (holder.firstChild) whaleContainer.appendChild(holder.firstChild);
 
-                autoScroll = true;
+                                autoScroll = true;
                 whaleContainer.scrollTop = whaleContainer.scrollHeight;
                 requestAnimationFrame(() => { whaleContainer.scrollTop = whaleContainer.scrollHeight; });
+
+                // ⚑ Load reactions for whale messages too (reuses message_reactions).
+                loadReactions('message_reactions', false, true);
 
                 whaleLoadedOnce = true;
             } catch (err) {
@@ -3273,10 +3294,10 @@ function showSuccess(msg) {
                 startCooldown(modCooldownSeconds);
                 if (window.addXP && inserted?.id) window.addXP(inserted.id);
 
-                if (!knownWhaleIds.has(inserted.id)) {
+                               if (!knownWhaleIds.has(inserted.id)) {
                     knownWhaleIds.add(inserted.id);
                     if (whaleEmptyHint) whaleEmptyHint.style.display = 'none';
-                    const wrapper = await buildMessageNode(inserted, false);
+                    const wrapper = await buildMessageNode(inserted, false, true);
                     whaleContainer.appendChild(wrapper);
                     autoScroll = true;
                     whaleContainer.scrollTop = whaleContainer.scrollHeight;
@@ -3320,10 +3341,10 @@ function showSuccess(msg) {
                 if (rows.length < PUBLIC_PAGE_SIZE) hasMoreOlderWhale = false;
 
                 const frag = document.createDocumentFragment();
-                for (const msg of rows) {
+                               for (const msg of rows) {
                     if (knownWhaleIds.has(msg.id)) continue;
                     knownWhaleIds.add(msg.id);
-                    const node = await buildMessageNode(msg, false);
+                    const node = await buildMessageNode(msg, false, true);
                     frag.appendChild(node);
                 }
                 whaleContainer.insertBefore(frag, whaleContainer.firstChild);
@@ -3545,22 +3566,39 @@ function showSuccess(msg) {
     //
     //   Always forces scroll-to-bottom since this only fires on the user's own send.
     document.addEventListener('msn:render-local-message', function (e) {
-        try {
-            var detail = e.detail || {};
-            var msg = detail.message;
-            if (!msg || !msg.id) return;
-            var isPrivate = !!detail.isPrivate;
+    try {
+        var detail = e.detail || {};
+        var msg = detail.message;
+        if (!msg || !msg.id) return;
+        var isPrivate = !!detail.isPrivate;
+        var isWhale   = !!detail.isWhale;
 
-            autoScroll = true;
-            renderMessage(msg, isPrivate, true);
+        autoScroll = true;
 
-            var c = isPrivate ? privateContainer : publicContainer;
-            scrollContainerToBottom(c);
-            requestAnimationFrame(function () { scrollContainerToBottom(c); });
-        } catch (err) {
-            console.warn('[local-echo] render failed:', err);
+        // ── Whale tab — append into #whaleMessagesContainer ──
+        if (isWhale) {
+            if (knownWhaleIds.has(msg.id)) return;
+            knownWhaleIds.add(msg.id);
+            if (whaleEmptyHint) whaleEmptyHint.style.display = 'none';
+            buildMessageNode(msg, false, true).then(function (wrapper) {
+                whaleContainer.appendChild(wrapper);
+                whaleContainer.scrollTop = whaleContainer.scrollHeight;
+                requestAnimationFrame(function () {
+                    whaleContainer.scrollTop = whaleContainer.scrollHeight;
+                });
+            });
+            return;
         }
-    });
+
+        renderMessage(msg, isPrivate, true);
+
+        var c = isPrivate ? privateContainer : publicContainer;
+        scrollContainerToBottom(c);
+        requestAnimationFrame(function () { scrollContainerToBottom(c); });
+    } catch (err) {
+        console.warn('[local-echo] render failed:', err);
+    }
+});
 
     async function fullReconnect() {
         refreshBtn.classList.add('spinning');
