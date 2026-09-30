@@ -3,9 +3,10 @@
    ────────────────────────────────────────────────────────────
    Drop-in. Load AFTER script.js + wallet-identity.js.
 
-     <script src="profile-system.js?v=13"></script>
+     <script src="profile-system.js?v=15"></script>
 
-   v13: no private stat, last-active over name, high contrast
+   v15: unified desktop/mobile layout, darker high-contrast stats
+        container, clearer hint labels & tooltips, tighter alignment
    ============================================================ */
 (function () {
     'use strict';
@@ -85,6 +86,15 @@
     function isWalletLike(s) {
         return typeof s === 'string' && s.length >= 32 && s.length <= 48 && !/\s/.test(s);
     }
+    /* Turn "streak_master_10" → "Streak Master 10" for friendlier hints */
+    function prettyCode(code) {
+        if (!code) return '';
+        return String(code)
+            .replace(/[_-]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+    }
     function getSB() {
         if (window.MSN && window.MSN.supabase) return window.MSN.supabase;
         if (window.supabase && window.supabase.createClient) {
@@ -146,14 +156,14 @@
     }
 
     /* ═══════════════════════════════════════════════════════
-       CSS — EPIC HERO v13 · high-contrast cut
+       CSS — EPIC HERO v15 · unified responsive, dark stats
        ═══════════════════════════════════════════════════════ */
     function injectStyles() {
         var old = document.getElementById('msn-profile-styles');
         if (old) old.remove();
         var css = `
 /* ═══════════════════════════════════════════════════════
-   MSN PROFILE CARD — epic hero v13
+   MSN PROFILE CARD — epic hero v15
    ═══════════════════════════════════════════════════════ */
 
 .msn-profile-overlay{
@@ -209,35 +219,25 @@
     text-align:left;
 }
 
-/* Scanner border */
+/* Static gradient edge — no rotation */
 .msn-profile-card::after{
     content:"";
     position:absolute;
     inset:0;
     border-radius:24px;
     padding:1.5px;
-    background:conic-gradient(from 0deg,
-        transparent 0deg,
-        transparent 70deg,
-        var(--accent-cyan, #00f0ff) 90deg,
-        var(--accent-cyan-bright, #e2fbff) 100deg,
-        var(--accent-cyan, #00f0ff) 110deg,
-        transparent 130deg,
-        transparent 250deg,
-        var(--accent-purple, #a855f7) 270deg,
-        var(--accent-purple-bright, #ecdcff) 280deg,
-        var(--accent-purple, #a855f7) 290deg,
-        transparent 310deg,
-        transparent 360deg);
+    background:linear-gradient(135deg,
+        var(--accent-cyan, rgba(0,240,255,.75)) 0%,
+        transparent 28%,
+        transparent 72%,
+        var(--accent-purple, rgba(168,85,247,.75)) 100%);
     -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite:xor;
             mask-composite:exclude;
     pointer-events:none;
-    animation:msnBorderSpin 6s linear infinite;
-    filter:drop-shadow(0 0 10px var(--accent-cyan, rgba(0,240,255,.75)));
     z-index:2;
+    filter:drop-shadow(0 0 10px var(--accent-cyan, rgba(0,240,255,.55)));
 }
-@keyframes msnBorderSpin{to{transform:rotate(360deg);}}
 
 .msn-profile-overlay.open .msn-profile-card{
     transform:scale(1) translateY(0);
@@ -314,6 +314,8 @@
     0%,100%{transform:scale(1);opacity:.85;}
     50%{transform:scale(1.08);opacity:1;}
 }
+
+/* ★ Spinning conic ring around avatar */
 .msn-avatar-ring{
     position:absolute;
     inset:-4px;
@@ -336,6 +338,8 @@
     border-radius:50%;
     background:var(--bg-deep, #010306);
 }
+@keyframes msnBorderSpin{to{transform:rotate(360deg);}}
+
 .msn-avatar{
     position:absolute;
     inset:0;
@@ -392,7 +396,7 @@
     display:flex;
     flex-direction:column;
     align-items:flex-start;
-    gap:7px;
+    gap:8px;
     min-width:0;
     width:100%;
 }
@@ -411,12 +415,12 @@
     padding:5px 10px 5px 8px;
     border-radius:999px;
     background:linear-gradient(180deg,
-        var(--accent-green-glow-soft, rgba(34,255,136,.10)) 0%,
-        var(--accent-green-glow-faint, rgba(34,255,136,.02)) 100%);
-    border:1px solid var(--accent-green-border, rgba(34,255,136,.28));
+        rgba(34,255,136,.12) 0%,
+        rgba(34,255,136,.03) 100%);
+    border:1px solid rgba(34,255,136,.32);
     box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.05),
-        0 0 14px rgba(34,255,136,.12);
+        inset 0 1px 0 rgba(255,255,255,.06),
+        0 0 14px rgba(34,255,136,.14);
     white-space:nowrap;
     max-width:100%;
 }
@@ -465,21 +469,6 @@
         0 0 26px var(--accent-glow, rgba(0,240,255,.6)),
         0 0 52px var(--accent-glow-soft, rgba(0,240,255,.28)),
         0 2px 8px rgba(0,0,0,.95);
-    animation:msnNameGlow 3.2s ease-in-out infinite;
-}
-@keyframes msnNameGlow{
-    0%,100%{
-        text-shadow:
-            0 0 26px var(--accent-glow, rgba(0,240,255,.6)),
-            0 0 52px var(--accent-glow-soft, rgba(0,240,255,.28)),
-            0 2px 8px rgba(0,0,0,.95);
-    }
-    50%{
-        text-shadow:
-            0 0 34px var(--accent-glow, rgba(0,240,255,.9)),
-            0 0 66px var(--accent-glow-soft, rgba(0,240,255,.42)),
-            0 2px 8px rgba(0,0,0,.95);
-    }
 }
 
 /* Tier badge */
@@ -633,70 +622,91 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   STATS — 4 columns
+   STATS — 4 columns · dark, high contrast, aligned
    ═══════════════════════════════════════════════════════ */
 .msn-stats{
     display:grid;
-    grid-template-columns:repeat(4,1fr);
+    grid-template-columns:repeat(4,minmax(0,1fr));
     gap:1px;
     margin:0 24px 18px;
-    background:var(--border-subtle, rgba(0,240,255,.12));
-    border:1px solid var(--border-subtle-strong, rgba(0,240,255,.20));
+    background:rgba(0,0,0,.75);                 /* dark seam between cells */
+    border:1px solid rgba(0,240,255,.22);
     border-radius:14px;
     overflow:hidden;
+    box-shadow:
+        inset 0 0 0 1px rgba(0,0,0,.7),
+        0 6px 22px rgba(0,0,0,.5);
 }
 .msn-stat{
+    position:relative;
     display:flex;
     flex-direction:column;
     align-items:center;
     justify-content:center;
-    gap:6px;
-    padding:14px 4px;
+    gap:7px;
+    padding:15px 4px 14px;
     background:linear-gradient(180deg,
-        var(--accent-glow-faint, rgba(0,240,255,.045)) 0%,
-        var(--accent-glow-trace, rgba(0,240,255,.008)) 100%);
+        rgba(12,20,34,.96) 0%,
+        rgba(2,5,11,1) 100%);
     transition:background .2s ease;
     min-width:0;
     cursor:default;
+    overflow:hidden;
+}
+.msn-stat::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:radial-gradient(ellipse 120% 70% at 50% 0%,
+        rgba(0,240,255,.07) 0%, transparent 68%);
+    pointer-events:none;
 }
 .msn-stat:hover{
     background:linear-gradient(180deg,
-        var(--accent-glow-soft, rgba(0,240,255,.13)) 0%,
-        var(--accent-glow-faint, rgba(0,240,255,.03)) 100%);
+        rgba(16,34,52,.98) 0%,
+        rgba(3,9,18,1) 100%);
 }
 .msn-stat-lbl{
-    font-size:.46rem;
+    font-size:.5rem;
     font-weight:800;
     letter-spacing:.16em;
     text-transform:uppercase;
-    color:var(--text-muted, #7488a8);
+    color:#9fb3d1;                               /* brighter than before */
     line-height:1;
     font-family:var(--font-mono, monospace);
+    text-shadow:0 1px 0 rgba(0,0,0,.9);
+    white-space:nowrap;
 }
 .msn-stat-val{
     font-family:var(--font-mono, monospace);
-    font-size:1.2rem;
+    font-size:1.25rem;
     font-weight:900;
-    color:var(--accent-cyan, #2af6ff);
+    color:#3ef8ff;
     line-height:1;
     font-variant-numeric:tabular-nums;
     letter-spacing:-.02em;
-    text-shadow:0 0 16px var(--accent-cyan-shadow, rgba(0,240,255,.75));
+    text-shadow:
+        0 0 14px rgba(0,240,255,.85),
+        0 0 30px rgba(0,240,255,.35);
     display:flex;
     align-items:baseline;
-    gap:2px;
+    justify-content:center;
+    gap:3px;
+    min-height:1.25rem;                          /* keeps all cells same height */
 }
 .msn-stat-val .msn-stat-sub{
     font-size:.6em;
-    color:var(--text-muted, #7488a8);
+    color:#7f93b3;
     font-weight:800;
     text-shadow:none;
 }
 
 /* ⚑ Streak — fire + number */
 .msn-stat.msn-stat-fire .msn-stat-val{
-    color:var(--accent-orange, #ffbe7a);
-    text-shadow:0 0 16px var(--accent-orange-glow, rgba(255,140,0,.8));
+    color:#ffc98a;
+    text-shadow:
+        0 0 14px rgba(255,150,20,.95),
+        0 0 30px rgba(255,140,0,.45);
 }
 .msn-stat.msn-stat-fire .msn-stat-val .msn-fire-icon{
     font-size:.85em;
@@ -722,7 +732,7 @@
     font-weight:800;
     letter-spacing:.2em;
     text-transform:uppercase;
-    color:var(--text-muted, #7488a8);
+    color:#9fb3d1;
     font-family:var(--font-mono, monospace);
     display:flex;
     align-items:center;
@@ -742,7 +752,7 @@
 }
 .msn-ach-count{
     font-size:.5rem;
-    color:var(--text-muted, #7488a8);
+    color:#9fb3d1;
     font-family:var(--font-mono, monospace);
     font-weight:800;
     letter-spacing:.08em;
@@ -759,8 +769,8 @@
 .msn-ach{
     aspect-ratio:1/1;
     border-radius:9px;
-    background:var(--bg-elevated, rgba(255,255,255,.025));
-    border:1px solid var(--border-subtle, rgba(0,240,255,.14));
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(0,240,255,.14);
     display:flex;
     align-items:center;
     justify-content:center;
@@ -920,51 +930,70 @@
 }
 .msg-username .msg-avatar{cursor:pointer;}
 
-/* ── Mobile ── */
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — keep identical structure, scale proportionally
+   ═══════════════════════════════════════════════════════ */
 @media (max-width:520px){
     .msn-profile-overlay{padding:12px;}
     .msn-profile-card{border-radius:20px;}
     .msn-profile-card::after{border-radius:20px;}
 
     .msn-hero{
-        grid-template-columns:88px 1fr;
+        grid-template-columns:92px 1fr;
         gap:16px;
-        padding:22px 18px 16px;
+        padding:22px 18px 18px;
     }
-    .msn-avatar-wrap{width:88px;height:88px;}
-    .msn-avatar{font-size:1.75rem;}
+    .msn-avatar-wrap{width:92px;height:92px;}
+    .msn-avatar{font-size:1.8rem;}
     .msn-status-dot{width:18px;height:18px;border-width:3px;}
-    .msn-hero-status{font-size:.5rem;padding:4px 8px 4px 6px;gap:6px;}
-    .msn-hero-name{font-size:1.5rem;letter-spacing:-.022em;}
-    .msn-hero-sig{font-size:.74rem;}
+    .msn-hero-info{gap:7px;}
+    .msn-hero-status{font-size:.5rem;padding:4px 9px 4px 7px;gap:6px;letter-spacing:.14em;}
+    .msn-hero-name{font-size:1.55rem;letter-spacing:-.022em;}
+    .msn-hero-sig{font-size:.78rem;}
     .msn-tier-badge{min-width:1.7em;height:1.7em;font-size:.68em;}
     .msn-x-badge{width:1.7em;height:1.7em;font-size:.68em;}
-    .msn-wallet-btn{font-size:.54rem;padding:5px 9px;gap:5px;}
-    .msn-joined-pill{font-size:.52rem;padding:5px 9px;}
+    .msn-wallet-btn{font-size:.56rem;padding:5px 9px;gap:5px;}
+    .msn-joined-pill{font-size:.54rem;padding:5px 9px;letter-spacing:.1em;}
 
-    .msn-stats{margin:0 18px 14px;}
-    .msn-stat{padding:11px 3px;gap:5px;}
-    .msn-stat-lbl{font-size:.42rem;letter-spacing:.1em;}
-    .msn-stat-val{font-size:1rem;}
+    .msn-stats{margin:0 18px 16px;}
+    .msn-stat{padding:13px 3px 12px;gap:6px;}
+    .msn-stat-lbl{font-size:.44rem;letter-spacing:.12em;}
+    .msn-stat-val{font-size:1.08rem;min-height:1.08rem;}
 
-    .msn-ach-header{margin:0 18px 6px;}
-    .msn-achievements{gap:5px;margin:0 18px 14px;}
-    .msn-ach{font-size:.9rem;border-radius:7px;}
+    .msn-ach-header{margin:0 18px 7px;}
+    .msn-achievements{gap:6px;margin:0 18px 16px;}
+    .msn-ach{font-size:.95rem;border-radius:8px;}
 
-    .msn-actions{padding:0 18px 16px;gap:8px;}
-    .msn-act-btn{padding:11px 10px;font-size:.66rem;letter-spacing:.06em;}
+    .msn-actions{padding:0 18px 18px;gap:9px;}
+    .msn-act-btn{padding:12px 12px;font-size:.68rem;letter-spacing:.07em;}
 }
 
 @media (max-width:380px){
-    .msn-hero{grid-template-columns:76px 1fr;gap:12px;padding:18px 14px 14px;}
-    .msn-avatar-wrap{width:76px;height:76px;}
+    .msn-profile-overlay{padding:10px;}
+    .msn-hero{
+        grid-template-columns:78px 1fr;
+        gap:13px;
+        padding:18px 14px 14px;
+    }
+    .msn-avatar-wrap{width:78px;height:78px;}
     .msn-avatar{font-size:1.5rem;}
-    .msn-hero-name{font-size:1.28rem;}
-    .msn-hero-status{font-size:.46rem;letter-spacing:.12em;}
-    .msn-stats{grid-template-columns:repeat(2,1fr);margin:0 14px 12px;}
+    .msn-status-dot{width:16px;height:16px;border-width:2.5px;right:1px;bottom:1px;}
+    .msn-hero-status{font-size:.45rem;letter-spacing:.1em;padding:4px 8px 4px 6px;gap:5px;}
+    .msn-hero-name{font-size:1.3rem;}
+    .msn-hero-sig{font-size:.72rem;}
+
+    /* keep 4 columns — just scale down */
+    .msn-stats{margin:0 14px 14px;}
+    .msn-stat{padding:11px 2px 10px;gap:5px;}
+    .msn-stat-lbl{font-size:.38rem;letter-spacing:.06em;}
+    .msn-stat-val{font-size:.92rem;min-height:.92rem;}
+
     .msn-ach-header{margin:0 14px 6px;}
-    .msn-achievements{margin:0 14px 12px;}
-    .msn-actions{padding:0 14px 14px;}
+    .msn-achievements{gap:5px;margin:0 14px 14px;}
+    .msn-ach{font-size:.85rem;border-radius:7px;}
+
+    .msn-actions{padding:0 14px 14px;gap:8px;}
+    .msn-act-btn{padding:11px 8px;font-size:.62rem;letter-spacing:.04em;}
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -973,7 +1002,6 @@
     .msn-avatar-wrap::before,
     .msn-avatar-ring,
     .msn-status-dot.online::before,
-    .msn-hero-name,
     .msn-ach,
     .msn-loader-dots span,
     .msn-hero-status-dot,
@@ -986,7 +1014,7 @@
 `;
         var tag = document.createElement('style');
         tag.id = 'msn-profile-styles';
-        tag.setAttribute('data-version', '13');
+        tag.setAttribute('data-version', '15');
         tag.textContent = css;
         document.head.appendChild(tag);
     }
@@ -1117,7 +1145,7 @@
     }
 
     /* ═══════════════════════════════════════════════════════
-       Profile fetch — parallel + 30s cache · no private stat
+       Profile fetch — parallel + 30s cache
        ═══════════════════════════════════════════════════════ */
     var _profileCache = new Map();
     var _PROFILE_CACHE_MS = 30000;
@@ -1334,55 +1362,66 @@
         var online    = isSelf ? true : isUserOnline(data.username);
         var shownName = data.display_name || data.username || 'anon';
 
+        /* XP progress hint: XP toward next level */
+        var nextLvlXp  = xpForLevel(level + 1);
+        var thisLvlXp  = xpForLevel(level);
+        var intoLevel  = Math.max(0, xp - thisLvlXp);
+        var spanLevel  = Math.max(1, nextLvlXp - thisLvlXp);
+        var levelHint  = 'Level ' + level + ' · ' + intoLevel + ' / ' + spanLevel + ' XP to level ' + (level + 1);
+
         var xBadge = data.x_verified
-            ? '<span class="msn-x-badge" title="Verified on X">𝕏</span>'
+            ? '<span class="msn-x-badge" title="Verified account on X">𝕏</span>'
             : '';
 
         var tierBadge = '';
         var tier = tierFor(resolveBalance(data));
         if (tier) {
             tierBadge = '<span class="msn-tier-badge msn-tier-' + tier.name.toLowerCase() + '"'
-                + ' title="' + tier.name + ' holder">' + tier.emoji + '</span>';
+                + ' title="' + tier.name + ' tier holder">' + tier.emoji + '</span>';
         }
 
         var walletBtn = '';
         if (data.wallet_address) {
             walletBtn = '<button class="msn-wallet-btn" type="button" '
                 + 'data-wallet="' + esc(data.wallet_address) + '" '
-                + 'title="Copy wallet address · ' + esc(data.wallet_address) + '">'
+                + 'title="Click to copy · ' + esc(data.wallet_address) + '">'
                 + '<span class="msn-wallet-icon">👛</span>'
                 + '<span class="msn-wallet-label">' + esc(shortWallet(data.wallet_address)) + '</span>'
                 + '<span class="msn-wallet-copy">📋</span>'
                 + '</button>';
         } else if (data.x_handle) {
-            walletBtn = '<span class="msn-joined-pill" title="X handle">@' + esc(data.x_handle) + '</span>';
+            walletBtn = '<span class="msn-joined-pill" title="Linked X account">@' + esc(data.x_handle) + '</span>';
         }
 
-        var joinedPill = '<span class="msn-joined-pill" title="First seen">◉ ' + esc(fmtDate(data.created_at)) + '</span>';
+        var joinedPill = '<span class="msn-joined-pill" title="First activity — ' + esc(fmtDate(data.created_at)) + '">◉ Joined ' + esc(fmtDate(data.created_at)) + '</span>';
 
+        /* Achievements — friendlier tooltips */
         var achHTML = '';
         var unlocked = 0;
+        var SLOTS = 6;
         if (data.achievements && data.achievements.length) {
             unlocked = data.achievements.length;
             achHTML = data.achievements.map(function (a) {
-                return '<div class="msn-ach unlocked" title="' + esc(a.achievement_code) + '">🏆</div>';
+                var label = prettyCode(a.achievement_code) || 'Achievement';
+                var when  = a.unlocked_at ? ' · ' + timeAgo(a.unlocked_at) : '';
+                return '<div class="msn-ach unlocked" title="🏆 ' + esc(label) + esc(when) + '">🏆</div>';
             }).join('');
-            for (var i = data.achievements.length; i < 6; i++) {
-                achHTML += '<div class="msn-ach locked" title="Locked"></div>';
+            for (var i = data.achievements.length; i < SLOTS; i++) {
+                achHTML += '<div class="msn-ach locked" title="Locked — keep chatting to unlock"></div>';
             }
         } else {
-            for (var j = 0; j < 6; j++) {
-                achHTML += '<div class="msn-ach locked" title="Not unlocked yet"></div>';
+            for (var j = 0; j < SLOTS; j++) {
+                achHTML += '<div class="msn-ach locked" title="Locked — keep chatting to unlock"></div>';
             }
         }
 
         var actionsHTML = '';
         if (isSelf) {
-            actionsHTML = '<button class="msn-act-btn" data-msn-profile-action="edit" title="Edit your profile">⚙ Edit Profile</button>';
+            actionsHTML = '<button class="msn-act-btn" data-msn-profile-action="edit" title="Open profile settings">⚙ Edit Profile</button>';
         } else {
             actionsHTML = ''
-                + '<button class="msn-act-btn" data-msn-profile-action="friend" title="Send friend request">+ Add Friend</button>'
-                + '<button class="msn-act-btn primary" data-msn-profile-action="message" title="Open private chat">▶ Message</button>';
+                + '<button class="msn-act-btn" data-msn-profile-action="friend" title="Send a friend request">+ Add Friend</button>'
+                + '<button class="msn-act-btn primary" data-msn-profile-action="message" title="Open a private chat">▶ Message</button>';
         }
 
         var streakClass = streak > 0 ? ' msn-stat-fire' : '';
@@ -1404,7 +1443,7 @@
             +       'title="' + (online ? 'Online now' : 'Offline') + '"></span>'
             +   '</div>'
             +   '<div class="msn-hero-info">'
-            +     '<div class="msn-hero-status" title="Last active ' + esc(lastActive) + '">'
+            +     '<div class="msn-hero-status" title="Last activity: ' + esc(lastActive) + '">'
             +       '<span class="msn-hero-status-dot"></span>'
             +       '<span class="msn-hero-status-label">Last Active</span>'
             +       '<span class="msn-hero-status-val">' + esc(lastActive) + '</span>'
@@ -1420,16 +1459,28 @@
 
             /* ── Stats — Level / Streak / Messages / Reactions ── */
             + '<div class="msn-stats">'
-            +   '<div class="msn-stat" title="Level from XP"><span class="msn-stat-lbl">Level</span><span class="msn-stat-val">' + level + '</span></div>'
-            +   '<div class="msn-stat' + streakClass + '" title="Current streak"><span class="msn-stat-lbl">Streak</span><span class="msn-stat-val">' + streakVal + '</span></div>'
-            +   '<div class="msn-stat" title="Public messages sent"><span class="msn-stat-lbl">Messages</span><span class="msn-stat-val">' + esc(fmtNum(msgs)) + '</span></div>'
-            +   '<div class="msn-stat" title="Reactions given"><span class="msn-stat-lbl">Reactions</span><span class="msn-stat-val">' + esc(fmtNum(reactions)) + '</span></div>'
+            +   '<div class="msn-stat" title="' + esc(levelHint) + '">'
+            +     '<span class="msn-stat-lbl">Level</span>'
+            +     '<span class="msn-stat-val">' + level + '</span>'
+            +   '</div>'
+            +   '<div class="msn-stat' + streakClass + '" title="Current streak — consecutive active days">'
+            +     '<span class="msn-stat-lbl">Streak</span>'
+            +     '<span class="msn-stat-val">' + streakVal + '</span>'
+            +   '</div>'
+            +   '<div class="msn-stat" title="Public messages sent">'
+            +     '<span class="msn-stat-lbl">Messages</span>'
+            +     '<span class="msn-stat-val">' + esc(fmtNum(msgs)) + '</span>'
+            +   '</div>'
+            +   '<div class="msn-stat" title="Reactions given to others">'
+            +     '<span class="msn-stat-lbl">Reactions</span>'
+            +     '<span class="msn-stat-val">' + esc(fmtNum(reactions)) + '</span>'
+            +   '</div>'
             + '</div>'
 
             /* ── Achievements ── */
             + '<div class="msn-ach-header">'
             +   '<span class="msn-ach-header-label">Achievements</span>'
-            +   '<span class="msn-ach-count">' + unlocked + ' / 6</span>'
+            +   '<span class="msn-ach-count">' + unlocked + ' / ' + SLOTS + '</span>'
             + '</div>'
             + '<div class="msn-achievements">' + achHTML + '</div>'
 
@@ -1603,5 +1654,5 @@
         boot();
     }
 
-    console.log('[profile-system] loaded v13 — last-active over name, no private stat, high contrast');
+    console.log('[profile-system] loaded v15 — unified layout, dark stats, clearer hints');
 })();
