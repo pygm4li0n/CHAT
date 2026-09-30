@@ -192,7 +192,7 @@
     /* ── Open / close ─────────────────────────────────────── */
     function open() {
         inject();
-        var ov = $('OVERLAY_ID'.replace('OVERLAY_ID', OVERLAY_ID));
+        var ov = $(OVERLAY_ID);
         if (!ov) return;
         ov.classList.remove('hidden');
         load();
@@ -440,7 +440,14 @@
         cfg.allowDMs         = !!$('mpAllowDMs').checked;
         cfg.allowReactions   = !!$('mpAllowReactions').checked;
         cfg.wordFilter       = ($('mpWordFilter').value || '')
-            .split(',').map(function (x) { return x.trim().toLowerCase(); }).filter(Boolean);
+    .split(',').map(function (x) { return x.trim().toLowerCase(); }).filter(Boolean);
+
+(function pruneExpiredMutes() {
+    var now = Date.now();
+    Object.keys(cfg.mutedWallets).forEach(function (w) {
+        if (cfg.mutedWallets[w] <= now) delete cfg.mutedWallets[w];
+    });
+})();
 
         var tokenReq  = Number($('mpTokenReq').value) || 0;
         var cooldown  = Number($('mpCooldown').value) || 0;
@@ -462,10 +469,13 @@
             p_muted_wallets:      cfg.mutedWallets,
             p_word_filter:        cfg.wordFilter
         }).then(function (res) {
-            if (res.error) {
-                console.error('[mod-panel] save_mod_settings_v2 failed:', res.error);
-                // Fallback: old RPC only (3 fields) — in case migration wasn't run
-                s.rpc('save_mod_settings', {
+    if (res.error) {
+        console.error('[mod-panel] save_mod_settings_v2 failed:', res.error);
+        if (res.error.code !== '42883') {
+            setStatus('Save failed: ' + (res.error.message || 'unknown'), 'err');
+            return;
+        }
+        s.rpc('save_mod_settings', {
                     p_wallet:            wallet(),
                     p_token_requirement: tokenReq,
                     p_cooldown_seconds:  cooldown
@@ -493,19 +503,19 @@
     }
 
     /* ── Intercept the existing mod button ───────────────── */
-    function hookTrigger() {
-        var btn = document.getElementById(TRIGGER_ID);
-        if (!btn) { setTimeout(hookTrigger, 300); return; }
-        if (btn.dataset.mpV2Hooked) return;
-        btn.dataset.mpV2Hooked = '1';
+   function hookTrigger() {
+    if (document._mpV2Hooked) return;
+    document._mpV2Hooked = true;
 
-        btn.addEventListener('click', function (e) {
-            // Capture phase — stop script.js's own handler from running
-            e.stopImmediatePropagation();
-            e.preventDefault();
-            open();
-        }, true);
-    }
+    document.addEventListener('click', function (e) {
+        if (!e.target || !e.target.closest) return;
+        var btn = e.target.closest('#' + TRIGGER_ID);
+        if (!btn) return;
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        open();
+    }, true);
+}
 
     /* ── Boot ─────────────────────────────────────────────── */
     function boot() {
