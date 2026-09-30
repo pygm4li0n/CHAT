@@ -3,9 +3,9 @@
    ────────────────────────────────────────────────────────────
    Drop-in. Load AFTER script.js + wallet-identity.js.
 
-     <script src="profile-system.js?v=13"></script>
+     <script src="profile-system.js?v=14"></script>
 
-   v8: clean name glow, scanner border, XP bar, extra data
+   v9: fixed profiles SELECT, compact fit-no-scroll layout
    ============================================================ */
 (function () {
     'use strict';
@@ -59,10 +59,7 @@
     function timeAgo(iso) {
         if (!iso) return '—';
         try {
-            var then = new Date(iso).getTime();
-            var now  = Date.now();
-            var s = Math.floor((now - then) / 1000);
-            if (s < 0)           return 'just now';
+            var s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
             if (s < 60)          return 'just now';
             if (s < 3600)        return Math.floor(s / 60) + 'm ago';
             if (s < 86400)       return Math.floor(s / 3600) + 'h ago';
@@ -149,15 +146,14 @@
     }
 
     /* ═══════════════════════════════════════════════════════
-       CSS — CLEAN HUD v8
+       CSS — COMPACT HUD v9 (fits without scrolling)
        ═══════════════════════════════════════════════════════ */
     function injectStyles() {
-        // Force-replace on every load — never serve a stale stylesheet
         var old = document.getElementById('msn-profile-styles');
         if (old) old.remove();
         var css = `
 /* ═══════════════════════════════════════════════════════
-   MSN PROFILE CARD — clean HUD v8
+   MSN PROFILE CARD — compact HUD v9
    ═══════════════════════════════════════════════════════ */
 
 .msn-profile-overlay{
@@ -167,7 +163,7 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:20px;
+    padding:16px;
     background:radial-gradient(ellipse at center, rgba(8,14,26,.92) 0%, rgba(2,4,10,.98) 100%);
     backdrop-filter:blur(14px);
     -webkit-backdrop-filter:blur(14px);
@@ -177,19 +173,18 @@
 }
 .msn-profile-overlay.open{opacity:1;pointer-events:auto;}
 
-/* ── Card ── */
+/* ── Card — no scroll, compact ── */
 .msn-profile-card{
     position:relative;
     width:100%;
-    max-width:520px;
-    max-height:92vh;
-    overflow-y:auto;
-    overflow-x:hidden;
-    padding:38px 34px 28px;
+    max-width:500px;
+    max-height:calc(100vh - 32px);
+    overflow:hidden;
+    padding:22px 24px 18px;
     background:
         radial-gradient(ellipse 120% 80% at 50% 0%, rgba(0,240,255,.06) 0%, transparent 60%),
         linear-gradient(180deg, #0d1528 0%, #050810 100%);
-    border-radius:22px;
+    border-radius:20px;
     box-shadow:
         0 0 0 1px rgba(0,240,255,.45),
         0 0 0 2px rgba(0,0,0,.7),
@@ -203,25 +198,18 @@
     font-family:var(--font-main, "Segoe UI", system-ui, sans-serif);
     color:#fff;
     text-align:left;
-    scrollbar-width:none;
-    -ms-overflow-style:none;
-}
-.msn-profile-card::-webkit-scrollbar{
-    display:none !important;
-    width:0 !important;
-    height:0 !important;
 }
 .msn-profile-overlay.open .msn-profile-card{
     transform:scale(1) translateY(0);
     opacity:1;
 }
 
-/* Orbiting scanner arcs — cleaner and more epic */
+/* Orbiting scanner arcs */
 .msn-profile-card::after{
     content:"";
     position:absolute;
     inset:-1px;
-    border-radius:23px;
+    border-radius:21px;
     padding:1.5px;
     background:conic-gradient(from 0deg,
         transparent 0deg,
@@ -242,17 +230,16 @@
     pointer-events:none;
     animation:msnBorderSpin 5s linear infinite;
     filter:drop-shadow(0 0 6px rgba(0,240,255,.7));
-    opacity:1;
 }
 @keyframes msnBorderSpin{to{transform:rotate(360deg);}}
 
 /* ── Close button ── */
 .msn-profile-close{
     position:absolute;
-    top:16px;
-    right:16px;
-    width:34px;
-    height:34px;
+    top:12px;
+    right:12px;
+    width:30px;
+    height:30px;
     border-radius:50%;
     border:1.5px solid rgba(0,240,255,.35);
     background:rgba(10,16,30,.9);
@@ -261,7 +248,7 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:.9rem;
+    font-size:.82rem;
     z-index:5;
     transition:transform .35s cubic-bezier(.16,1,.3,1), border-color .2s, color .2s, box-shadow .2s;
 }
@@ -278,27 +265,27 @@
 .msn-profile-head{
     display:flex;
     align-items:center;
-    gap:24px;
-    padding-bottom:24px;
-    margin-bottom:22px;
+    gap:16px;
+    padding-bottom:14px;
+    margin-bottom:12px;
     border-bottom:1px solid rgba(0,240,255,.15);
 }
 
 /* ── Avatar ── */
 .msn-profile-avatar-wrap{
     position:relative;
-    width:124px;
-    height:124px;
+    width:88px;
+    height:88px;
     flex:0 0 auto;
 }
 .msn-profile-avatar-wrap::before{
     content:"";
     position:absolute;
-    inset:-6px;
+    inset:-5px;
     border-radius:50%;
     background:conic-gradient(from 0deg, transparent 0deg, #00f0ff 60deg, transparent 140deg, transparent 220deg, #a855f7 280deg, transparent 360deg);
     animation:msnBorderSpin 3.5s linear infinite;
-    opacity:.8;
+    opacity:.85;
     z-index:0;
     pointer-events:none;
 }
@@ -313,7 +300,7 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:2.6rem;
+    font-size:2rem;
     font-weight:900;
     color:#fff;
     z-index:1;
@@ -324,18 +311,16 @@
 }
 .msn-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
 
-/* Online dot */
 .msn-profile-status-dot{
     position:absolute;
-    bottom:2px;
-    right:2px;
-    width:22px;
-    height:22px;
+    bottom:0;
+    right:0;
+    width:18px;
+    height:18px;
     border-radius:50%;
     background:#5a6b88;
     border:3px solid #050810;
     z-index:3;
-    transition:background .25s, box-shadow .25s;
 }
 .msn-profile-status-dot.online{
     background:#4ade80;
@@ -362,29 +347,26 @@
     display:flex;
     flex-direction:column;
     align-items:flex-start;
-    gap:10px;
+    gap:6px;
 }
-
-/* ⚑ Solid white text + pulsing cyan glow — no gradient smear */
 .msn-profile-username{
     margin:0;
-    font-size:1.5rem;
+    font-size:1.25rem;
     font-weight:900;
     letter-spacing:.02em;
-    line-height:1.2;
+    line-height:1.15;
     color:#ffffff;
     word-break:break-word;
     display:inline-flex;
     align-items:center;
     flex-wrap:wrap;
-    gap:8px;
+    gap:6px;
     text-shadow:
         0 0 14px rgba(0,240,255,.45),
         0 0 32px rgba(0,240,255,.22),
         0 2px 6px rgba(0,0,0,.9);
     animation:msnNameGlow 3.2s ease-in-out infinite;
 }
-/* Badges keep their own clean styling — no name glow bleeding in */
 .msn-profile-username > span{
     text-shadow:none;
     -webkit-text-fill-color:initial;
@@ -406,31 +388,35 @@
 
 .msn-profile-signature{
     margin:0;
-    font-size:.88rem;
+    font-size:.78rem;
     color:#b8c8e0;
     font-style:italic;
-    line-height:1.5;
+    line-height:1.35;
     word-break:break-word;
-    min-height:1.2em;
+    min-height:1.1em;
     max-width:100%;
 }
 
-/* ⚑ Polished capsule pill — softer color, tighter rhythm */
+/* Meta pill row */
+.msn-profile-meta-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    align-items:center;
+    width:100%;
+}
 .msn-profile-meta{
     display:inline-flex;
     align-items:center;
-    justify-content:center;
-    gap:6px;
-    padding:6px 13px;
-    margin:0;
-    font-size:.6rem;
+    gap:5px;
+    padding:4px 10px;
+    font-size:.54rem;
     color:#7dd3fc;
-    letter-spacing:.16em;
+    letter-spacing:.14em;
     text-transform:uppercase;
     font-weight:800;
     font-family:var(--font-mono, monospace);
-    background:
-        linear-gradient(180deg, rgba(0,240,255,.10) 0%, rgba(0,240,255,.03) 100%);
+    background:linear-gradient(180deg, rgba(0,240,255,.10) 0%, rgba(0,240,255,.03) 100%);
     border:1px solid rgba(0,240,255,.28);
     border-radius:999px;
     line-height:1;
@@ -440,27 +426,14 @@
         inset 0 1px 0 rgba(255,255,255,.06),
         0 0 12px rgba(0,240,255,.08);
 }
-
-/* ═══════════════════════════════════════════════════════
-   ⚑ meta row + wallet pill + XP bar + last-active strip
-   ═══════════════════════════════════════════════════════ */
-
-.msn-profile-meta-row{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    align-items:center;
-    width:100%;
-}
-
 .msn-wallet-pill{
     display:inline-flex;
     align-items:center;
-    gap:6px;
-    padding:6px 12px;
-    font-size:.6rem;
+    gap:5px;
+    padding:4px 10px;
+    font-size:.54rem;
     color:#a7f3d0;
-    letter-spacing:.14em;
+    letter-spacing:.12em;
     font-weight:800;
     font-family:var(--font-mono, monospace);
     background:linear-gradient(180deg, rgba(74,222,128,.10) 0%, rgba(74,222,128,.03) 100%);
@@ -474,17 +447,68 @@
     cursor:help;
 }
 
-/* XP progress bar */
+/* ── HUD row 1 — 4 columns ── */
+.msn-profile-hud{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:0;
+    padding:12px 4px;
+    margin-bottom:8px;
+    background:rgba(0,240,255,.04);
+    border:1px solid rgba(0,240,255,.2);
+    border-radius:10px;
+}
+.msn-profile-hud.msn-hud-3{
+    grid-template-columns:repeat(3,1fr);
+}
+.msn-hud-stat{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    padding:0 4px;
+    position:relative;
+    min-width:0;
+}
+.msn-hud-stat:not(:last-child)::after{
+    content:"";
+    position:absolute;
+    right:0;
+    top:24%; bottom:24%;
+    width:1px;
+    background:linear-gradient(180deg, transparent, rgba(0,240,255,.4), transparent);
+}
+.msn-hud-label{
+    font-size:.5rem;
+    font-weight:800;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:#6a7a96;
+    line-height:1;
+    font-family:var(--font-mono, monospace);
+}
+.msn-hud-value{
+    font-family:var(--font-mono, monospace);
+    font-size:1.05rem;
+    font-weight:900;
+    color:#00f0ff;
+    line-height:1;
+    font-variant-numeric:tabular-nums;
+    text-shadow:0 0 12px rgba(0,240,255,.7);
+}
+
+/* ── XP progress bar ── */
 .msn-xp-bar{
-    margin:0 0 18px;
-    padding:10px 14px 12px;
+    margin:0 0 8px;
+    padding:8px 12px 9px;
     background:rgba(0,240,255,.03);
     border:1px solid rgba(0,240,255,.14);
-    border-radius:10px;
+    border-radius:8px;
 }
 .msn-xp-bar-track{
     position:relative;
-    height:8px;
+    height:6px;
     background:rgba(0,0,0,.55);
     border-radius:999px;
     overflow:hidden;
@@ -515,34 +539,34 @@
 .msn-xp-bar-label{
     display:flex;
     justify-content:space-between;
-    margin-top:6px;
+    margin-top:5px;
     font-family:var(--font-mono, monospace);
-    font-size:.56rem;
+    font-size:.5rem;
     font-weight:800;
-    letter-spacing:.14em;
+    letter-spacing:.12em;
     color:#6a7a96;
     text-transform:uppercase;
 }
 
-/* Last-active strip */
+/* ── Last active strip ── */
 .msn-profile-strip{
     display:flex;
     align-items:center;
-    gap:10px;
-    padding:10px 14px;
-    margin-bottom:18px;
+    gap:8px;
+    padding:7px 12px;
+    margin-bottom:10px;
     background:rgba(74,222,128,.05);
     border:1px solid rgba(74,222,128,.20);
-    border-radius:10px;
+    border-radius:8px;
     font-family:var(--font-mono, monospace);
-    font-size:.58rem;
-    letter-spacing:.18em;
+    font-size:.52rem;
+    letter-spacing:.16em;
     text-transform:uppercase;
     color:#4ade80;
 }
 .msn-strip-dot{
-    width:8px;
-    height:8px;
+    width:7px;
+    height:7px;
     border-radius:50%;
     background:#4ade80;
     box-shadow:0 0 10px #4ade80, 0 0 18px rgba(74,222,128,.6);
@@ -570,13 +594,13 @@
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    min-width:1.7em;
-    height:1.7em;
-    padding:0 .5em;
+    min-width:1.6em;
+    height:1.6em;
+    padding:0 .45em;
     border-radius:999px;
     background:rgba(255,255,255,.08);
     border:1.5px solid rgba(255,255,255,.25);
-    font-size:.7em;
+    font-size:.75em;
     line-height:1;
     font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif;
     animation:msnTierPulse 2.5s ease-in-out infinite;
@@ -606,12 +630,12 @@
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    width:1.7em;
-    height:1.7em;
+    width:1.6em;
+    height:1.6em;
     border-radius:50%;
     background:linear-gradient(135deg, #1d9bf0 0%, #0a4a9a 100%);
     color:#fff;
-    font-size:.7em;
+    font-size:.75em;
     font-weight:900;
     line-height:1;
     font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif;
@@ -619,126 +643,14 @@
     flex-shrink:0;
 }
 
-/* ── HUD ── */
-.msn-profile-hud{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:0;
-    padding:18px 8px;
-    margin-bottom:14px;
-    background:rgba(0,240,255,.04);
-    border:1px solid rgba(0,240,255,.2);
-    border-radius:12px;
-}
-.msn-hud-stat{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    padding:2px 8px;
-    position:relative;
-    min-width:0;
-}
-.msn-hud-stat:not(:last-child)::after{
-    content:"";
-    position:absolute;
-    right:0;
-    top:22%; bottom:22%;
-    width:1px;
-    background:linear-gradient(180deg, transparent, rgba(0,240,255,.4), transparent);
-}
-.msn-hud-label{
-    font-size:.58rem;
-    font-weight:800;
-    letter-spacing:.18em;
-    text-transform:uppercase;
-    color:#6a7a96;
-    line-height:1;
-    font-family:var(--font-mono, monospace);
-}
-.msn-hud-value{
-    font-family:var(--font-mono, monospace);
-    font-size:1.4rem;
-    font-weight:900;
-    color:#00f0ff;
-    line-height:1;
-    font-variant-numeric:tabular-nums;
-    text-shadow:0 0 12px rgba(0,240,255,.7);
-}
-
-/* ── Streak row ── */
-.msn-streak-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:14px;
-    padding:14px 18px;
-    margin-bottom:20px;
-    background:rgba(255,106,0,.08);
-    border:1px solid rgba(255,106,0,.35);
-    border-radius:12px;
-}
-.msn-streak-label{
-    font-size:.6rem;
+/* ── Section label ── */
+.msn-profile-section-label{
+    font-size:.52rem;
     font-weight:800;
     letter-spacing:.2em;
     text-transform:uppercase;
-    color:#ffb066;
-    flex-shrink:0;
-    font-family:var(--font-mono, monospace);
-}
-.msn-streak-fires{
-    display:flex;
-    align-items:center;
-    gap:4px;
-    flex:1;
-    justify-content:center;
-}
-.msn-fire{
-    font-size:1.2rem;
-    line-height:1;
-    display:inline-block;
-}
-.msn-fire.filled{
-    filter:drop-shadow(0 0 6px rgba(255,140,0,.9));
-    animation:msnFireBounce 1.6s ease-in-out infinite;
-}
-.msn-fire.empty{
-    filter:grayscale(100%) brightness(.4);
-    opacity:.25;
-}
-.msn-fire:nth-child(1).filled{animation-delay:0s;}
-.msn-fire:nth-child(2).filled{animation-delay:.1s;}
-.msn-fire:nth-child(3).filled{animation-delay:.2s;}
-.msn-fire:nth-child(4).filled{animation-delay:.3s;}
-.msn-fire:nth-child(5).filled{animation-delay:.4s;}
-.msn-fire:nth-child(6).filled{animation-delay:.5s;}
-.msn-fire:nth-child(7).filled{animation-delay:.6s;}
-@keyframes msnFireBounce{
-    0%,100%{transform:scale(1) translateY(0);}
-    50%{transform:scale(1.15) translateY(-2px);}
-}
-.msn-streak-count{
-    font-family:var(--font-mono, monospace);
-    font-size:1.1rem;
-    font-weight:900;
-    color:#ffb066;
-    min-width:2.6em;
-    text-align:right;
-    text-shadow:0 0 12px rgba(255,140,0,.8);
-    font-variant-numeric:tabular-nums;
-    flex-shrink:0;
-}
-
-/* ── Section label ── */
-.msn-profile-section-label{
-    font-size:.6rem;
-    font-weight:800;
-    letter-spacing:.22em;
-    text-transform:uppercase;
     color:#6a7a96;
-    margin:0 0 12px 2px;
+    margin:0 0 8px 2px;
     display:flex;
     align-items:center;
     gap:10px;
@@ -747,7 +659,7 @@
 .msn-profile-section-label::before{
     content:"◆";
     color:#00f0ff;
-    font-size:.7rem;
+    font-size:.65rem;
 }
 .msn-profile-section-label::after{
     content:"";
@@ -756,24 +668,24 @@
     background:linear-gradient(90deg, rgba(0,240,255,.3), transparent);
 }
 
-/* ── Achievements ── */
+/* ── Achievements — compact row of 6 ── */
 .msn-achievements-grid{
     display:grid;
     grid-template-columns:repeat(6,minmax(0,1fr));
-    gap:8px;
-    margin:0 0 22px;
+    gap:6px;
+    margin:0 0 12px;
     width:100%;
     box-sizing:border-box;
 }
 .msn-ach-slot{
     aspect-ratio:1/1;
-    border-radius:9px;
+    border-radius:7px;
     background:#0a1220;
     border:1px solid rgba(0,240,255,.15);
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:1.1rem;
+    font-size:.95rem;
     line-height:1;
     transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
     min-width:0;
@@ -799,7 +711,7 @@
 .msn-ach-slot.empty{
     opacity:.3;
     border-style:dashed;
-    font-size:.85rem;
+    font-size:.75rem;
     color:#6a7a96;
 }
 .msn-ach-slot:hover{
@@ -811,16 +723,15 @@
 /* ── Actions ── */
 .msn-profile-actions{
     display:flex;
-    gap:10px;
-    margin-top:4px;
+    gap:8px;
 }
 .msn-action-btn{
     flex:1;
-    padding:14px 16px;
-    border-radius:10px;
+    padding:11px 12px;
+    border-radius:9px;
     font-weight:900;
-    font-size:.78rem;
-    letter-spacing:.1em;
+    font-size:.72rem;
+    letter-spacing:.08em;
     text-transform:uppercase;
     cursor:pointer;
     border:1.5px solid rgba(0,240,255,.3);
@@ -855,12 +766,12 @@
     flex-direction:column;
     align-items:center;
     justify-content:center;
-    gap:18px;
-    padding:70px 10px;
+    gap:14px;
+    padding:50px 10px;
     color:#00f0ff;
     font-family:var(--font-mono, monospace);
-    font-size:.72rem;
-    letter-spacing:.24em;
+    font-size:.68rem;
+    letter-spacing:.22em;
     text-transform:uppercase;
     text-shadow:0 0 10px rgba(0,240,255,.6);
 }
@@ -869,8 +780,8 @@
     gap:8px;
 }
 .msn-profile-loader-dots span{
-    width:10px;
-    height:10px;
+    width:9px;
+    height:9px;
     border-radius:50%;
     background:#00f0ff;
     animation:msnLoaderPulse 1.3s ease-in-out infinite;
@@ -884,12 +795,12 @@
 }
 
 .msn-profile-empty{
-    padding:70px 16px;
+    padding:50px 16px;
     text-align:center;
     color:#6a7a96;
     font-family:var(--font-mono, monospace);
-    font-size:.72rem;
-    letter-spacing:.22em;
+    font-size:.68rem;
+    letter-spacing:.2em;
     text-transform:uppercase;
 }
 
@@ -906,40 +817,30 @@
 
 /* ── Mobile ── */
 @media (max-width:480px){
-    .msn-profile-overlay{padding:12px;}
+    .msn-profile-overlay{padding:10px;}
     .msn-profile-card{
         max-width:100%;
-        padding:28px 20px 20px;
-        border-radius:20px;
-        max-height:94vh;
+        padding:20px 18px 16px;
+        border-radius:18px;
     }
-    .msn-profile-head{
-        gap:18px;
-        padding-bottom:18px;
-        margin-bottom:16px;
-    }
-    .msn-profile-avatar-wrap{width:92px;height:92px;}
-    .msn-profile-avatar{font-size:2rem;}
-    .msn-profile-status-dot{width:18px;height:18px;border-width:3px;}
-    .msn-profile-username{font-size:1.2rem;gap:6px;}
-    .msn-profile-signature{font-size:.78rem;}
-    .msn-profile-meta{font-size:.54rem;letter-spacing:.12em;padding:5px 10px;}
-    .msn-profile-meta-row{gap:6px;}
-    .msn-wallet-pill{font-size:.54rem;padding:5px 10px;}
-    .msn-xp-bar{padding:8px 12px 10px;margin-bottom:14px;}
-    .msn-xp-bar-label{font-size:.52rem;}
-    .msn-profile-strip{padding:8px 12px;margin-bottom:14px;font-size:.54rem;gap:8px;}
-    .msn-tier-badge{min-width:1.6em;height:1.6em;font-size:.68em;}
-    .msn-x-badge{width:1.6em;height:1.6em;font-size:.68em;}
-    .msn-profile-hud{gap:0;padding:14px 4px;margin-bottom:12px;}
-    .msn-hud-value{font-size:1.1rem;}
-    .msn-hud-label{font-size:.5rem;letter-spacing:.12em;}
-    .msn-streak-row{padding:12px 14px;margin-bottom:16px;gap:8px;}
-    .msn-fire{font-size:1rem;}
-    .msn-streak-count{font-size:.95rem;}
-    .msn-achievements-grid{gap:6px;}
-    .msn-ach-slot{font-size:.95rem;border-radius:7px;}
-    .msn-action-btn{padding:12px 10px;font-size:.7rem;letter-spacing:.06em;}
+    .msn-profile-head{gap:14px;padding-bottom:12px;margin-bottom:10px;}
+    .msn-profile-avatar-wrap{width:78px;height:78px;}
+    .msn-profile-avatar{font-size:1.75rem;}
+    .msn-profile-status-dot{width:16px;height:16px;border-width:3px;}
+    .msn-profile-username{font-size:1.1rem;gap:5px;}
+    .msn-profile-signature{font-size:.72rem;}
+    .msn-profile-meta{font-size:.5rem;padding:3px 8px;}
+    .msn-wallet-pill{font-size:.5rem;padding:3px 8px;}
+    .msn-profile-hud{padding:10px 3px;margin-bottom:7px;}
+    .msn-hud-value{font-size:.95rem;}
+    .msn-hud-label{font-size:.46rem;}
+    .msn-xp-bar{padding:7px 10px 8px;margin-bottom:7px;}
+    .msn-profile-strip{padding:6px 10px;margin-bottom:8px;font-size:.5rem;}
+    .msn-tier-badge{min-width:1.5em;height:1.5em;font-size:.72em;}
+    .msn-x-badge{width:1.5em;height:1.5em;font-size:.72em;}
+    .msn-ach-slot{font-size:.85rem;border-radius:6px;}
+    .msn-achievements-grid{gap:5px;margin-bottom:10px;}
+    .msn-action-btn{padding:10px 8px;font-size:.66rem;letter-spacing:.05em;}
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -948,7 +849,6 @@
     .msn-profile-avatar-wrap::before,
     .msn-profile-status-dot.online::before,
     .msn-profile-username,
-    .msn-fire.filled,
     .msn-ach-slot,
     .msn-profile-loader-dots span,
     .msn-tier-badge,
@@ -962,7 +862,7 @@
 `;
         var tag = document.createElement('style');
         tag.id = 'msn-profile-styles';
-        tag.setAttribute('data-version', '8');
+        tag.setAttribute('data-version', '9');
         tag.textContent = css;
         document.head.appendChild(tag);
     }
@@ -1043,13 +943,24 @@
     }
 
     /* ═══════════════════════════════════════════════════════
-       Profile fetch — parallel queries + 30s cache
+       ⚑ FIXED: fetchProfileData
+       - REMOVED `created_at` from profiles SELECT (column may
+         not exist → broke the entire query → not-found)
+       - All optional queries use timeout so nothing stalls
+       - `created_at` for the "Joined" pill comes ONLY from
+         messages.created_at (which always exists)
        ═══════════════════════════════════════════════════════ */
     var _profileCache = new Map();
     var _PROFILE_CACHE_MS = 30000;
 
     function _cacheKey(username, wallet) {
         return (wallet ? 'w:' + wallet : 'u:' + (username || '')).toLowerCase();
+    }
+    function _timeout(promise, ms) {
+        return Promise.race([
+            promise,
+            new Promise(function (resolve) { setTimeout(function () { resolve(null); }, ms); })
+        ]);
     }
 
     async function fetchProfileData(username, isSelf, wallet) {
@@ -1069,27 +980,34 @@
             messages_count: 0, current_streak: 0, created_at: null,
             last_active_at: null,
             wallet_address: wallet || null, token_balance: null,
-            reactions_given: 0,
-            private_chats: 0,
+            reactions_given: 0, private_chats: 0,
             rank: null, rank_total: null,
             achievements: [], hasProfile: false
         };
-        var richSel = 'username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address, xp, messages_count, token_balance, updated_at, created_at';
-        var minSel  = 'username, avatar_url, wallet_address, xp, token_balance, created_at';
 
-        // ── 1. Profile ──
+        // ⚑ SAFE select — only columns that definitely exist
+        var richSel = 'username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address, xp, messages_count, token_balance, updated_at';
+        var minSel  = 'username, avatar_url, wallet_address, xp, token_balance';
+
+        // ── 1. Profile lookup ──
         var profile = null;
         if (wallet) {
-            try { var r0 = await sb.from('profiles').select(richSel).eq('wallet_address', wallet).maybeSingle();
-                if (!r0.error && r0.data) profile = r0.data; } catch (e) {}
+            try {
+                var r0 = await sb.from('profiles').select(richSel).eq('wallet_address', wallet).maybeSingle();
+                if (!r0.error && r0.data) profile = r0.data;
+            } catch (e) {}
         }
         if (!profile) {
-            try { var r1 = await sb.from('profiles').select(richSel).eq('username', username).maybeSingle();
-                if (!r1.error && r1.data) profile = r1.data; } catch (e) {}
+            try {
+                var r1 = await sb.from('profiles').select(richSel).eq('username', username).maybeSingle();
+                if (!r1.error && r1.data) profile = r1.data;
+            } catch (e) {}
         }
         if (!profile) {
-            try { var r2 = await sb.from('profiles').select(minSel).eq('username', username).maybeSingle();
-                if (!r2.error && r2.data) profile = r2.data; } catch (e) {}
+            try {
+                var r2 = await sb.from('profiles').select(minSel).eq('username', username).maybeSingle();
+                if (!r2.error && r2.data) profile = r2.data;
+            } catch (e) {}
         }
 
         if (profile) {
@@ -1101,7 +1019,6 @@
             out.level = levelFromXp(out.xp);
             out.messages_count = Number(profile.messages_count || 0);
             out.token_balance = profile.token_balance ?? null;
-            if (profile.created_at) out.created_at = profile.created_at;
             rememberIdentity(profile);
         }
 
@@ -1113,7 +1030,7 @@
             } catch (e) {}
         }
 
-        // ── 3. Identity resolve (sync) ──
+        // ── 3. Identity resolve ──
         var resolved = resolveIdentity(out.wallet_address || username);
         if (resolved) {
             if (resolved.displayName) out.display_name = resolved.displayName;
@@ -1129,15 +1046,15 @@
             out.x_verified = !!profile.x_verified;
         }
 
-        // ── 4. XP progress (no fetch) ──
+        // ── 4. XP progress ──
         var a = xpForLevel(out.level), b = xpForLevel(out.level + 1);
         out.xp_in_level = out.xp - a;
         out.xp_needed   = b - a;
 
-        // ── 5. Parallel network queries ──
+        // ── 5. Parallel queries — ALL with timeouts so nothing blocks ──
         var tasks = [];
 
-        tasks.push(
+        tasks.push(_timeout(
             sb.from('user_achievements')
                 .select('achievement_code, unlocked_at')
                 .eq('username', username)
@@ -1145,100 +1062,118 @@
                 .limit(6)
                 .then(function (res) {
                     if (!res.error && Array.isArray(res.data)) out.achievements = res.data;
-                }).catch(function () {})
-        );
+                }).catch(function () {}),
+            3500
+        ));
 
-        tasks.push(
+        // First message date — source of "Joined" pill
+        tasks.push(_timeout(
             sb.from('messages')
                 .select('created_at')
                 .eq('username', username)
                 .order('created_at', { ascending: true })
                 .limit(1)
                 .then(function (res) {
-                    if (res.data && res.data[0] && res.data[0].created_at) {
-                        if (!out.created_at) out.created_at = res.data[0].created_at;
+                    if (res && res.data && res.data[0] && res.data[0].created_at) {
+                        out.created_at = res.data[0].created_at;
                     }
-                }).catch(function () {})
-        );
+                }).catch(function () {}),
+            3500
+        ));
 
-        tasks.push(
+        // Last active
+        tasks.push(_timeout(
             sb.from('messages')
                 .select('created_at')
                 .eq('username', username)
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .then(function (res) {
-                    if (res.data && res.data[0] && res.data[0].created_at) {
+                    if (res && res.data && res.data[0] && res.data[0].created_at) {
                         out.last_active_at = res.data[0].created_at;
                     }
-                }).catch(function () {})
-        );
+                }).catch(function () {}),
+            3500
+        ));
 
-        if (!isSelf && !out.messages_count) {
-            tasks.push(
+        // Message count (only if we don't already have it)
+        if (!out.messages_count) {
+            tasks.push(_timeout(
                 sb.from('messages')
                     .select('*', { count: 'exact', head: true })
                     .eq('username', username)
                     .then(function (res) {
-                        if (typeof res.count === 'number') out.messages_count = res.count;
-                    }).catch(function () {})
-            );
+                        if (res && typeof res.count === 'number') out.messages_count = res.count;
+                    }).catch(function () {}),
+                3500
+            ));
         }
 
-        if (!isSelf && out.wallet_address) {
-            tasks.push(
+        // Streak
+        if (out.wallet_address && !isSelf) {
+            tasks.push(_timeout(
                 sb.rpc('get_streak_by_wallet', { p_wallet: out.wallet_address })
                     .then(function (res) {
-                        if (!res.error && typeof res.data === 'number') out.current_streak = res.data;
-                    }).catch(function () {})
-            );
+                        if (res && !res.error && typeof res.data === 'number') out.current_streak = res.data;
+                    }).catch(function () {}),
+                3500
+            ));
         }
 
-        tasks.push(
+        // Reactions given
+        tasks.push(_timeout(
             sb.from('message_reactions')
                 .select('*', { count: 'exact', head: true })
                 .eq('username', username)
                 .then(function (res) {
-                    if (typeof res.count === 'number') out.reactions_given = res.count;
-                }).catch(function () {})
-        );
+                    if (res && typeof res.count === 'number') out.reactions_given = res.count;
+                }).catch(function () {}),
+            3500
+        ));
 
-        tasks.push(
+        // Private messages
+        tasks.push(_timeout(
             sb.from('private_messages')
                 .select('*', { count: 'exact', head: true })
                 .or('from_user.eq.' + username + ',to_user.eq.' + username)
                 .then(function (res) {
-                    if (typeof res.count === 'number') out.private_chats = res.count;
-                }).catch(function () {})
-        );
+                    if (res && typeof res.count === 'number') out.private_chats = res.count;
+                }).catch(function () {}),
+            3500
+        ));
 
-        tasks.push(
+        // Rank
+        tasks.push(_timeout(
             sb.rpc('get_activity_leaderboard', { p_limit: 100 })
                 .then(function (res) {
-                    if (!res.error && Array.isArray(res.data)) {
+                    if (res && !res.error && Array.isArray(res.data)) {
                         out.rank_total = res.data.length;
                         for (var i = 0; i < res.data.length; i++) {
                             var row = res.data[i];
                             if (!row) continue;
-                            var rowUser = row.username;
-                            var rowWallet = row.wallet_address;
-                            if ((rowUser && rowUser === username) ||
-                                (rowWallet && out.wallet_address && rowWallet === out.wallet_address)) {
+                            if ((row.username && row.username === username) ||
+                                (row.wallet_address && out.wallet_address && row.wallet_address === out.wallet_address)) {
                                 out.rank = i + 1;
                                 break;
                             }
                         }
                     }
-                }).catch(function () {})
-        );
+                }).catch(function () {}),
+            3500
+        ));
 
         await Promise.all(tasks);
 
         if (isSelf) out.current_streak = readSelfStreakFromDOM();
 
-        if (!out.created_at && profile && profile.updated_at) out.created_at = profile.updated_at;
+        // Fallback for "joined" pill
         if (!out.created_at && out.last_active_at) out.created_at = out.last_active_at;
-        if (!out.hasProfile && !out.created_at) return { error: 'not-found' };
+        if (!out.created_at && profile && profile.updated_at) out.created_at = profile.updated_at;
+
+        // Only "not-found" if we have NOTHING at all
+        if (!out.hasProfile && !out.created_at && !out.messages_count) {
+            return { error: 'not-found' };
+        }
 
         _profileCache.set(key, { t: Date.now(), data: out });
         return out;
@@ -1266,20 +1201,7 @@
     function renderError(msg) {
         bodyEl.innerHTML = '<div class="msn-profile-empty">⚠ ' + esc(msg || 'Profile unavailable') + '</div>';
     }
-    function renderFireRow(streak) {
-        var MAX = 7;
-        var filled = Math.min(streak, MAX);
-        var fires = '';
-        for (var i = 0; i < MAX; i++) {
-            fires += '<span class="msn-fire ' + (i < filled ? 'filled' : 'empty') + '">🔥</span>';
-        }
-        return ''
-            + '<div class="msn-streak-row">'
-            +   '<span class="msn-streak-label">🔥 Streak</span>'
-            +   '<span class="msn-streak-fires">' + fires + '</span>'
-            +   '<span class="msn-streak-count">X' + streak + '</span>'
-            + '</div>';
-    }
+
     function renderXpBar(data) {
         var inLv = Number(data.xp_in_level || 0);
         var need = Number(data.xp_needed || 100) || 100;
@@ -1320,18 +1242,16 @@
                 + tier.emoji + '</span>';
         }
 
-        // ── Rank text ──
         var rankText;
         if (rank != null) {
             rankText = '#' + rank;
-            if (rankTotal) rankText += ' / ' + rankTotal;
+            if (rankTotal) rankText += '/' + rankTotal;
         } else if (data.wallet_address) {
             rankText = '—';
         } else {
             rankText = 'N/A';
         }
 
-        // ── Meta pills ──
         var metaPills = '<div class="msn-profile-meta">◉ Joined ' + esc(fmtDate(data.created_at)) + '</div>';
         var walletPill = '';
         if (data.wallet_address) {
@@ -1342,7 +1262,6 @@
         }
         if (walletPill) metaPills += walletPill;
 
-        // ── Achievements ──
         var achHTML = '';
         if (data.achievements && data.achievements.length) {
             achHTML = data.achievements.map(function (a) {
@@ -1357,17 +1276,17 @@
             }
         }
 
-        // ── Actions ──
         var actionsHTML = '';
         if (isSelf) {
             actionsHTML = '<button class="msn-action-btn" data-msn-profile-action="edit">⚙ Edit Profile</button>';
         } else {
             actionsHTML = ''
-                + '<button class="msn-action-btn" data-msn-profile-action="friend">+ Add Friend</button>'
+                + '<button class="msn-action-btn" data-msn-profile-action="friend">+ Friend</button>'
                 + '<button class="msn-action-btn primary" data-msn-profile-action="message">▶ Message</button>';
         }
 
-        var showStreakRow = isSelf || streak > 0;
+        // ⚑ Streak only shows if there IS a streak
+        var showStreakRow = streak > 0;
 
         bodyEl.innerHTML = ''
             + '<div class="msn-profile-head">'
@@ -1383,31 +1302,30 @@
             +   '</div>'
             + '</div>'
 
-            /* HUD row 1: Level / XP / Messages */
+            /* HUD row 1: Level / XP / Messages / Rank */
             + '<div class="msn-profile-hud">'
             +   '<div class="msn-hud-stat"><span class="msn-hud-label">Level</span><span class="msn-hud-value">' + level + '</span></div>'
             +   '<div class="msn-hud-stat"><span class="msn-hud-label">XP</span><span class="msn-hud-value">' + esc(fmtNum(xp)) + '</span></div>'
-            +   '<div class="msn-hud-stat"><span class="msn-hud-label">Messages</span><span class="msn-hud-value">' + esc(fmtNum(msgs)) + '</span></div>'
+            +   '<div class="msn-hud-stat"><span class="msn-hud-label">Msgs</span><span class="msn-hud-value">' + esc(fmtNum(msgs)) + '</span></div>'
+            +   '<div class="msn-hud-stat"><span class="msn-hud-label">Rank</span><span class="msn-hud-value">' + esc(rankText) + '</span></div>'
             + '</div>'
 
             /* XP progress bar */
             + renderXpBar(data)
 
-            /* HUD row 2: Rank / Reactions / Private */
-            + '<div class="msn-profile-hud">'
-            +   '<div class="msn-hud-stat"><span class="msn-hud-label">Rank</span><span class="msn-hud-value">' + esc(rankText) + '</span></div>'
+            /* HUD row 2: Reactions / Private / Streak */
+            + '<div class="msn-profile-hud msn-hud-3">'
             +   '<div class="msn-hud-stat"><span class="msn-hud-label">Reactions</span><span class="msn-hud-value">' + esc(fmtNum(reactions)) + '</span></div>'
             +   '<div class="msn-hud-stat"><span class="msn-hud-label">Private</span><span class="msn-hud-value">' + esc(fmtNum(privMsgs)) + '</span></div>'
+            +   '<div class="msn-hud-stat"><span class="msn-hud-label">Streak</span><span class="msn-hud-value">' + (showStreakRow ? '🔥 ' + streak : '—') + '</span></div>'
             + '</div>'
 
-            /* Last active strip */
+            /* Last active */
             + '<div class="msn-profile-strip">'
             +   '<span class="msn-strip-dot"></span>'
             +   '<span class="msn-strip-label">LAST ACTIVE</span>'
             +   '<span class="msn-strip-value">' + esc(timeAgo(data.last_active_at || data.created_at)) + '</span>'
             + '</div>'
-
-            + (showStreakRow ? renderFireRow(streak) : '')
 
             + '<div class="msn-profile-section-label">Achievements</div>'
             + '<div class="msn-achievements-grid">' + achHTML + '</div>'
@@ -1577,5 +1495,5 @@
         boot();
     }
 
-    console.log('[profile-system] loaded v8 — clean glow + scanner border + XP bar + extra data');
+    console.log('[profile-system] loaded v9 — compact + fixed SELECT + timeout guards');
 })();
