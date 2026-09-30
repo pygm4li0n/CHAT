@@ -130,11 +130,11 @@
     /* ═══════════════════════════════════════════════════════
        CSS — SIMPLIFIED ANIMATED HUD v6
        ═══════════════════════════════════════════════════════ */
-    function injectStyles() {
+     function injectStyles() {
         if (document.getElementById('msn-profile-styles')) return;
         var css = `
 /* ═══════════════════════════════════════════════════════
-   MSN PROFILE CARD — clean HUD
+   MSN PROFILE CARD — clean HUD v7
    ═══════════════════════════════════════════════════════ */
 
 .msn-profile-overlay{
@@ -158,11 +158,11 @@
 .msn-profile-card{
     position:relative;
     width:100%;
-    max-width:500px;
+    max-width:520px;
     max-height:92vh;
     overflow-y:auto;
     overflow-x:hidden;
-    padding:36px 28px 24px;
+    padding:38px 34px 28px;
     background:linear-gradient(180deg, #0d1528 0%, #050810 100%);
     border-radius:22px;
     box-shadow:
@@ -175,15 +175,18 @@
     font-family:var(--font-main, "Segoe UI", system-ui, sans-serif);
     color:#fff;
     text-align:left;
+    /* ⚑ Hide scrollbar entirely — card still scrolls */
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+}
+.msn-profile-card::-webkit-scrollbar{
+    display:none !important;
+    width:0 !important;
+    height:0 !important;
 }
 .msn-profile-overlay.open .msn-profile-card{
     transform:scale(1) translateY(0);
     opacity:1;
-}
-.msn-profile-card::-webkit-scrollbar{width:6px;}
-.msn-profile-card::-webkit-scrollbar-thumb{
-    background:rgba(0,240,255,.4);
-    border-radius:3px;
 }
 
 /* Animated gradient border */
@@ -206,8 +209,8 @@
 /* ── Close button ── */
 .msn-profile-close{
     position:absolute;
-    top:14px;
-    right:14px;
+    top:16px;
+    right:16px;
     width:34px;
     height:34px;
     border-radius:50%;
@@ -235,17 +238,17 @@
 .msn-profile-head{
     display:flex;
     align-items:center;
-    gap:22px;
-    padding-bottom:22px;
-    margin-bottom:20px;
+    gap:24px;
+    padding-bottom:24px;
+    margin-bottom:22px;
     border-bottom:1px solid rgba(0,240,255,.15);
 }
 
 /* ── Avatar ── */
 .msn-profile-avatar-wrap{
     position:relative;
-    width:132px;
-    height:132px;
+    width:124px;
+    height:124px;
     flex:0 0 auto;
 }
 .msn-profile-avatar-wrap::before{
@@ -270,7 +273,7 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:2.8rem;
+    font-size:2.6rem;
     font-weight:900;
     color:#fff;
     z-index:1;
@@ -284,8 +287,8 @@
 /* Online dot */
 .msn-profile-status-dot{
     position:absolute;
-    bottom:4px;
-    right:4px;
+    bottom:2px;
+    right:2px;
     width:22px;
     height:22px;
     border-radius:50%;
@@ -319,16 +322,20 @@
     display:flex;
     flex-direction:column;
     align-items:flex-start;
-    gap:8px;
+    gap:10px;
 }
 .msn-profile-username{
     margin:0;
-    font-size:1.6rem;
+    font-size:1.5rem;
     font-weight:900;
     letter-spacing:.02em;
-    line-height:1.15;
+    line-height:1.2;
     color:#fff;
     word-break:break-word;
+    display:inline-flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
     text-shadow:0 0 20px rgba(0,240,255,.4), 0 2px 6px rgba(0,0,0,.9);
     background:linear-gradient(90deg, #fff 0%, #fff 45%, #00f0ff 50%, #fff 55%, #fff 100%);
     background-size:200% 100%;
@@ -336,6 +343,10 @@
             background-clip:text;
     -webkit-text-fill-color:transparent;
     animation:msnNameShine 3.5s linear infinite;
+}
+/* Restore emoji rendering inside badges (clip-text blocks them) */
+.msn-profile-username > span{
+    -webkit-text-fill-color:initial;
 }
 @keyframes msnNameShine{
     0%{background-position:200% 0;}
@@ -355,8 +366,8 @@
     display:inline-flex;
     align-items:center;
     gap:8px;
-    padding:5px 11px;
-    font-size:.6rem;
+    padding:6px 12px;
+    font-size:.62rem;
     color:#00f0ff;
     letter-spacing:.16em;
     text-transform:uppercase;
@@ -369,41 +380,20 @@
     text-shadow:0 0 6px rgba(0,240,255,.5);
 }
 
-/* ── X badge ── */
-.msn-x-badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    width:1.15em;
-    height:1.15em;
-    margin-left:.4em;
-    border-radius:50%;
-    background:linear-gradient(135deg, #1d9bf0 0%, #0a4a9a 100%);
-    color:#fff;
-    font-size:.6em;
-    font-weight:900;
-    line-height:1;
-    box-shadow:0 0 14px rgba(29,155,240,.8);
-    vertical-align:middle;
-    transform:translateY(-3px);
-}
-
-/* ── Tier badge ── */
+/* ── Tier badge (bigger, clearer) ── */
 .msn-tier-badge{
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    min-width:1.4em;
-    height:1.4em;
+    min-width:1.7em;
+    height:1.7em;
     padding:0 .5em;
-    margin-left:.4em;
     border-radius:999px;
     background:rgba(255,255,255,.08);
     border:1.5px solid rgba(255,255,255,.25);
     font-size:.7em;
     line-height:1;
-    vertical-align:middle;
-    transform:translateY(-3px);
+    font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif;
     animation:msnTierPulse 2.5s ease-in-out infinite;
 }
 .msn-tier-badge.msn-tier-whale{
@@ -422,17 +412,35 @@
     box-shadow:0 0 16px rgba(255,138,0,.6);
 }
 @keyframes msnTierPulse{
-    0%,100%{transform:translateY(-3px) scale(1);}
-    50%{transform:translateY(-3px) scale(1.08);}
+    0%,100%{transform:scale(1);}
+    50%{transform:scale(1.08);}
+}
+
+/* ── X badge (bigger, clearer) ── */
+.msn-x-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:1.7em;
+    height:1.7em;
+    border-radius:50%;
+    background:linear-gradient(135deg, #1d9bf0 0%, #0a4a9a 100%);
+    color:#fff;
+    font-size:.7em;
+    font-weight:900;
+    line-height:1;
+    font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Segoe UI Symbol",sans-serif;
+    box-shadow:0 0 14px rgba(29,155,240,.8);
+    flex-shrink:0;
 }
 
 /* ── HUD ── */
 .msn-profile-hud{
     display:grid;
     grid-template-columns:repeat(3,1fr);
-    gap:10px;
-    padding:16px 8px;
-    margin-bottom:18px;
+    gap:0;
+    padding:18px 8px;
+    margin-bottom:20px;
     background:rgba(0,240,255,.04);
     border:1px solid rgba(0,240,255,.2);
     border-radius:12px;
@@ -441,15 +449,17 @@
     display:flex;
     flex-direction:column;
     align-items:center;
-    gap:6px;
-    padding:4px 2px;
+    justify-content:center;
+    gap:8px;
+    padding:2px 8px;
     position:relative;
+    min-width:0;
 }
 .msn-hud-stat:not(:last-child)::after{
     content:"";
     position:absolute;
-    right:-5px;
-    top:25%; bottom:25%;
+    right:0;
+    top:22%; bottom:22%;
     width:1px;
     background:linear-gradient(180deg, transparent, rgba(0,240,255,.4), transparent);
 }
@@ -464,7 +474,7 @@
 }
 .msn-hud-value{
     font-family:var(--font-mono, monospace);
-    font-size:1.35rem;
+    font-size:1.4rem;
     font-weight:900;
     color:#00f0ff;
     line-height:1;
@@ -478,7 +488,7 @@
     align-items:center;
     justify-content:space-between;
     gap:14px;
-    padding:14px 16px;
+    padding:14px 18px;
     margin-bottom:20px;
     background:rgba(255,106,0,.08);
     border:1px solid rgba(255,106,0,.35);
@@ -496,7 +506,7 @@
 .msn-streak-fires{
     display:flex;
     align-items:center;
-    gap:5px;
+    gap:4px;
     flex:1;
     justify-content:center;
 }
@@ -543,7 +553,7 @@
     letter-spacing:.22em;
     text-transform:uppercase;
     color:#6a7a96;
-    margin:0 0 10px 2px;
+    margin:0 0 12px 2px;
     display:flex;
     align-items:center;
     gap:10px;
@@ -564,7 +574,7 @@
 /* ── Achievements ── */
 .msn-achievements-grid{
     display:grid;
-    grid-template-columns:repeat(6,1fr);
+    grid-template-columns:repeat(6,minmax(0,1fr));
     gap:8px;
     margin:0 0 22px;
     width:100%;
@@ -714,31 +724,32 @@
     .msn-profile-overlay{padding:12px;}
     .msn-profile-card{
         max-width:100%;
-        padding:26px 18px 18px;
+        padding:28px 20px 20px;
         border-radius:20px;
         max-height:94vh;
     }
     .msn-profile-head{
-        gap:16px;
-        padding-bottom:16px;
-        margin-bottom:14px;
+        gap:18px;
+        padding-bottom:18px;
+        margin-bottom:16px;
     }
-    .msn-profile-avatar-wrap{width:96px;height:96px;}
-    .msn-profile-avatar{font-size:2.1rem;}
+    .msn-profile-avatar-wrap{width:92px;height:92px;}
+    .msn-profile-avatar{font-size:2rem;}
     .msn-profile-status-dot{width:18px;height:18px;border-width:3px;}
-    .msn-profile-username{font-size:1.25rem;}
+    .msn-profile-username{font-size:1.2rem;gap:6px;}
     .msn-profile-signature{font-size:.78rem;}
-    .msn-profile-meta{font-size:.54rem;letter-spacing:.12em;padding:4px 9px;}
-    .msn-profile-hud{gap:8px;padding:12px 4px;margin-bottom:14px;}
-    .msn-hud-value{font-size:1.05rem;}
+    .msn-profile-meta{font-size:.54rem;letter-spacing:.12em;padding:5px 10px;}
+    .msn-tier-badge{min-width:1.6em;height:1.6em;font-size:.68em;}
+    .msn-x-badge{width:1.6em;height:1.6em;font-size:.68em;}
+    .msn-profile-hud{gap:0;padding:14px 4px;margin-bottom:16px;}
+    .msn-hud-value{font-size:1.1rem;}
     .msn-hud-label{font-size:.5rem;letter-spacing:.12em;}
-    .msn-streak-row{padding:11px 12px;margin-bottom:16px;gap:8px;}
+    .msn-streak-row{padding:12px 14px;margin-bottom:16px;gap:8px;}
     .msn-fire{font-size:1rem;}
     .msn-streak-count{font-size:.95rem;}
     .msn-achievements-grid{gap:6px;}
     .msn-ach-slot{font-size:.95rem;border-radius:7px;}
     .msn-action-btn{padding:12px 10px;font-size:.7rem;letter-spacing:.06em;}
-    .msn-x-badge{width:1.05em;height:1.05em;font-size:.58em;}
 }
 
 @media (prefers-reduced-motion: reduce){
