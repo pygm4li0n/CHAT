@@ -3,10 +3,9 @@
    ────────────────────────────────────────────────────────────
    Drop-in. Load AFTER script.js + wallet-identity.js.
 
-     <script src="profile-system.js?v=14"></script>
+     <script src="profile-system.js?v=13"></script>
 
-   v14: static card border (no spin), avatar ring keeps rotation,
-        last-active over name, no private stat, high contrast
+   v13: no private stat, last-active over name, high contrast
    ============================================================ */
 (function () {
     'use strict';
@@ -147,14 +146,14 @@
     }
 
     /* ═══════════════════════════════════════════════════════
-       CSS — EPIC HERO v14 · static card, spinning avatar ring
+       CSS — EPIC HERO v13 · high-contrast cut
        ═══════════════════════════════════════════════════════ */
     function injectStyles() {
         var old = document.getElementById('msn-profile-styles');
         if (old) old.remove();
         var css = `
 /* ═══════════════════════════════════════════════════════
-   MSN PROFILE CARD — epic hero v14
+   MSN PROFILE CARD — epic hero v13
    ═══════════════════════════════════════════════════════ */
 
 .msn-profile-overlay{
@@ -210,25 +209,35 @@
     text-align:left;
 }
 
-/* Static gradient edge — no rotation */
+/* Scanner border */
 .msn-profile-card::after{
     content:"";
     position:absolute;
     inset:0;
     border-radius:24px;
     padding:1.5px;
-    background:linear-gradient(135deg,
-        var(--accent-cyan, rgba(0,240,255,.75)) 0%,
-        transparent 28%,
-        transparent 72%,
-        var(--accent-purple, rgba(168,85,247,.75)) 100%);
+    background:conic-gradient(from 0deg,
+        transparent 0deg,
+        transparent 70deg,
+        var(--accent-cyan, #00f0ff) 90deg,
+        var(--accent-cyan-bright, #e2fbff) 100deg,
+        var(--accent-cyan, #00f0ff) 110deg,
+        transparent 130deg,
+        transparent 250deg,
+        var(--accent-purple, #a855f7) 270deg,
+        var(--accent-purple-bright, #ecdcff) 280deg,
+        var(--accent-purple, #a855f7) 290deg,
+        transparent 310deg,
+        transparent 360deg);
     -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite:xor;
             mask-composite:exclude;
     pointer-events:none;
+    animation:msnBorderSpin 6s linear infinite;
+    filter:drop-shadow(0 0 10px var(--accent-cyan, rgba(0,240,255,.75)));
     z-index:2;
-    filter:drop-shadow(0 0 10px var(--accent-cyan, rgba(0,240,255,.55)));
 }
+@keyframes msnBorderSpin{to{transform:rotate(360deg);}}
 
 .msn-profile-overlay.open .msn-profile-card{
     transform:scale(1) translateY(0);
@@ -305,8 +314,6 @@
     0%,100%{transform:scale(1);opacity:.85;}
     50%{transform:scale(1.08);opacity:1;}
 }
-
-/* ★ Kept — spinning conic ring around avatar */
 .msn-avatar-ring{
     position:absolute;
     inset:-4px;
@@ -329,8 +336,6 @@
     border-radius:50%;
     background:var(--bg-deep, #010306);
 }
-@keyframes msnBorderSpin{to{transform:rotate(360deg);}}
-
 .msn-avatar{
     position:absolute;
     inset:0;
@@ -460,6 +465,7 @@
         0 0 26px var(--accent-glow, rgba(0,240,255,.6)),
         0 0 52px var(--accent-glow-soft, rgba(0,240,255,.28)),
         0 2px 8px rgba(0,0,0,.95);
+    animation:msnNameGlow 3.2s ease-in-out infinite;
 }
 @keyframes msnNameGlow{
     0%,100%{
@@ -967,6 +973,7 @@
     .msn-avatar-wrap::before,
     .msn-avatar-ring,
     .msn-status-dot.online::before,
+    .msn-hero-name,
     .msn-ach,
     .msn-loader-dots span,
     .msn-hero-status-dot,
@@ -979,7 +986,7 @@
 `;
         var tag = document.createElement('style');
         tag.id = 'msn-profile-styles';
-        tag.setAttribute('data-version', '14');
+        tag.setAttribute('data-version', '13');
         tag.textContent = css;
         document.head.appendChild(tag);
     }
@@ -1596,5 +1603,5 @@
         boot();
     }
 
-    console.log('[profile-system] loaded v14 — static card edge, spinning avatar ring');
+    console.log('[profile-system] loaded v13 — last-active over name, no private stat, high contrast');
 })();
