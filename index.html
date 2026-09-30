@@ -448,6 +448,7 @@
             <div class="chat-tabs" id="chatTabs">
                 <div class="chat-tab active" data-tab="public">🌐 Public</div>
                 <div class="chat-tab" data-tab="private">🔒 Private</div>
+                <div class="chat-tab whale-tab" data-tab="whale">🐋 Whale</div>
             </div>
             <div class="mod-message-box" id="modMessageBox">
                 <span class="mod-badge">PINNED</span>
@@ -459,8 +460,11 @@
                 <div class="empty-chat-hint" id="publicEmptyHint">No messages yet. Spark the conversation 💬</div>
             </div>
             <div class="messages-container hidden" id="privateMessagesContainer">
-                <div class="empty-chat-hint" id="privateEmptyHint">No private messages with this user.</div>
-            </div>
+    <div class="empty-chat-hint" id="privateEmptyHint">No private messages with this user.</div>
+</div>
+<div class="messages-container hidden" id="whaleMessagesContainer">
+    <div class="empty-chat-hint" id="whaleEmptyHint">🐋 Whale chat — loading…</div>
+</div>
             <button class="scroll-bottom-btn" id="scrollBottomBtn" title="Scroll to bottom">↓</button>
             <div class="input-area-bar" id="inputAreaBar">
                 <div class="reply-indicator-bar hidden" id="replyIndicatorBar">
