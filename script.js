@@ -511,6 +511,98 @@
                     0 0 5px rgba(0, 0, 0, 0.75),
                     0 1px 2px rgba(0, 0, 0, 1);
             }
+
+                        /* ═══════════════════════════════════════════════════════════
+               ⚑ WHALE CHAT — locked view (non-whales)
+            ═══════════════════════════════════════════════════════════ */
+            #whaleMessagesContainer.whale-locked {
+                position: relative;
+                overflow: hidden;
+            }
+            .whale-blur-preview {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                padding: 4px;
+                filter: blur(8px) saturate(0.7);
+                opacity: 0.55;
+                pointer-events: none;
+                user-select: none;
+            }
+            .whale-fake-msg {
+                height: 58px;
+                border-radius: 10px;
+                width: 68%;
+                background: linear-gradient(90deg,
+                    var(--bg-elevated, rgba(255,255,255,0.06)) 0%,
+                    var(--bg-hover, rgba(255,255,255,0.11)) 55%,
+                    var(--bg-elevated, rgba(255,255,255,0.06)) 100%);
+                border: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
+            }
+            .whale-fake-msg.short {
+                width: 52%;
+                align-self: flex-end;
+            }
+
+            .whale-lock-overlay {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                text-align: center;
+                padding: 24px;
+                pointer-events: none;
+                z-index: 2;
+                background: radial-gradient(circle at 50% 45%,
+                    transparent 0%,
+                    color-mix(in srgb, var(--bg-panel, #01091A) 55%, transparent) 38%,
+                    color-mix(in srgb, var(--bg-panel, #01091A) 92%, transparent) 78%);
+            }
+            .whale-lock-emoji {
+                font-size: 3.4rem;
+                line-height: 1;
+                filter: drop-shadow(0 4px 12px rgba(0,0,0,0.6));
+                animation: whaleLockBob 2.6s ease-in-out infinite;
+            }
+            .whale-lock-title {
+                font-family: var(--font-mono, monospace);
+                font-size: 1rem;
+                font-weight: 900;
+                letter-spacing: 0.32em;
+                text-indent: 0.32em;
+                text-transform: uppercase;
+                color: var(--accent-cyan, #01E1EA);
+                text-shadow: 0 0 16px var(--border-glow, rgba(1,225,234,0.75));
+            }
+            .whale-lock-sub {
+                font-family: var(--font-mono, monospace);
+                font-size: 0.74rem;
+                letter-spacing: 0.08em;
+                color: var(--text-primary, #fff);
+                opacity: 0.9;
+                font-style: italic;
+            }
+            .whale-lock-tag {
+                margin-top: 4px;
+                padding: 4px 12px;
+                border-radius: 999px;
+                border: 1px dashed var(--accent-cyan, #01E1EA);
+                font-family: var(--font-mono, monospace);
+                font-size: 0.6rem;
+                font-weight: 800;
+                letter-spacing: 0.2em;
+                text-indent: 0.2em;
+                text-transform: uppercase;
+                color: var(--accent-cyan, #01E1EA);
+                opacity: 0.85;
+            }
+            @keyframes whaleLockBob {
+                0%, 100% { transform: translateY(0)    scale(1); }
+                50%      { transform: translateY(-6px) scale(1.06); }
+            }
         `;
         const tag = document.createElement('style');
         tag.setAttribute('data-msn-phantom-fixes', '1');
@@ -1097,7 +1189,19 @@
         }
     }
 
-    function updateChatAccessibility() {
+       function updateChatAccessibility() {
+        // ⚑ Whale tab — gate solely on whale badge
+        if (currentTab === 'whale') {
+            const ok = isWhale();
+            messageInput.disabled = !ok;
+            sendBtn.disabled      = !ok;
+            document.querySelectorAll('.private-btn').forEach(b => b.disabled = true);
+            messageInput.placeholder = ok
+                ? '🐋 Whale chat…'
+                : '🚫 Not whale enough';
+            return;
+        }
+
         let canChat = false;
         if (username) {
             if (modTokenRequirement <= 0) canChat = true;
@@ -2582,8 +2686,14 @@ function showSuccess(msg) {
         }
     }
 
-    function switchTab(tabName) {
+       function switchTab(tabName) {
         currentTab = tabName;
+
+        // ⚑ Pinned announcement — restore when returning to a non-whale tab
+        if (tabName !== 'whale' && typeof updateModAnnouncementDisplay === 'function') {
+            updateModAnnouncementDisplay(modAnnouncement);
+        }
+
         const tabs = chatTabs.querySelectorAll('.chat-tab');
         tabs.forEach(t => t.classList.remove('active'));
         const activeTab = chatTabs.querySelector(`[data-tab="${tabName}"]`);
@@ -2596,14 +2706,17 @@ function showSuccess(msg) {
             messageInput.placeholder = 'Type a message...';
             autoScroll = true;
             setTimeout(() => { scrollContainerToBottom(publicContainer); updateScrollButtonVisibility(publicContainer); }, 150);
-        } else if (tabName === 'whale') {
+                } else if (tabName === 'whale') {
             publicContainer.classList.add('hidden');
             privateContainer.classList.add('hidden');
             whaleContainer.classList.remove('hidden');
             privateIndicatorBar.classList.add('hidden');
-            messageInput.placeholder = isWhale()
-                ? '🐋 Whale chat…'
-                : '🚫 Whale chat — 1M+ holders only';
+
+            // ⚑ Pinned belongs to public — hide on whale tab
+            if (modMessageBox) modMessageBox.classList.add('hidden');
+
+            loadWhaleMessages();
+            updateChatAccessibility();
             autoScroll = true;
             setTimeout(() => { scrollContainerToBottom(whaleContainer); }, 150);
         } else {
@@ -2630,13 +2743,8 @@ function showSuccess(msg) {
         if (!tab) return;
         const tabName = tab.getAttribute('data-tab');
 
-        if (tabName === 'whale') {
-            if (!isWhale()) {
-                showError('🐋 Whale chat is 1M+ holders only.');
-                return;
-            }
-            switchTab('whale');
-            if (!whaleLoadedOnce) loadWhaleMessages();
+                if (tabName === 'whale') {
+            switchTab('whale');   // always allow switching — gated view for non-whales
             return;
         }
 
@@ -2997,14 +3105,32 @@ function showSuccess(msg) {
            ⚑ WHALE CHAT — gated read/write via RPC
            ═══════════════════════════════════════════════════════════ */
 
-        async function loadWhaleMessages() {
+               async function loadWhaleMessages() {
             if (!whaleContainer) return;
+
+            // ⚑ Non-whale → blurred locked preview, no RPC call
             if (!isWhale()) {
+                whaleContainer.classList.add('whale-locked');
                 whaleContainer.innerHTML =
-                    '<div class="empty-chat-hint">🚫 Only 🐋 Whale holders (1M+ tokens) can access this room.</div>';
+                    '<div class="whale-blur-preview" aria-hidden="true">' +
+                        '<div class="whale-fake-msg"></div>' +
+                        '<div class="whale-fake-msg short"></div>' +
+                        '<div class="whale-fake-msg"></div>' +
+                        '<div class="whale-fake-msg short"></div>' +
+                        '<div class="whale-fake-msg"></div>' +
+                        '<div class="whale-fake-msg short"></div>' +
+                        '<div class="whale-fake-msg"></div>' +
+                    '</div>' +
+                    '<div class="whale-lock-overlay">' +
+                        '<div class="whale-lock-emoji">🐋</div>' +
+                        '<div class="whale-lock-title">SEA IS CLOSED</div>' +
+                        '<div class="whale-lock-sub">Only whales swim here, little shrimp.</div>' +
+                        '<div class="whale-lock-tag">1,000,000+ TOKENS TO ENTER</div>' +
+                    '</div>';
                 return;
             }
 
+            whaleContainer.classList.remove('whale-locked');
             whaleContainer.innerHTML = '';
             showMsgLoader(whaleContainer, 'Loading whale chat');
 
@@ -3269,7 +3395,18 @@ function showSuccess(msg) {
         }
     }
 
-    async function sendMessage() {
+       async function sendMessage() {
+        // ⚑ Whale tab bypasses the generic token gate — has its own
+        if (currentTab === 'whale') {
+            if (!isWhale()) { showError('🐋 Whale chat is 1M+ holders only.'); return; }
+            const wtext = messageInput.value.trim();
+            if (!wtext && !pendingImageUrl) return;
+            sendBtn.disabled = true;
+            await sendWhaleMessage(wtext);
+            sendBtn.disabled = false;
+            return;
+        }
+
         let canSend = false;
         if (username) {
             if (modTokenRequirement <= 0) canSend = true;
@@ -3289,14 +3426,7 @@ function showSuccess(msg) {
         }
                const text = messageInput.value.trim();
         if (!text && !pendingImageUrl) return;
-        sendBtn.disabled = true;
-
-        // ⚑ Whale room — route through gated RPC
-        if (currentTab === 'whale') {
-            await sendWhaleMessage(text);
-            sendBtn.disabled = false;
-            return;
-        }
+                sendBtn.disabled = true;
 
         const isPrivate = (currentTab === 'private' && activePrivateChat);
         if (isPrivate && !activePrivateChat) {
