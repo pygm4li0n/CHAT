@@ -170,7 +170,8 @@
         if (!('MutationObserver' in window)) return;
         var containers = [
             document.getElementById('publicMessagesContainer'),
-            document.getElementById('privateMessagesContainer')
+            document.getElementById('privateMessagesContainer'),
+            document.getElementById('whaleMessagesContainer')
         ];
         var mo = new MutationObserver(function (muts) {
             for (var i = 0; i < muts.length; i++) {
@@ -195,7 +196,6 @@
 
     function watchReplyPreview() {
         var el = document.getElementById('replyPreviewDel');
-        el = document.getElementById('replyPreviewDisp');
         if (!el) { setTimeout(watchReplyPreview, 500); return; }
         var fix = function () {
             var t = el.textContent || '';
@@ -538,6 +538,7 @@
         if (isCooldownActive()) { toast('Cooldown active — wait a moment'); return; }
 
         var tab = currentTab();
+        if (tab === 'whale') { toast('Stickers not available in whale chat'); return; }
         var isPrivate = (tab === 'private');
         var partner = isPrivate ? activePrivatePartner() : null;
         if (isPrivate && !partner) { toast('No private partner selected.'); return; }
