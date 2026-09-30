@@ -530,16 +530,22 @@
         return fetchFreshProfile(wallet);
     }
 
-    async function fetchProfilesFor(wallets) {
-        var sb = getSB();
-        if (!sb || !wallets || !wallets.length) return [];
-        var unique = Array.from(new Set(wallets.filter(Boolean)));
+   async function fetchProfilesFor(wallets) {
+    var sb = getSB();
+    if (!sb || !wallets || !wallets.length) return [];
+    var unique = Array.from(new Set(wallets.filter(Boolean)));
+    var all = [];
+    var CHUNK = 200;
+    for (var i = 0; i < unique.length; i += CHUNK) {
+        var slice = unique.slice(i, i + CHUNK);
         var { data } = await sb.from('profiles')
             .select(PROFILE_COLS)
-            .in('wallet_address', unique);
+            .in('wallet_address', slice);
         (data || []).forEach(rememberProfile);
-        return data || [];
+        if (data) all = all.concat(data);
     }
+    return all;
+}
 
     /* ═══════════════════════════════════════════════════════
        RANKINGS REFRESH
@@ -704,6 +710,14 @@
         });
     }
 
+   var _ownClassTimers = new WeakMap();
+function scheduleOwnClass(root) {
+    if (!root) return;
+    clearTimeout(_ownClassTimers.get(root));
+    var t = setTimeout(function () { ensureOwnClass(root); }, 60);
+    _ownClassTimers.set(root, t);
+}
+
     function processWrapper(wrap) {
         if (!wrap) return;
 
@@ -724,11 +738,11 @@
         }
 
         var parent = wrap.parentNode;
-        if (parent) ensureOwnClass(parent);
+        if (parent) scheduleOwnClass(parent);
     }
 
     function tagMessageWrappers() {
-        ['publicMessagesContainer', 'privateMessagesContainer'].forEach(function (id) {
+       ['publicMessagesContainer', 'privateMessagesContainer', 'whaleMessagesContainer'].forEach(function (id) {
             var root = document.getElementById(id);
             if (!root) return;
             var mo = new MutationObserver(function (muts) {
@@ -877,7 +891,7 @@
                 var now  = Date.now();
                 // ⚑ Skip entries older than 5 minutes — they're likely stale.
                 //   script.js's first render will pick up the fresh fetch.
-                var MAX_AGE_MS = 5 * 60 * 1000;
+                var MAX_AGE_MS = 30 * 60 * 1000;
                 for (var w in snap) {
                     var p = snap[w];
                     if (!p) continue;
