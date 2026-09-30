@@ -3,9 +3,9 @@
    ────────────────────────────────────────────────────────────
    Drop-in. Load AFTER script.js + wallet-identity.js.
 
-     <script src="profile-system.js?v=17"></script>
+     <script src="profile-system.js?v=13"></script>
 
-   v12: bigger name, streak fire, no rank, last-active on top
+   v13: no private stat, last-active over name, high contrast
    ============================================================ */
 (function () {
     'use strict';
@@ -146,14 +146,14 @@
     }
 
     /* ═══════════════════════════════════════════════════════
-       CSS — EPIC HERO v12
+       CSS — EPIC HERO v13 · high-contrast cut
        ═══════════════════════════════════════════════════════ */
     function injectStyles() {
         var old = document.getElementById('msn-profile-styles');
         if (old) old.remove();
         var css = `
 /* ═══════════════════════════════════════════════════════
-   MSN PROFILE CARD — epic hero v12
+   MSN PROFILE CARD — epic hero v13
    ═══════════════════════════════════════════════════════ */
 
 .msn-profile-overlay{
@@ -165,17 +165,17 @@
     justify-content:center;
     padding:20px;
     background:
-        radial-gradient(ellipse 70% 50% at 50% 40%,
-            var(--accent-glow, rgba(0,240,255,.08)) 0%,
-            transparent 60%),
+        radial-gradient(ellipse 70% 55% at 50% 38%,
+            var(--accent-glow, rgba(0,240,255,.10)) 0%,
+            transparent 62%),
         radial-gradient(ellipse at center,
-            var(--overlay-bg-1, rgba(8,14,26,.94)) 0%,
-            var(--overlay-bg-2, rgba(2,4,10,.985)) 100%);
-    backdrop-filter:blur(20px) saturate(1.2);
-    -webkit-backdrop-filter:blur(20px) saturate(1.2);
+            var(--overlay-bg-1, rgba(4,8,16,.96)) 0%,
+            var(--overlay-bg-2, rgba(0,0,3,.99)) 100%);
+    backdrop-filter:blur(22px) saturate(1.3);
+    -webkit-backdrop-filter:blur(22px) saturate(1.3);
     opacity:0;
     pointer-events:none;
-    transition:opacity .3s ease;
+    transition:opacity .28s ease;
 }
 .msn-profile-overlay.open{opacity:1;pointer-events:auto;}
 
@@ -188,24 +188,24 @@
     overflow:hidden;
     padding:0;
     background:
-        radial-gradient(ellipse 100% 60% at 50% 0%,
-            var(--card-glow, rgba(0,240,255,.10)) 0%,
-            transparent 55%),
+        radial-gradient(ellipse 110% 60% at 50% 0%,
+            var(--card-glow, rgba(0,240,255,.14)) 0%,
+            transparent 58%),
         linear-gradient(180deg,
-            var(--bg-panel, #0c1526) 0%,
-            var(--bg-deep, #050810) 100%);
+            var(--bg-panel, #070d19) 0%,
+            var(--bg-deep, #010306) 100%);
     border-radius:24px;
     box-shadow:
-        0 0 0 1px var(--card-outline, rgba(0,240,255,.35)),
-        0 0 0 2px var(--card-outline-outer, rgba(0,0,0,.6)),
-        0 0 80px var(--card-bloom, rgba(0,240,255,.14)),
-        0 40px 100px rgba(0,0,0,.9),
-        inset 0 1px 0 var(--card-inner-highlight, rgba(255,255,255,.05));
+        0 0 0 1px var(--card-outline, rgba(0,240,255,.45)),
+        0 0 0 2px var(--card-outline-outer, rgba(0,0,0,.85)),
+        0 0 90px var(--card-bloom, rgba(0,240,255,.18)),
+        0 40px 100px rgba(0,0,0,.95),
+        inset 0 1px 0 var(--card-inner-highlight, rgba(255,255,255,.07));
     transform:scale(.9) translateY(30px);
     opacity:0;
     transition:transform .5s cubic-bezier(.16,1,.3,1), opacity .3s ease;
     font-family:var(--font-main, "Segoe UI", system-ui, sans-serif);
-    color:var(--text-primary, #fff);
+    color:var(--text-primary, #f2f9ff);
     text-align:left;
 }
 
@@ -220,12 +220,12 @@
         transparent 0deg,
         transparent 70deg,
         var(--accent-cyan, #00f0ff) 90deg,
-        var(--accent-cyan-bright, #b9f6ff) 100deg,
+        var(--accent-cyan-bright, #e2fbff) 100deg,
         var(--accent-cyan, #00f0ff) 110deg,
         transparent 130deg,
         transparent 250deg,
         var(--accent-purple, #a855f7) 270deg,
-        var(--accent-purple-bright, #e6d4ff) 280deg,
+        var(--accent-purple-bright, #ecdcff) 280deg,
         var(--accent-purple, #a855f7) 290deg,
         transparent 310deg,
         transparent 360deg);
@@ -234,7 +234,7 @@
             mask-composite:exclude;
     pointer-events:none;
     animation:msnBorderSpin 6s linear infinite;
-    filter:drop-shadow(0 0 8px var(--accent-cyan, rgba(0,240,255,.6)));
+    filter:drop-shadow(0 0 10px var(--accent-cyan, rgba(0,240,255,.75)));
     z-index:2;
 }
 @keyframes msnBorderSpin{to{transform:rotate(360deg);}}
@@ -258,10 +258,10 @@
     width:32px;
     height:32px;
     border-radius:50%;
-    border:1px solid var(--border-default, rgba(255,255,255,.12));
-    background:var(--bg-elevated, rgba(10,16,30,.7));
-    backdrop-filter:blur(8px);
-    color:var(--text-muted, #7d8ba6);
+    border:1px solid var(--border-default, rgba(255,255,255,.16));
+    background:var(--bg-elevated, rgba(2,6,14,.85));
+    backdrop-filter:blur(10px);
+    color:var(--text-muted, #8b9ab8);
     cursor:pointer;
     display:flex;
     align-items:center;
@@ -273,65 +273,21 @@
 .msn-profile-close:hover,
 .msn-profile-close:focus-visible{
     outline:none;
-    border-color:rgba(255,45,85,.6);
+    border-color:rgba(255,45,85,.75);
     color:#ff2d55;
-    background:rgba(255,45,85,.1);
+    background:rgba(255,45,85,.14);
     transform:rotate(90deg) scale(1.08);
 }
 
 /* ═══════════════════════════════════════════════════════
-   LAST ACTIVE — top strip
-   ═══════════════════════════════════════════════════════ */
-.msn-la-top{
-    display:flex;
-    align-items:center;
-    gap:9px;
-    padding:11px 24px;
-    background:
-        linear-gradient(180deg,
-            var(--accent-green-glow-soft, rgba(74,222,128,.06)) 0%,
-            transparent 100%);
-    border-bottom:1px solid var(--border-subtle, rgba(74,222,128,.10));
-    font-family:var(--font-mono, monospace);
-    font-size:.56rem;
-    letter-spacing:.16em;
-    text-transform:uppercase;
-}
-.msn-la-dot{
-    width:7px;
-    height:7px;
-    border-radius:50%;
-    background:var(--status-online, #4ade80);
-    box-shadow:0 0 10px var(--status-online, #4ade80),
-               0 0 18px var(--status-online-glow, rgba(74,222,128,.5));
-    animation:msnStripPulse 1.6s ease-in-out infinite;
-    flex-shrink:0;
-}
-@keyframes msnStripPulse{
-    0%,100%{opacity:1;transform:scale(1);}
-    50%{opacity:.55;transform:scale(.85);}
-}
-.msn-la-label{
-    font-weight:800;
-    color:var(--accent-green-mid, #6ee7a7);
-}
-.msn-la-val{
-    margin-left:auto;
-    font-weight:900;
-    color:var(--accent-green, #a7f3d0);
-    text-shadow:0 0 10px var(--accent-green-shadow, rgba(74,222,128,.4));
-    letter-spacing:.1em;
-}
-
-/* ═══════════════════════════════════════════════════════
-   HERO — asymmetric avatar + identity
+   HERO — avatar + identity · last-active above name
    ═══════════════════════════════════════════════════════ */
 .msn-hero{
     display:grid;
     grid-template-columns:120px 1fr;
     gap:22px;
     align-items:center;
-    padding:24px 24px 22px;
+    padding:28px 24px 22px;
     position:relative;
 }
 
@@ -345,12 +301,12 @@
 .msn-avatar-wrap::before{
     content:"";
     position:absolute;
-    inset:-12px;
+    inset:-14px;
     border-radius:50%;
     background:radial-gradient(circle,
-        var(--accent-glow, rgba(0,240,255,.20)) 0%,
-        var(--accent-glow-soft, rgba(0,240,255,.06)) 40%,
-        transparent 70%);
+        var(--accent-glow, rgba(0,240,255,.26)) 0%,
+        var(--accent-glow-soft, rgba(0,240,255,.08)) 40%,
+        transparent 72%);
     animation:msnAvatarHalo 4s ease-in-out infinite;
     pointer-events:none;
 }
@@ -378,7 +334,7 @@
     position:absolute;
     inset:3px;
     border-radius:50%;
-    background:var(--bg-deep, #050810);
+    background:var(--bg-deep, #010306);
 }
 .msn-avatar{
     position:absolute;
@@ -392,11 +348,11 @@
     font-weight:900;
     color:var(--text-primary, #fff);
     z-index:2;
-    background:var(--bg-deep, #050810);
+    background:linear-gradient(180deg, #0a1220, #010306);
     box-shadow:
-        inset 0 0 40px rgba(0,0,0,.9),
-        0 8px 30px rgba(0,0,0,.6);
-    text-shadow:0 0 20px var(--accent-cyan, rgba(0,240,255,.9));
+        inset 0 0 40px rgba(0,0,0,.95),
+        0 8px 30px rgba(0,0,0,.75);
+    text-shadow:0 0 22px var(--accent-cyan, rgba(0,240,255,.95));
 }
 .msn-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
 
@@ -407,22 +363,22 @@
     width:22px;
     height:22px;
     border-radius:50%;
-    background:var(--status-offline, #5a6b88);
-    border:4px solid var(--bg-panel, #0c1526);
+    background:var(--status-offline, #46536e);
+    border:4px solid var(--bg-panel, #070d19);
     z-index:3;
     transition:background .25s, box-shadow .25s;
 }
 .msn-status-dot.online{
-    background:var(--status-online, #4ade80);
-    box-shadow:0 0 16px var(--status-online, #4ade80),
-               0 0 32px var(--status-online-glow, rgba(74,222,128,.5));
+    background:var(--status-online, #22ff88);
+    box-shadow:0 0 18px var(--status-online, #22ff88),
+               0 0 36px var(--status-online-glow, rgba(34,255,136,.6));
 }
 .msn-status-dot.online::before{
     content:"";
     position:absolute;
     inset:-4px;
     border-radius:50%;
-    border:2px solid var(--status-online, #4ade80);
+    border:2px solid var(--status-online, #22ff88);
     animation:msnPing 1.8s ease-out infinite;
     pointer-events:none;
 }
@@ -436,11 +392,59 @@
     display:flex;
     flex-direction:column;
     align-items:flex-start;
-    gap:8px;
+    gap:7px;
     min-width:0;
+    width:100%;
 }
 
-/* ⚑ Name — bigger, bolder, better adapted */
+/* ── Last active — right above the name ── */
+.msn-hero-status{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:var(--font-mono, monospace);
+    font-size:.56rem;
+    font-weight:800;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    line-height:1;
+    padding:5px 10px 5px 8px;
+    border-radius:999px;
+    background:linear-gradient(180deg,
+        var(--accent-green-glow-soft, rgba(34,255,136,.10)) 0%,
+        var(--accent-green-glow-faint, rgba(34,255,136,.02)) 100%);
+    border:1px solid var(--accent-green-border, rgba(34,255,136,.28));
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.05),
+        0 0 14px rgba(34,255,136,.12);
+    white-space:nowrap;
+    max-width:100%;
+}
+.msn-hero-status-dot{
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:var(--status-online, #22ff88);
+    box-shadow:0 0 10px var(--status-online, #22ff88),
+               0 0 18px var(--status-online-glow, rgba(34,255,136,.6));
+    animation:msnStripPulse 1.6s ease-in-out infinite;
+    flex-shrink:0;
+}
+@keyframes msnStripPulse{
+    0%,100%{opacity:1;transform:scale(1);}
+    50%{opacity:.5;transform:scale(.8);}
+}
+.msn-hero-status-label{
+    color:var(--accent-green-mid, #6affb0);
+    font-weight:900;
+}
+.msn-hero-status-val{
+    color:var(--accent-green, #b6ffd8);
+    font-weight:900;
+    text-shadow:0 0 10px var(--accent-green-shadow, rgba(34,255,136,.55));
+}
+
+/* ⚑ Name — bigger, bolder */
 .msn-hero-name-row{
     display:flex;
     align-items:center;
@@ -451,30 +455,30 @@
 }
 .msn-hero-name{
     margin:0;
-    font-size:1.85rem;
+    font-size:1.95rem;
     font-weight:900;
-    letter-spacing:-.025em;
-    line-height:1.1;
+    letter-spacing:-.028em;
+    line-height:1.08;
     color:var(--text-primary, #fff);
     word-break:break-word;
     text-shadow:
-        0 0 24px var(--accent-glow, rgba(0,240,255,.5)),
-        0 0 48px var(--accent-glow-soft, rgba(0,240,255,.22)),
-        0 2px 8px rgba(0,0,0,.9);
+        0 0 26px var(--accent-glow, rgba(0,240,255,.6)),
+        0 0 52px var(--accent-glow-soft, rgba(0,240,255,.28)),
+        0 2px 8px rgba(0,0,0,.95);
     animation:msnNameGlow 3.2s ease-in-out infinite;
 }
 @keyframes msnNameGlow{
     0%,100%{
         text-shadow:
-            0 0 24px var(--accent-glow, rgba(0,240,255,.5)),
-            0 0 48px var(--accent-glow-soft, rgba(0,240,255,.22)),
-            0 2px 8px rgba(0,0,0,.9);
+            0 0 26px var(--accent-glow, rgba(0,240,255,.6)),
+            0 0 52px var(--accent-glow-soft, rgba(0,240,255,.28)),
+            0 2px 8px rgba(0,0,0,.95);
     }
     50%{
         text-shadow:
-            0 0 32px var(--accent-glow, rgba(0,240,255,.8)),
-            0 0 60px var(--accent-glow-soft, rgba(0,240,255,.35)),
-            0 2px 8px rgba(0,0,0,.9);
+            0 0 34px var(--accent-glow, rgba(0,240,255,.9)),
+            0 0 66px var(--accent-glow-soft, rgba(0,240,255,.42)),
+            0 2px 8px rgba(0,0,0,.95);
     }
 }
 
@@ -487,35 +491,36 @@
     height:1.9em;
     padding:0 .55em;
     border-radius:999px;
-    background:var(--bg-elevated, rgba(255,255,255,.06));
-    border:1.5px solid var(--border-default, rgba(255,255,255,.18));
+    background:var(--bg-elevated, rgba(255,255,255,.07));
+    border:1.5px solid var(--border-default, rgba(255,255,255,.22));
     font-size:.72em;
     line-height:1;
     font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
     box-shadow:
-        inset 0 1px 0 var(--card-inner-highlight, rgba(255,255,255,.08)),
-        0 0 12px rgba(0,0,0,.4);
+        inset 0 1px 0 var(--card-inner-highlight, rgba(255,255,255,.10)),
+        0 0 12px rgba(0,0,0,.5);
+    cursor:help;
 }
 .msn-tier-badge.msn-tier-whale{
     background:linear-gradient(135deg,
-        var(--accent-glow, rgba(0,240,255,.2)) 0%,
-        var(--accent-glow-soft, rgba(0,240,255,.05)) 100%);
-    border-color:var(--accent-cyan, rgba(0,240,255,.6));
-    box-shadow:0 0 20px var(--accent-cyan-glow, rgba(0,240,255,.5));
+        var(--accent-glow, rgba(0,240,255,.28)) 0%,
+        var(--accent-glow-soft, rgba(0,240,255,.07)) 100%);
+    border-color:var(--accent-cyan, rgba(0,240,255,.75));
+    box-shadow:0 0 22px var(--accent-cyan-glow, rgba(0,240,255,.6));
 }
 .msn-tier-badge.msn-tier-dolphin{
     background:linear-gradient(135deg,
-        var(--accent-purple-glow, rgba(168,85,247,.2)) 0%,
-        var(--accent-purple-glow-soft, rgba(168,85,247,.05)) 100%);
-    border-color:var(--accent-purple, rgba(168,85,247,.6));
-    box-shadow:0 0 20px var(--accent-purple-glow, rgba(168,85,247,.5));
+        var(--accent-purple-glow, rgba(168,85,247,.28)) 0%,
+        var(--accent-purple-glow-soft, rgba(168,85,247,.07)) 100%);
+    border-color:var(--accent-purple, rgba(168,85,247,.75));
+    box-shadow:0 0 22px var(--accent-purple-glow, rgba(168,85,247,.6));
 }
 .msn-tier-badge.msn-tier-crab{
     background:linear-gradient(135deg,
-        var(--accent-orange-glow, rgba(255,138,0,.2)) 0%,
-        var(--accent-orange-glow-soft, rgba(255,138,0,.05)) 100%);
-    border-color:var(--accent-orange, rgba(255,138,0,.6));
-    box-shadow:0 0 20px var(--accent-orange-glow, rgba(255,138,0,.5));
+        var(--accent-orange-glow, rgba(255,138,0,.28)) 0%,
+        var(--accent-orange-glow-soft, rgba(255,138,0,.07)) 100%);
+    border-color:var(--accent-orange, rgba(255,138,0,.75));
+    box-shadow:0 0 22px var(--accent-orange-glow, rgba(255,138,0,.6));
 }
 
 /* X badge */
@@ -533,16 +538,17 @@
     line-height:1;
     font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
     box-shadow:
-        0 0 16px rgba(29,155,240,.7),
-        inset 0 1px 0 rgba(255,255,255,.3);
+        0 0 18px rgba(29,155,240,.85),
+        inset 0 1px 0 rgba(255,255,255,.35);
     flex-shrink:0;
+    cursor:help;
 }
 
 .msn-hero-sig{
     margin:0;
-    font-size:.85rem;
-    color:var(--text-secondary, #8fa2be);
-    line-height:1.4;
+    font-size:.86rem;
+    color:var(--text-secondary, #9db0cd);
+    line-height:1.45;
     word-break:break-word;
     max-width:100%;
     min-height:1em;
@@ -564,14 +570,14 @@
     gap:7px;
     padding:6px 11px;
     font-size:.62rem;
-    color:var(--accent-green, #a7f3d0);
+    color:var(--accent-green, #b6ffd8);
     letter-spacing:.06em;
     font-weight:800;
     font-family:var(--font-mono, monospace);
     background:linear-gradient(180deg,
-        var(--accent-green-glow, rgba(74,222,128,.10)) 0%,
-        var(--accent-green-glow-soft, rgba(74,222,128,.02)) 100%);
-    border:1px solid var(--accent-green-border, rgba(74,222,128,.28));
+        var(--accent-green-glow, rgba(34,255,136,.12)) 0%,
+        var(--accent-green-glow-soft, rgba(34,255,136,.03)) 100%);
+    border:1px solid var(--accent-green-border, rgba(34,255,136,.35));
     border-radius:8px;
     line-height:1;
     cursor:pointer;
@@ -579,12 +585,12 @@
     position:relative;
 }
 .msn-wallet-btn:hover{
-    border-color:var(--accent-green, rgba(74,222,128,.6));
+    border-color:var(--accent-green, rgba(34,255,136,.75));
     background:linear-gradient(180deg,
-        var(--accent-green-glow-hover, rgba(74,222,128,.18)) 0%,
-        var(--accent-green-glow-soft, rgba(74,222,128,.05)) 100%);
-    box-shadow:0 0 16px var(--accent-green-shadow, rgba(74,222,128,.3));
-    color:var(--accent-green-bright, #c6f9d8);
+        var(--accent-green-glow-hover, rgba(34,255,136,.22)) 0%,
+        var(--accent-green-glow-soft, rgba(34,255,136,.06)) 100%);
+    box-shadow:0 0 18px var(--accent-green-shadow, rgba(34,255,136,.4));
+    color:var(--accent-green-bright, #dbffe9);
 }
 .msn-wallet-btn:active{transform:scale(.97);}
 .msn-wallet-icon{font-size:.85rem;line-height:1;opacity:.9;}
@@ -592,17 +598,17 @@
 .msn-wallet-copy{
     font-size:.75rem;
     line-height:1;
-    opacity:.7;
+    opacity:.75;
     margin-left:2px;
     transition:opacity .18s;
 }
 .msn-wallet-btn:hover .msn-wallet-copy{opacity:1;}
 .msn-wallet-btn.msn-copied{
     background:linear-gradient(180deg,
-        var(--accent-green-glow-strong, rgba(74,222,128,.28)) 0%,
-        var(--accent-green-glow, rgba(74,222,128,.10)) 100%);
-    border-color:var(--accent-green, rgba(74,222,128,.9));
-    box-shadow:0 0 24px var(--accent-green-shadow-strong, rgba(74,222,128,.6));
+        var(--accent-green-glow-strong, rgba(34,255,136,.32)) 0%,
+        var(--accent-green-glow, rgba(34,255,136,.12)) 100%);
+    border-color:var(--accent-green, rgba(34,255,136,.95));
+    box-shadow:0 0 26px var(--accent-green-shadow-strong, rgba(34,255,136,.7));
 }
 
 /* Joined pill */
@@ -612,30 +618,30 @@
     gap:6px;
     padding:6px 11px;
     font-size:.6rem;
-    color:var(--accent-cyan, #7dd3fc);
+    color:var(--accent-cyan, #8fe6ff);
     letter-spacing:.12em;
     text-transform:uppercase;
     font-weight:800;
     font-family:var(--font-mono, monospace);
     background:linear-gradient(180deg,
-        var(--accent-glow-soft, rgba(0,240,255,.08)) 0%,
+        var(--accent-glow-soft, rgba(0,240,255,.10)) 0%,
         var(--accent-glow-faint, rgba(0,240,255,.02)) 100%);
-    border:1px solid var(--border-glow, rgba(0,240,255,.22));
+    border:1px solid var(--border-glow, rgba(0,240,255,.30));
     border-radius:8px;
     line-height:1;
     white-space:nowrap;
 }
 
 /* ═══════════════════════════════════════════════════════
-   STATS — 5 columns
+   STATS — 4 columns
    ═══════════════════════════════════════════════════════ */
 .msn-stats{
     display:grid;
-    grid-template-columns:repeat(5,1fr);
+    grid-template-columns:repeat(4,1fr);
     gap:1px;
     margin:0 24px 18px;
-    background:var(--border-subtle, rgba(0,240,255,.08));
-    border:1px solid var(--border-subtle-strong, rgba(0,240,255,.14));
+    background:var(--border-subtle, rgba(0,240,255,.12));
+    border:1px solid var(--border-subtle-strong, rgba(0,240,255,.20));
     border-radius:14px;
     overflow:hidden;
 }
@@ -647,53 +653,54 @@
     gap:6px;
     padding:14px 4px;
     background:linear-gradient(180deg,
-        var(--accent-glow-faint, rgba(0,240,255,.03)) 0%,
-        var(--accent-glow-trace, rgba(0,240,255,.005)) 100%);
+        var(--accent-glow-faint, rgba(0,240,255,.045)) 0%,
+        var(--accent-glow-trace, rgba(0,240,255,.008)) 100%);
     transition:background .2s ease;
     min-width:0;
+    cursor:default;
 }
 .msn-stat:hover{
     background:linear-gradient(180deg,
-        var(--accent-glow-soft, rgba(0,240,255,.09)) 0%,
-        var(--accent-glow-faint, rgba(0,240,255,.02)) 100%);
+        var(--accent-glow-soft, rgba(0,240,255,.13)) 0%,
+        var(--accent-glow-faint, rgba(0,240,255,.03)) 100%);
 }
 .msn-stat-lbl{
     font-size:.46rem;
     font-weight:800;
     letter-spacing:.16em;
     text-transform:uppercase;
-    color:var(--text-muted, #6a7a96);
+    color:var(--text-muted, #7488a8);
     line-height:1;
     font-family:var(--font-mono, monospace);
 }
 .msn-stat-val{
     font-family:var(--font-mono, monospace);
-    font-size:1.15rem;
+    font-size:1.2rem;
     font-weight:900;
-    color:var(--accent-cyan, #00f0ff);
+    color:var(--accent-cyan, #2af6ff);
     line-height:1;
     font-variant-numeric:tabular-nums;
     letter-spacing:-.02em;
-    text-shadow:0 0 14px var(--accent-cyan-shadow, rgba(0,240,255,.6));
+    text-shadow:0 0 16px var(--accent-cyan-shadow, rgba(0,240,255,.75));
     display:flex;
     align-items:baseline;
     gap:2px;
 }
 .msn-stat-val .msn-stat-sub{
     font-size:.6em;
-    color:var(--text-muted, #6a7a96);
+    color:var(--text-muted, #7488a8);
     font-weight:800;
     text-shadow:none;
 }
 
 /* ⚑ Streak — fire + number */
 .msn-stat.msn-stat-fire .msn-stat-val{
-    color:var(--accent-orange, #ffb066);
-    text-shadow:0 0 14px var(--accent-orange-glow, rgba(255,140,0,.6));
+    color:var(--accent-orange, #ffbe7a);
+    text-shadow:0 0 16px var(--accent-orange-glow, rgba(255,140,0,.8));
 }
 .msn-stat.msn-stat-fire .msn-stat-val .msn-fire-icon{
     font-size:.85em;
-    filter:drop-shadow(0 0 6px rgba(255,140,0,.9));
+    filter:drop-shadow(0 0 8px rgba(255,140,0,1));
     animation:msnFireBounce 1.6s ease-in-out infinite;
 }
 @keyframes msnFireBounce{
@@ -715,7 +722,7 @@
     font-weight:800;
     letter-spacing:.2em;
     text-transform:uppercase;
-    color:var(--text-muted, #6a7a96);
+    color:var(--text-muted, #7488a8);
     font-family:var(--font-mono, monospace);
     display:flex;
     align-items:center;
@@ -724,18 +731,18 @@
 }
 .msn-ach-header-label::before{
     content:"◆";
-    color:var(--accent-cyan, #00f0ff);
+    color:var(--accent-cyan, #2af6ff);
     font-size:.7rem;
 }
 .msn-ach-header::after{
     content:"";
     flex:1;
     height:1px;
-    background:linear-gradient(90deg, var(--border-glow, rgba(0,240,255,.25)), transparent);
+    background:linear-gradient(90deg, var(--border-glow, rgba(0,240,255,.35)), transparent);
 }
 .msn-ach-count{
     font-size:.5rem;
-    color:var(--text-muted, #6a7a96);
+    color:var(--text-muted, #7488a8);
     font-family:var(--font-mono, monospace);
     font-weight:800;
     letter-spacing:.08em;
@@ -752,8 +759,8 @@
 .msn-ach{
     aspect-ratio:1/1;
     border-radius:9px;
-    background:var(--bg-elevated, rgba(255,255,255,.02));
-    border:1px solid var(--border-subtle, rgba(0,240,255,.10));
+    background:var(--bg-elevated, rgba(255,255,255,.025));
+    border:1px solid var(--border-subtle, rgba(0,240,255,.14));
     display:flex;
     align-items:center;
     justify-content:center;
@@ -765,6 +772,7 @@
     opacity:0;
     transform:translateY(5px) scale(.92);
     animation:msnAchIn .5s cubic-bezier(.16,1,.3,1) forwards;
+    cursor:help;
 }
 .msn-ach:nth-child(1){animation-delay:.24s;}
 .msn-ach:nth-child(2){animation-delay:.30s;}
@@ -776,16 +784,16 @@
     to{opacity:1;transform:translateY(0) scale(1);}
 }
 .msn-ach.unlocked{
-    border-color:var(--accent-cyan-glow, rgba(0,240,255,.5));
+    border-color:var(--accent-cyan-glow, rgba(0,240,255,.65));
     background:linear-gradient(180deg,
-        var(--accent-glow-soft, rgba(0,240,255,.12)) 0%,
-        var(--accent-glow-faint, rgba(0,240,255,.03)) 100%);
+        var(--accent-glow-soft, rgba(0,240,255,.16)) 0%,
+        var(--accent-glow-faint, rgba(0,240,255,.04)) 100%);
     box-shadow:
-        0 0 16px var(--accent-cyan-glow, rgba(0,240,255,.35)),
-        inset 0 1px 0 var(--card-inner-highlight, rgba(255,255,255,.08));
+        0 0 18px var(--accent-cyan-glow, rgba(0,240,255,.45)),
+        inset 0 1px 0 var(--card-inner-highlight, rgba(255,255,255,.10));
 }
 .msn-ach.locked{
-    opacity:.22;
+    opacity:.20;
     border-style:dashed;
 }
 .msn-ach.locked::before{
@@ -796,8 +804,8 @@
 }
 .msn-ach:hover{
     transform:translateY(-3px) scale(1.06);
-    border-color:var(--accent-cyan, rgba(0,240,255,.7));
-    box-shadow:0 0 22px var(--accent-cyan-glow, rgba(0,240,255,.5));
+    border-color:var(--accent-cyan, rgba(0,240,255,.85));
+    box-shadow:0 0 24px var(--accent-cyan-glow, rgba(0,240,255,.6));
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -817,42 +825,42 @@
     letter-spacing:.1em;
     text-transform:uppercase;
     cursor:pointer;
-    border:1px solid var(--border-glow-soft, rgba(0,240,255,.18));
+    border:1px solid var(--border-glow-soft, rgba(0,240,255,.25));
     background:linear-gradient(180deg,
-        var(--accent-glow-soft, rgba(0,240,255,.05)) 0%,
-        var(--accent-glow-faint, rgba(0,240,255,.01)) 100%);
-    color:var(--text-primary, #e0f4ff);
+        var(--accent-glow-soft, rgba(0,240,255,.08)) 0%,
+        var(--accent-glow-faint, rgba(0,240,255,.02)) 100%);
+    color:var(--text-primary, #e6f7ff);
     transition:all .2s ease;
     font-family:var(--font-mono, monospace);
 }
 .msn-act-btn:hover{
-    border-color:var(--accent-cyan, rgba(0,240,255,.5));
+    border-color:var(--accent-cyan, rgba(0,240,255,.65));
     background:linear-gradient(180deg,
-        var(--accent-glow, rgba(0,240,255,.12)) 0%,
-        var(--accent-glow-faint, rgba(0,240,255,.03)) 100%);
-    color:var(--accent-cyan, #00f0ff);
-    box-shadow:0 0 20px var(--accent-cyan-glow, rgba(0,240,255,.25));
+        var(--accent-glow, rgba(0,240,255,.18)) 0%,
+        var(--accent-glow-faint, rgba(0,240,255,.04)) 100%);
+    color:var(--accent-cyan, #2af6ff);
+    box-shadow:0 0 22px var(--accent-cyan-glow, rgba(0,240,255,.35));
     transform:translateY(-1px);
 }
 .msn-act-btn:active{transform:translateY(0) scale(.98);}
 .msn-act-btn.primary{
     background:linear-gradient(180deg,
-        var(--accent-cyan, #00f0ff) 0%,
+        var(--accent-cyan, #2af6ff) 0%,
         var(--accent-cyan-deep, #00b8d4) 100%);
     color:var(--accent-ink, #001018);
-    border-color:var(--accent-cyan, #00f0ff);
+    border-color:var(--accent-cyan, #2af6ff);
     box-shadow:
-        0 0 30px var(--accent-cyan-shadow, rgba(0,240,255,.4)),
-        inset 0 1px 0 rgba(255,255,255,.5),
-        inset 0 -1px 0 rgba(0,0,0,.15);
-    text-shadow:0 1px 0 rgba(255,255,255,.35);
+        0 0 32px var(--accent-cyan-shadow, rgba(0,240,255,.5)),
+        inset 0 1px 0 rgba(255,255,255,.55),
+        inset 0 -1px 0 rgba(0,0,0,.18);
+    text-shadow:0 1px 0 rgba(255,255,255,.4);
 }
 .msn-act-btn.primary:hover{
     filter:brightness(1.08);
     box-shadow:
-        0 0 44px var(--accent-cyan-shadow, rgba(0,240,255,.7)),
-        inset 0 1px 0 rgba(255,255,255,.6),
-        inset 0 -1px 0 rgba(0,0,0,.15);
+        0 0 46px var(--accent-cyan-shadow, rgba(0,240,255,.8)),
+        inset 0 1px 0 rgba(255,255,255,.65),
+        inset 0 -1px 0 rgba(0,0,0,.18);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -865,12 +873,12 @@
     justify-content:center;
     gap:16px;
     padding:80px 10px;
-    color:var(--accent-cyan, #00f0ff);
+    color:var(--accent-cyan, #2af6ff);
     font-family:var(--font-mono, monospace);
     font-size:.68rem;
     letter-spacing:.24em;
     text-transform:uppercase;
-    text-shadow:0 0 12px var(--accent-cyan-shadow, rgba(0,240,255,.6));
+    text-shadow:0 0 14px var(--accent-cyan-shadow, rgba(0,240,255,.75));
 }
 .msn-loader-dots{
     display:inline-flex;
@@ -880,9 +888,9 @@
     width:10px;
     height:10px;
     border-radius:50%;
-    background:var(--accent-cyan, #00f0ff);
+    background:var(--accent-cyan, #2af6ff);
     animation:msnLoaderPulse 1.3s ease-in-out infinite;
-    box-shadow:0 0 12px var(--accent-cyan, #00f0ff);
+    box-shadow:0 0 14px var(--accent-cyan, #2af6ff);
 }
 .msn-loader-dots span:nth-child(2){animation-delay:.15s;}
 .msn-loader-dots span:nth-child(3){animation-delay:.3s;}
@@ -894,7 +902,7 @@
 .msn-profile-empty{
     padding:60px 16px;
     text-align:center;
-    color:var(--text-muted, #6a7a96);
+    color:var(--text-muted, #7488a8);
     font-family:var(--font-mono, monospace);
     font-size:.68rem;
     letter-spacing:.22em;
@@ -907,8 +915,8 @@
     transition:color .2s ease, text-shadow .2s ease;
 }
 .msg-username:hover .msn-username-link{
-    color:var(--accent-cyan, #00f0ff);
-    text-shadow:0 0 12px var(--accent-cyan-shadow, rgba(0,240,255,.8));
+    color:var(--accent-cyan, #2af6ff);
+    text-shadow:0 0 14px var(--accent-cyan-shadow, rgba(0,240,255,.9));
 }
 .msg-username .msg-avatar{cursor:pointer;}
 
@@ -917,18 +925,18 @@
     .msn-profile-overlay{padding:12px;}
     .msn-profile-card{border-radius:20px;}
     .msn-profile-card::after{border-radius:20px;}
-    .msn-la-top{padding:9px 18px;font-size:.5rem;}
 
     .msn-hero{
         grid-template-columns:88px 1fr;
         gap:16px;
-        padding:18px 18px 16px;
+        padding:22px 18px 16px;
     }
     .msn-avatar-wrap{width:88px;height:88px;}
     .msn-avatar{font-size:1.75rem;}
     .msn-status-dot{width:18px;height:18px;border-width:3px;}
-    .msn-hero-name{font-size:1.4rem;letter-spacing:-.02em;}
-    .msn-hero-sig{font-size:.72rem;}
+    .msn-hero-status{font-size:.5rem;padding:4px 8px 4px 6px;gap:6px;}
+    .msn-hero-name{font-size:1.5rem;letter-spacing:-.022em;}
+    .msn-hero-sig{font-size:.74rem;}
     .msn-tier-badge{min-width:1.7em;height:1.7em;font-size:.68em;}
     .msn-x-badge{width:1.7em;height:1.7em;font-size:.68em;}
     .msn-wallet-btn{font-size:.54rem;padding:5px 9px;gap:5px;}
@@ -937,7 +945,7 @@
     .msn-stats{margin:0 18px 14px;}
     .msn-stat{padding:11px 3px;gap:5px;}
     .msn-stat-lbl{font-size:.42rem;letter-spacing:.1em;}
-    .msn-stat-val{font-size:.95rem;}
+    .msn-stat-val{font-size:1rem;}
 
     .msn-ach-header{margin:0 18px 6px;}
     .msn-achievements{gap:5px;margin:0 18px 14px;}
@@ -948,11 +956,12 @@
 }
 
 @media (max-width:380px){
-    .msn-hero{grid-template-columns:76px 1fr;gap:12px;padding:16px 14px 14px;}
+    .msn-hero{grid-template-columns:76px 1fr;gap:12px;padding:18px 14px 14px;}
     .msn-avatar-wrap{width:76px;height:76px;}
     .msn-avatar{font-size:1.5rem;}
-    .msn-hero-name{font-size:1.2rem;}
-    .msn-stats{grid-template-columns:repeat(3,1fr);margin:0 14px 12px;}
+    .msn-hero-name{font-size:1.28rem;}
+    .msn-hero-status{font-size:.46rem;letter-spacing:.12em;}
+    .msn-stats{grid-template-columns:repeat(2,1fr);margin:0 14px 12px;}
     .msn-ach-header{margin:0 14px 6px;}
     .msn-achievements{margin:0 14px 12px;}
     .msn-actions{padding:0 14px 14px;}
@@ -967,7 +976,7 @@
     .msn-hero-name,
     .msn-ach,
     .msn-loader-dots span,
-    .msn-la-dot,
+    .msn-hero-status-dot,
     .msn-fire-icon{
         animation:none !important;
     }
@@ -977,7 +986,7 @@
 `;
         var tag = document.createElement('style');
         tag.id = 'msn-profile-styles';
-        tag.setAttribute('data-version', '12');
+        tag.setAttribute('data-version', '13');
         tag.textContent = css;
         document.head.appendChild(tag);
     }
@@ -1108,7 +1117,7 @@
     }
 
     /* ═══════════════════════════════════════════════════════
-       Profile fetch — parallel + 30s cache · rank removed
+       Profile fetch — parallel + 30s cache · no private stat
        ═══════════════════════════════════════════════════════ */
     var _profileCache = new Map();
     var _PROFILE_CACHE_MS = 30000;
@@ -1139,7 +1148,7 @@
             messages_count: 0, current_streak: 0, created_at: null,
             last_active_at: null,
             wallet_address: wallet || null, token_balance: null,
-            reactions_given: 0, private_chats: 0,
+            reactions_given: 0,
             achievements: [], hasProfile: false
         };
 
@@ -1274,16 +1283,6 @@
             3500
         ));
 
-        tasks.push(_timeout(
-            sb.from('private_messages')
-                .select('*', { count: 'exact', head: true })
-                .or('from_user.eq.' + username + ',to_user.eq.' + username)
-                .then(function (res) {
-                    if (res && typeof res.count === 'number') out.private_chats = res.count;
-                }).catch(function () {}),
-            3500
-        ));
-
         await Promise.all(tasks);
 
         if (isSelf) out.current_streak = readSelfStreakFromDOM();
@@ -1332,7 +1331,6 @@
         var streak    = Number(data.current_streak || 0);
         var msgs      = Number(data.messages_count || 0);
         var reactions = Number(data.reactions_given || 0);
-        var privMsgs  = Number(data.private_chats || 0);
         var online    = isSelf ? true : isUserOnline(data.username);
         var shownName = data.display_name || data.username || 'anon';
 
@@ -1344,23 +1342,23 @@
         var tier = tierFor(resolveBalance(data));
         if (tier) {
             tierBadge = '<span class="msn-tier-badge msn-tier-' + tier.name.toLowerCase() + '"'
-                + ' title="' + tier.name + '">' + tier.emoji + '</span>';
+                + ' title="' + tier.name + ' holder">' + tier.emoji + '</span>';
         }
 
         var walletBtn = '';
         if (data.wallet_address) {
             walletBtn = '<button class="msn-wallet-btn" type="button" '
                 + 'data-wallet="' + esc(data.wallet_address) + '" '
-                + 'title="Click to copy full address">'
+                + 'title="Copy wallet address · ' + esc(data.wallet_address) + '">'
                 + '<span class="msn-wallet-icon">👛</span>'
                 + '<span class="msn-wallet-label">' + esc(shortWallet(data.wallet_address)) + '</span>'
                 + '<span class="msn-wallet-copy">📋</span>'
                 + '</button>';
         } else if (data.x_handle) {
-            walletBtn = '<span class="msn-joined-pill">@' + esc(data.x_handle) + '</span>';
+            walletBtn = '<span class="msn-joined-pill" title="X handle">@' + esc(data.x_handle) + '</span>';
         }
 
-        var joinedPill = '<span class="msn-joined-pill">◉ Joined ' + esc(fmtDate(data.created_at)) + '</span>';
+        var joinedPill = '<span class="msn-joined-pill" title="First seen">◉ ' + esc(fmtDate(data.created_at)) + '</span>';
 
         var achHTML = '';
         var unlocked = 0;
@@ -1374,17 +1372,17 @@
             }
         } else {
             for (var j = 0; j < 6; j++) {
-                achHTML += '<div class="msn-ach locked" title="Coming soon"></div>';
+                achHTML += '<div class="msn-ach locked" title="Not unlocked yet"></div>';
             }
         }
 
         var actionsHTML = '';
         if (isSelf) {
-            actionsHTML = '<button class="msn-act-btn" data-msn-profile-action="edit">⚙ Edit Profile</button>';
+            actionsHTML = '<button class="msn-act-btn" data-msn-profile-action="edit" title="Edit your profile">⚙ Edit Profile</button>';
         } else {
             actionsHTML = ''
-                + '<button class="msn-act-btn" data-msn-profile-action="friend">+ Add Friend</button>'
-                + '<button class="msn-act-btn primary" data-msn-profile-action="message">▶ Message</button>';
+                + '<button class="msn-act-btn" data-msn-profile-action="friend" title="Send friend request">+ Add Friend</button>'
+                + '<button class="msn-act-btn primary" data-msn-profile-action="message" title="Open private chat">▶ Message</button>';
         }
 
         var streakClass = streak > 0 ? ' msn-stat-fire' : '';
@@ -1392,24 +1390,25 @@
             ? '<span class="msn-fire-icon">🔥</span>' + streak
             : '—';
 
+        var lastActive = timeAgo(data.last_active_at || data.created_at);
+
         bodyEl.innerHTML = ''
             + '<div class="msn-card-inner">'
 
-            /* ── Last Active — top strip ── */
-            + '<div class="msn-la-top">'
-            +   '<span class="msn-la-dot"></span>'
-            +   '<span class="msn-la-label">Last Active</span>'
-            +   '<span class="msn-la-val">' + esc(timeAgo(data.last_active_at || data.created_at)) + '</span>'
-            + '</div>'
-
-            /* ── Hero — avatar + name ── */
+            /* ── Hero — avatar + identity ── */
             + '<div class="msn-hero">'
             +   '<div class="msn-avatar-wrap">'
             +     '<div class="msn-avatar-ring"></div>'
             +     '<div class="msn-avatar">' + avatarHTML(data) + '</div>'
-            +     '<span class="msn-status-dot' + (online ? ' online' : '') + '"></span>'
+            +     '<span class="msn-status-dot' + (online ? ' online' : '') + '" '
+            +       'title="' + (online ? 'Online now' : 'Offline') + '"></span>'
             +   '</div>'
             +   '<div class="msn-hero-info">'
+            +     '<div class="msn-hero-status" title="Last active ' + esc(lastActive) + '">'
+            +       '<span class="msn-hero-status-dot"></span>'
+            +       '<span class="msn-hero-status-label">Last Active</span>'
+            +       '<span class="msn-hero-status-val">' + esc(lastActive) + '</span>'
+            +     '</div>'
             +     '<div class="msn-hero-name-row">'
             +       '<h2 class="msn-hero-name">' + esc(shownName) + '</h2>'
             +       tierBadge + xBadge
@@ -1419,13 +1418,12 @@
             +   '</div>'
             + '</div>'
 
-            /* ── Stats — Level / Streak / Messages / Reactions / Private ── */
+            /* ── Stats — Level / Streak / Messages / Reactions ── */
             + '<div class="msn-stats">'
-            +   '<div class="msn-stat"><span class="msn-stat-lbl">Level</span><span class="msn-stat-val">' + level + '</span></div>'
-            +   '<div class="msn-stat' + streakClass + '"><span class="msn-stat-lbl">Streak</span><span class="msn-stat-val">' + streakVal + '</span></div>'
-            +   '<div class="msn-stat"><span class="msn-stat-lbl">Messages</span><span class="msn-stat-val">' + esc(fmtNum(msgs)) + '</span></div>'
-            +   '<div class="msn-stat"><span class="msn-stat-lbl">Reactions</span><span class="msn-stat-val">' + esc(fmtNum(reactions)) + '</span></div>'
-            +   '<div class="msn-stat"><span class="msn-stat-lbl">Private</span><span class="msn-stat-val">' + esc(fmtNum(privMsgs)) + '</span></div>'
+            +   '<div class="msn-stat" title="Level from XP"><span class="msn-stat-lbl">Level</span><span class="msn-stat-val">' + level + '</span></div>'
+            +   '<div class="msn-stat' + streakClass + '" title="Current streak"><span class="msn-stat-lbl">Streak</span><span class="msn-stat-val">' + streakVal + '</span></div>'
+            +   '<div class="msn-stat" title="Public messages sent"><span class="msn-stat-lbl">Messages</span><span class="msn-stat-val">' + esc(fmtNum(msgs)) + '</span></div>'
+            +   '<div class="msn-stat" title="Reactions given"><span class="msn-stat-lbl">Reactions</span><span class="msn-stat-val">' + esc(fmtNum(reactions)) + '</span></div>'
             + '</div>'
 
             /* ── Achievements ── */
@@ -1605,5 +1603,5 @@
         boot();
     }
 
-    console.log('[profile-system] loaded v12 — epic hero, fire streak, no rank, top last-active');
+    console.log('[profile-system] loaded v13 — last-active over name, no private stat, high contrast');
 })();
