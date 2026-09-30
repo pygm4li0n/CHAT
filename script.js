@@ -1575,7 +1575,7 @@ function showSuccess(msg) {
             else   nameList.add(u);
         }
 
-        const q = 'username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, token_balance, wallet_address';
+        const q = 'username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, token_balance, wallet_address, updated_at';
         const [byName, byWallet] = await Promise.all([
             nameList.size
                 ? supabase.from('profiles').select(q).in('username', [...nameList])
@@ -1739,7 +1739,7 @@ function showSuccess(msg) {
             for (var i = 0; i < queries.length; i++) {
                 try {
                     var res = await supabase.from('profiles')
-                        .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address')
+                        .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address, updated_at')
                         .eq(queries[i].col, queries[i].val)
                         .limit(1)
                         .maybeSingle();
@@ -1982,30 +1982,16 @@ function showSuccess(msg) {
         const user = isPrivate ? msg.from_user : msg.username;
         const msgWallet = msg.wallet_address || null;
 
-        // ⚑ If we have a wallet but no cached profile, fetch by wallet
+               // ⚑ If we have a wallet but no cached profile, fetch by wallet.
+        //   Do NOT seed cache from msg fields — DB is the only truth.
         if (msgWallet) {
             var cachedProf = window.MSNIdentity && window.MSNIdentity.byWallet
                              ? window.MSNIdentity.byWallet()[msgWallet]
                              : null;
-            if (!cachedProf) {
-                if (window.MSNIdentity && window.MSNIdentity.remember) {
-                    window.MSNIdentity.remember({
-                        wallet_address: msgWallet,
-                        display_name:   msg.display_name,
-                        x_handle:       msg.x_handle,
-                        x_verified:     msg.x_verified,
-                        x_avatar_url:   msg.x_avatar_url,
-                        avatar_url:     msg.avatar_url,
-                        token_balance:  msg.token_balance
-                    });
-                }
-                var after = window.MSNIdentity && window.MSNIdentity.byWallet
-                            ? window.MSNIdentity.byWallet()[msgWallet]
-                            : null;
-                if ((!after || !after.username) && window.MSNIdentity && window.MSNIdentity.fetchProfile) {
-                    try { await window.MSNIdentity.fetchProfile(msgWallet, true); }
-                    catch (e) { /* ignore */ }
-                }
+
+            if ((!cachedProf || !cachedProf.username) && window.MSNIdentity && window.MSNIdentity.fetchProfile) {
+                try { await window.MSNIdentity.fetchProfile(msgWallet, true); }
+                catch (e) { /* ignore */ }
             }
         }
 
@@ -2700,7 +2686,7 @@ function showSuccess(msg) {
                 for (var i = 0; i < queries.length; i++) {
                     try {
                         var res = await supabase.from('profiles')
-                            .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address')
+                            .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address, updated_at')
                             .eq(queries[i].col, queries[i].val)
                             .limit(1)
                             .maybeSingle();
@@ -2839,22 +2825,11 @@ function showSuccess(msg) {
             //   1. Remember profile fields the view already carries.
             //   2. Batch-fetch any wallets not yet in the cache.
                         var walletsToFetch = new Set();
-            data.forEach(msg => {
+                        data.forEach(msg => {
                 if (msg.wallet_address) {
-                    // ⚑ Remember whatever the view carries — cheap, no fetch
-                    if (window.MSNIdentity && window.MSNIdentity.remember) {
-                        window.MSNIdentity.remember({
-                            wallet_address: msg.wallet_address,
-                            display_name:   msg.display_name,
-                            x_handle:       msg.x_handle,
-                            x_verified:     msg.x_verified,
-                            x_avatar_url:   msg.x_avatar_url,
-                            avatar_url:     msg.avatar_url,
-                            token_balance:  msg.token_balance
-                        });
-                    }
-                    // ⚑ ALWAYS re-fetch on boot — the persisted cache may be
-                    //   stale if the user renamed on another device/session.
+                    // ⚑ NEVER seed the identity cache from message-carried fields.
+                    //   They are send-time snapshots — could be a create-stage name.
+                    //   fetchProfilesFor() below is the sole authoritative writer.
                     walletsToFetch.add(msg.wallet_address);
                 }
                                if (msg.username) {
@@ -3451,8 +3426,8 @@ function showSuccess(msg) {
                         fetchAndDisplayAllTokens();
                         
                     try {
-                            const { data } = await supabase.from('profiles')
-                                .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address, token_balance')
+                    const { data } = await supabase.from('profiles')
+                                .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address, token_balance, updated_at')
                                 .eq('wallet_address', newAddr)
                                 .maybeSingle();
 
