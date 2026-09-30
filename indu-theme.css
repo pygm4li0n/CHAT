@@ -117,7 +117,7 @@ body::before {
     left: 0; right: 0;
     height: 26vh;
     top: -30vh;
-    z-index: 9998;
+    z-index: 0;
     pointer-events: none;
     background: linear-gradient(180deg,
         transparent 0%,
@@ -134,7 +134,7 @@ body::after {
     content: '';
     position: fixed;
     inset: 0;
-    z-index: 9999;
+    z-index: 0;
     pointer-events: none;
     background:
         repeating-linear-gradient(0deg,
