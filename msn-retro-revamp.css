@@ -1,0 +1,890 @@
+/* ═══════════════════════════════════════════════════════════════
+   MSN RETRO REVAMP — v1.0
+   ───────────────────────────────────────────────────────────────
+   Windows Live Messenger 7.5 / XP-era aesthetic.
+
+   HOW IT WORKS
+   ────────────
+   1. Redefines your existing theme tokens (--bg-panel, --accent-cyan,
+      etc.) to MSN-era equivalents. Every component in your app
+      that already reads those tokens automatically re-themes.
+   2. Layers signature MSN visuals on top: gradient header, beveled
+      buttons, rounded chat bubbles, XP scrollbars, nudge animation.
+
+   ENABLE
+   ──────
+   Add to <html>:
+       <html class="msn-retro">
+   Or toggle at runtime:
+       document.documentElement.classList.toggle('msn-retro')
+
+   THEME COMPATIBILITY
+   ───────────────────
+   • Respects existing light/dark themes via prefers-color-scheme
+   • All colors are overridable via your own theme tokens
+   • No layout properties touched (no display, position, flex)
+   • Only visual properties overridden (background, border, shadow)
+
+   Load AFTER all other stylesheets.
+   ═══════════════════════════════════════════════════════════════ */
+
+
+/* ───────────────────────────────────────────────────────────────
+   1. TOKENS — redefine base theme variables to MSN-era values
+   ─────────────────────────────────────────────────────────────── */
+html.msn-retro {
+
+    /* ── Surface colors (XP / Live Messenger palette) ── */
+    --bg-panel:        #ECF3FB;
+    --bg-deep:         #D6E7FF;
+    --bg-elevated:     #FFFFFF;
+    --bg-hover:        #E8F3FF;
+
+    /* ── Borders ── */
+    --border-subtle:   rgba(0, 84, 227, 0.12);
+    --border-default:  #A8C8F0;
+    --border-glow:     rgba(77, 166, 255, 0.55);
+
+    /* ── Text ── */
+    --text-primary:    #1A2942;
+    --text-muted:      #5A7398;
+
+    /* ── Accents — MSN blue & green ── */
+    --accent-cyan:     #2B7FE3;       /* MSN primary blue */
+    --accent-yellow:   #FF9900;       /* Away orange */
+    --glow-yellow:     rgba(255, 153, 0, 0.55);
+
+    /* ── Fonts — Tahoma-era stack ── */
+    --font-mono: 'Lucida Console', 'Courier New', monospace;
+    --font-ui:   'Tahoma', 'Segoe UI', 'Verdana', system-ui, sans-serif;
+
+    /* ── Radii — MSN rounded corners ── */
+    --radius-sm: 3px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+
+    /* ── Extra MSN-only tokens (not part of base theme) ── */
+    --msn-blue-deep:   #0054E3;
+    --msn-blue-mid:    #2B7FE3;
+    --msn-blue-light:  #4DA6FF;
+    --msn-blue-glow:   #7FC3FF;
+    --msn-glass:       rgba(255, 255, 255, 0.35);
+    --msn-online:      #00B04F;
+    --msn-away:        #FF9900;
+    --msn-busy:        #E81123;
+    --msn-offline:     #9E9E9E;
+    --msn-bubble:      #D6E7FF;
+    --msn-bubble-own:  #DCF5DC;
+
+    /* ⚑ Global "aging" filter — warms everything by ~3% and adds
+         a barely-perceptible glass sheen, like an XP LCD panel.
+         Applied only to the app shell, not to images. */
+    color-scheme: light;
+}
+
+/* Body-wide typography + ClearType-feel */
+html.msn-retro body {
+    font-family: var(--font-ui);
+    color: var(--text-primary);
+    background: linear-gradient(180deg,
+        #EAF2FC 0%,
+        #D6E7FF 55%,
+        #C9DDF8 100%);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+/* Subtle XP "wave" watermark behind everything (very light) */
+html.msn-retro body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.04;
+    background:
+        radial-gradient(circle at 20% 10%, #0054E3 0%, transparent 40%),
+        radial-gradient(circle at 80% 90%, #00B04F 0%, transparent 40%);
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   2. HEADER — classic MSN blue gradient bar
+   ─────────────────────────────────────────────────────────────── */
+html.msn-retro .header,
+html.msn-retro .header-bar,
+html.msn-retro .chat-header-bar {
+    background: linear-gradient(180deg,
+        #7FC3FF 0%,
+        #2B7FE3 45%,
+        #0054E3 100%) !important;
+    border-bottom: 1px solid #003DAB !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+        0 2px 6px rgba(0, 84, 227, 0.35) !important;
+    color: #FFFFFF !important;
+}
+
+html.msn-retro .header .logo,
+html.msn-retro .header h1 {
+    color: #FFFFFF !important;
+    text-shadow:
+        0 1px 0 rgba(0, 0, 0, 0.35),
+        0 0 12px rgba(255, 255, 255, 0.35);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+/* Header-side text/icons get white */
+html.msn-retro .header span,
+html.msn-retro .header button,
+html.msn-retro .header a {
+    color: #FFFFFF !important;
+}
+
+/* The wallet address chip in header */
+html.msn-retro #walletAddress {
+    background: rgba(255, 255, 255, 0.18) !important;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
+    color: #FFFFFF !important;
+    border-radius: 10px !important;
+    padding: 2px 8px !important;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   3. CHAT PANEL — classic white chat area with faint blue tint
+   ─────────────────────────────────────────────────────────────── */
+html.msn-retro .chat-panel,
+html.msn-retro .messages-container {
+    background: linear-gradient(180deg,
+        #FFFFFF 0%,
+        #F4F9FF 100%) !important;
+}
+
+html.msn-retro .messages-container {
+    border-radius: 6px !important;
+}
+
+/* Chat tabs (Public / Private) */
+html.msn-retro .chat-tabs {
+    background: #E5EEF9 !important;
+    border-bottom: 1px solid #A8C8F0 !important;
+}
+
+html.msn-retro .chat-tab {
+    color: #2B4B7A !important;
+    border-radius: 6px 6px 0 0 !important;
+    font-family: var(--font-ui);
+    transition: background 0.15s ease;
+}
+
+html.msn-retro .chat-tab:hover {
+    background: rgba(77, 166, 255, 0.15) !important;
+}
+
+html.msn-retro .chat-tab.active {
+    background: linear-gradient(180deg,
+        #4DA6FF 0%,
+        #2B7FE3 100%) !important;
+    color: #FFFFFF !important;
+    border: 1px solid #0054E3 !important;
+    border-bottom-color: transparent !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        0 1px 4px rgba(0, 84, 227, 0.35) !important;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+    font-weight: 700;
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   4. MESSAGE BUBBLES — MSN signature rounded style
+   ─────────────────────────────────────────────────────────────── */
+html.msn-retro .msg-bubble {
+    border-radius: 12px 12px 12px 4px !important;
+    background: var(--msn-bubble) !important;
+    border: 1px solid #A8C8F0 !important;
+    box-shadow:
+        0 1px 2px rgba(0, 84, 227, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+    padding: 8px 12px !important;
+    transition: box-shadow 0.15s ease;
+}
+
+/* Own messages — MSN green */
+html.msn-retro .msg-wrapper.own .msg-bubble {
+    background: var(--msn-bubble-own) !important;
+    border-color: #7DC97D !important;
+    border-radius: 12px 12px 4px 12px !important;
+    box-shadow:
+        0 1px 2px rgba(0, 150, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+}
+
+html.msn-retro .msg-bubble:hover {
+    box-shadow:
+        0 2px 6px rgba(0, 84, 227, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Username text */
+html.msn-retro .msg-username {
+    color: #1A2942;
+    font-weight: 700;
+    font-family: var(--font-ui);
+}
+
+html.msn-retro .msg-wrapper.own .msg-username {
+    color: #0A5C1A;
+}
+
+/* Timestamp */
+html.msn-retro .msg-time {
+    color: #7A8FA8 !important;
+    font-family: var(--font-ui);
+    font-size: 0.68rem;
+}
+
+/* Message avatar — MSN buddy icon shape (square, rounded) */
+html.msn-retro .msg-avatar {
+    border-radius: 4px !important;
+    border: 1px solid #A8C8F0 !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+        0 1px 2px rgba(0, 84, 227, 0.2);
+    background: #FFFFFF;
+}
+
+/* Reply reference block */
+html.msn-retro .reply-ref-block {
+    background: rgba(255, 255, 255, 0.6) !important;
+    border-left: 3px solid var(--msn-blue-mid) !important;
+    border-radius: 4px !important;
+}
+
+/* Images in chat — window-frame style */
+html.msn-retro .msg-image-wrap {
+    border: 2px solid #A8C8F0 !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 6px rgba(0, 84, 227, 0.15);
+    overflow: hidden;
+}
+
+/* Action buttons (Reply, Edit, Delete) — small beveled */
+html.msn-retro .msg-action-btn {
+    background: linear-gradient(180deg,
+        #FFFFFF 0%,
+        #E5EEF9 100%) !important;
+    border: 1px solid #A8C8F0 !important;
+    border-radius: 4px !important;
+    color: #1A2942 !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        0 1px 1px rgba(0, 0, 0, 0.05);
+    transition: background 0.12s ease, transform 0.12s ease;
+}
+
+html.msn-retro .msg-action-btn:hover {
+    background: linear-gradient(180deg,
+        #FFFFFF 0%,
+        #C9E2FF 100%) !important;
+    border-color: #2B7FE3 !important;
+}
+
+html.msn-retro .msg-action-btn:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   5. REACTION BAR — MSN emoticon feel
+   ─────────────────────────────────────────────────────────────── */
+html.msn-retro .reaction-btn {
+    background: #FFFFFF !important;
+    border: 1px solid #C6DAF0 !important;
+    border-radius: 12px !important;
+    transition: transform 0.12s ease, background 0.12s ease;
+}
+
+html.msn-retro .reaction-btn:hover {
+    background: #E8F3FF !important;
+    border-color: #2B7FE3 !important;
+    transform: scale(1.08);
+}
+
+html.msn-retro .reaction-btn.active {
+    background: linear-gradient(180deg,
+        #DCEEFF 0%,
+        #B4D5FF 100%) !important;
+    border-color: #0054E3 !important;
+    box-shadow: 0 0 8px rgba(0, 84, 227, 0.45);
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   6. SIDEBAR — classic contact list panel
+   ─────────────────────────────────────────────────────────────── */
+html.msn-retro #sidebar,
+html.msn-retro .sidebar {
+    background: linear-gradient(180deg,
+        #EAF2FC 0%,
+        #D6E7FF 100%) !important;
+    border-right: 1px solid #A8C8F0 !important;
+    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Sidebar header strip */
+html.msn-retro .sidebar-header {
+    background: linear-gradient(180deg,
+        #7FC3FF 0%,
+        #2B7FE3 60%,
+        #0054E3 100%) !important;
+    color: #FFFFFF !important;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid #003DAB !important;
+}
+
+/* Big self card */
+html.msn-retro #sidebarBigAvatar {
+    border: 2px solid #FFFFFF !important;
+    box-shadow:
+        0 0 0 1px #A8C8F0,
+        0 2px 8px rgba(0, 84, 227, 0.25) !important;
+    border-radius: 4px !important;
+}
+
+html.msn-retro #sidebarBigName {
+    color: #1A2942;
+    font-weight: 700;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* User list items */
+html.msn-retro .sidebar-user-item {
+    background: rgba(255, 255, 255, 0.55) !important;
+    border: 1px solid transparent !important;
+    border-radius: 5px !important;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+html.msn-retro .sidebar-user-item:hover {
+    background: linear-gradient(180deg,
+        #FFFFFF 0%,
+        #DCEEFF 100%) !important;
+    border-color: #A8C8F0 !important;
+    box-shadow: 0 1px 3px rgba(0, 84, 227, 0.12);
+}
+
+/* Online dot — MSN green */
+html.msn-retro .online-indicator {
+    background: var(--msn-online) !important;
+    box-shadow:
+        0 0 6px var(--msn-online),
+        0 0 0 1px #FFFFFF !important;
+}
+
+/* User avatar in sidebar */
+html.msn-retro .sidebar-user-item .user-avatar img,
+html.msn-retro .sidebar-user-item .user-avatar {
+    border-radius: 4px !important;
+    border: 1px solid #A8C8F0 !important;
+}
+
+/* Private-chat request button ("Chat" / "Request") */
+html.msn-retro .private-btn {
+    background: linear-gradient(180deg,
+        #FFFFFF 0%,
+        #E5EEF9 100%) !important;
+    border: 1px solid #A8C8F0 !important;
+    border-radius: 12px !important;
+    color: #1A2942 !important;
+    font-weight: 700;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+html.msn-retro .private-btn:hover {
+    background: linear-gradient(180deg,
+        #FFFFFF 0%,
+        #C9E2FF 100%) !important;
+    border-color: #2B7FE3 !important;
+    transform: translateY(-1px);
+}
+
+html.msn-retro .private-btn.accepted {
+    background: linear-gradient(180deg,
+        #B4E6B4 0%,
+        #7DC97D 100%) !important;
+    border-color: #4E9F4E !important;
+    color: #0A3A0A !important;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+html.msn-retro .private-btn.pending {
+    background: linear-gradient(180deg,
+        #FFD9A6 0%,
+        #FFB759 100%) !important;
+    border-color: #CC8800 !important;
+    color: #4A2800 !important;
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   7. BUTTONS — XP beveled style (all btn-icon)
+   ─────────────────────────────────────────────────────────────── */
+html.msn-retro .btn-icon {
+    background: linear-gradient(180deg,
+        #FFFFFF 0%,
+        #E5EEF9 55%,
+        #C9DDF8 100%) !important;
+    border: 1px solid #A8C8F0 !important;
+    border-radius: 4px !important;
+    color: #1A2942 !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.05),
+        0 1px 2px rgba(0, 84, 227, 0.15);
+    transition: background 0.12s ease, transform 0.08s ease;
+}
+
+html.msn-retro .btn-icon:hover {
+    background: linear-gradient(180deg,
+        #FFFFFF 0%,
+        #DCEEFF 55%,
+        #A9D0FF 100%) !important;
+    border-color: #2B7FE3 !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 0 8px rgba(77, 166, 255, 0.5) !important;
+}
+
+html.msn-retro .btn-icon:active {
+    background: linear-gradient(180deg,
+        #C9DDF8 0%,
+        #A8C8F0 100%) !important;
+    transform: translateY(1px);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Phantom connect — keep green when connected, but re-style shape */
+html.msn-retro .btn-icon.connected,
+html.msn-retro #phantomConnectBtn.connected {
+    background: linear-gradient(180deg,
+        #7DD87D 0%,
+        #00B04F 100%) !important;
+    border-color: #007A33 !important;
+    color: #FFFFFF !important;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* X-auth verify button keeps its signed-in gradient but adds XP bevel */
+html.msn-retro .x-auth-btn.x-signed-in {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        0 2px 6px rgba(168, 85, 247, 0.6) !important;
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   8. INPUT BAR — classic MSN composer
+   ─────────────────────────────────────────────────────────────── */
+html.msn-retro .input-area-bar {
+    background: linear-gradient(180deg,
+        #E5EEF9 0%,
+        #C9DDF8 100%) !important;
+    border-top: 1px solid #A8C8F0 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+html.msn-retro #messageInput,
+html.msn-retro .input-area-bar input,
+html.msn-retro .input-area-bar textarea {
+    background: #FFFFFF !important;
+    border: 1px solid #A8C8F0 !important;
+    border-radius: 3px !important;
+    color: #1A2942 !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+    font-family: var(--font-ui);
+}
+
+html.msn-retro #messageInput:focus {
+    border-color: #2B7FE3 !important;
+    box-shadow:
+        inset 0 1px 3px rgba(0, 0, 0, 0.08),
+        0 0 6px rgba(77, 166, 255, 0.6) !important;
+    outline: none !important;
+}
+
+html.msn-retro #messageInput::placeholder {
+    color: #9AAEC6 !important;
+    font-style: italic;
+}
+
+/* Send button — big XP blue */
+html.msn-retro #sendBtn {
+    background: linear-gradient(180deg,
+        #4DA6FF 0%,
+        #2B7FE3 55%,
+        #0054E3 100%) !important;
+    border: 1px solid #003DAB !important;
+    border-radius: 4px !important;
+    color: #FFFFFF !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        0 1px 3px rgba(0, 84, 227, 0.4);
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+    font-weight: 700;
+}
+
+html.msn-retro #sendBtn:hover {
+    background: linear-gradient(180deg,
+        #66B4FF 0%,
+        #3D8BFF 55%,
+        #1060E3 100%) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        0 0 10px rgba(77, 166, 255, 0.7) !important;
+}
+
+html.msn-retro #sendBtn:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* Typing indicator — MSN sparkle */
+html.msn-retro #typingIndicator {
+    color: #2B7FE3 !important;
+    font-style: italic;
+    text-shadow: 0 0 6px rgba(77, 166, 255, 0.4);
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   9. MODALS / OVERLAYS — XP window chrome
+   ─────────────────────────────────────────────────────────────── */
+html.msn-retro .overlay,
+html.msn-retro .overlay-backdrop {
+    background: rgba(0, 40, 100, 0.35) !important;
+    backdrop-filter: blur(2px);
+}
+
+html.msn-retro .overlay-card {
+    background: linear-gradient(180deg,
+        #ECF3FB 0%,
+        #D6E7FF 100%) !important;
+    border: 2px solid #0054E3 !important;
+    border-radius: 8px 8px 4px 4px !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 12px 40px rgba(0, 40, 100, 0.45) !important;
+    padding: 0 !important;
+    overflow: hidden;
+}
+
+/* Fake XP title bar at top of modal */
+html.msn-retro .overlay-card::before {
+    content: 'MSN Messenger';
+    display: block;
+    padding: 6px 12px;
+    background: linear-gradient(180deg,
+        #7FC3FF 0%,
+        #2B7FE3 45%,
+        #0054E3 100%);
+    color: #FFFFFF;
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+    border-bottom: 1px solid #003DAB;
+    letter-spacing: 0.02em;
+}
+
+/* Inner padding restored */
+html.msn-retro .overlay-card > * {
+    padding-left: 16px;
+    padding-right: 16px;
+}
+html.msn-retro .overlay-card > *:first-of-type {
+    padding-top: 12px;
+}
+html.msn-retro .overlay-card > *:last-of-type {
+    padding-bottom: 12px;
+}
+
+/* Request overlay inherits the same window chrome */
+html.msn-retro #requestOverlay .overlay-card,
+html.msn-retro #modSettingsOverlay .overlay-card,
+html.msn-retro #rankingsOverlay .overlay-card {
+    /* same as above — inherited via cascade */
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   10. STATUS INDICATORS — MSN-era status colors
+   ─────────────────────────────────────────────────────────────── */
+html.msn-retro #connDot,
+html.msn-retro #sidebarStatusDot {
+    box-shadow:
+        0 0 0 1px #FFFFFF,
+        0 0 6px currentColor !important;
+    border-radius: 50% !important;
+}
+
+html.msn-retro #connectionPill,
+html.msn-retro .badge-pill {
+    background: linear-gradient(180deg,
+        #FFFFFF 0%,
+        #E5EEF9 100%) !important;
+    border: 1px solid #A8C8F0 !important;
+    border-radius: 10px !important;
+    color: #1A2942 !important;
+}
+
+html.msn-retro .badge-pill.connected-pill {
+    background: linear-gradient(180deg,
+        #D4F0D4 0%,
+        #9DE09D 100%) !important;
+    border-color: #4E9F4E !important;
+    color: #0A3A0A !important;
+}
+
+html.msn-retro .badge-pill.disconnected-pill {
+    background: linear-gradient(180deg,
+        #FFD4D4 0%,
+        #FF9D9D 100%) !important;
+    border-color: #C03030 !important;
+    color: #4A0000 !important;
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   11. SCROLLBARS — classic XP blue
+   ─────────────────────────────────────────────────────────────── */
+html.msn-retro * {
+    scrollbar-width: thin;
+    scrollbar-color: #A8C8F0 #ECF3FB;
+}
+
+html.msn-retro *::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+}
+
+html.msn-retro *::-webkit-scrollbar-track {
+    background: #ECF3FB;
+    border: 1px solid #C9DDF8;
+}
+
+html.msn-retro *::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg,
+        #FFFFFF 0%,
+        #A8C8F0 50%,
+        #7FB0E0 100%);
+    border: 1px solid #7FA8D8;
+    border-radius: 0;
+}
+
+html.msn-retro *::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(90deg,
+        #FFFFFF 0%,
+        #C9E2FF 50%,
+        #A8C8F0 100%);
+}
+
+html.msn-retro *::-webkit-scrollbar-button {
+    background: linear-gradient(180deg,
+        #FFFFFF 0%,
+        #C9DDF8 100%);
+    border: 1px solid #A8C8F0;
+    display: block;
+    height: 14px;
+}
+
+html.msn-retro *::-webkit-scrollbar-corner {
+    background: #ECF3FB;
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   12. ANIMATIONS — nudge, message-in, presence pulse
+   ─────────────────────────────────────────────────────────────── */
+
+/* Nudge shake (reusable on any element via .msn-nudge) */
+@keyframes msn-nudge-shake {
+    0%, 100% { transform: translate(0, 0); }
+    15%      { transform: translate(-3px, 2px); }
+    30%      { transform: translate(3px, -2px); }
+    45%      { transform: translate(-2px, -3px); }
+    60%      { transform: translate(2px, 3px); }
+    75%      { transform: translate(-1px, 1px); }
+    90%      { transform: translate(1px, -1px); }
+}
+
+html.msn-retro .msn-nudge {
+    animation: msn-nudge-shake 0.55s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Message slide-in */
+@keyframes msn-msg-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+html.msn-retro .msg-wrapper {
+    animation: msn-msg-in 0.22s ease-out both;
+}
+
+/* Online indicator pulse */
+@keyframes msn-online-pulse {
+    0%, 100% { transform: scale(1);   opacity: 1; }
+    50%      { transform: scale(1.15); opacity: 0.75; }
+}
+
+html.msn-retro .online-indicator {
+    animation: msn-online-pulse 2s ease-in-out infinite;
+}
+
+/* Subtle glow pulse on the big self avatar */
+@keyframes msn-avatar-glow {
+    0%, 100% { box-shadow: 0 0 0 1px #A8C8F0, 0 2px 8px rgba(0,84,227,0.25); }
+    50%      { box-shadow: 0 0 0 1px #A8C8F0, 0 2px 14px rgba(77,166,255,0.55); }
+}
+
+html.msn-retro #sidebarBigAvatar {
+    animation: msn-avatar-glow 3.2s ease-in-out infinite;
+}
+
+/* Loader dots — classic MSN typing feel */
+html.msn-retro .msn-loader-dots span {
+    background: var(--msn-blue-mid) !important;
+    box-shadow: 0 0 8px var(--msn-blue-glow) !important;
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   13. MOBILE — reduce chrome, keep the vibe
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    html.msn-retro .header,
+    html.msn-retro .chat-header-bar {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.5),
+            0 1px 4px rgba(0, 84, 227, 0.3) !important;
+    }
+
+    html.msn-retro .msg-bubble {
+        border-radius: 10px 10px 10px 3px !important;
+    }
+
+    html.msn-retro .msg-wrapper.own .msg-bubble {
+        border-radius: 10px 10px 3px 10px !important;
+    }
+
+    /* Hide the overlay "fake window title" on tiny screens */
+    html.msn-retro .overlay-card::before {
+        padding: 4px 10px;
+        font-size: 0.7rem;
+    }
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   14. DARK MODE — MSN 2011 style (darker chrome, same blues)
+   ─────────────────────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+    html.msn-retro {
+        --bg-panel:       #0F1A2E;
+        --bg-deep:        #0A1224;
+        --bg-elevated:    #18243D;
+        --bg-hover:       #1E2D4A;
+
+        --border-subtle:  rgba(77, 166, 255, 0.15);
+        --border-default: #2A4A78;
+        --border-glow:    rgba(77, 166, 255, 0.65);
+
+        --text-primary:   #E0ECFB;
+        --text-muted:     #8FAAD0;
+
+        --accent-cyan:    #4DA6FF;
+        --accent-yellow:  #FFB759;
+        --glow-yellow:    rgba(255, 183, 89, 0.65);
+
+        --msn-bubble:     #142A48;
+        --msn-bubble-own: #0F3A1A;
+
+        color-scheme: dark;
+    }
+
+    html.msn-retro body {
+        background: linear-gradient(180deg,
+            #0A1224 0%,
+            #0F1A2E 55%,
+            #142A48 100%);
+        color: #E0ECFB;
+    }
+
+    html.msn-retro body::before {
+        opacity: 0.08;
+    }
+
+    html.msn-retro .chat-panel,
+    html.msn-retro .messages-container {
+        background: linear-gradient(180deg,
+            #0F1A2E 0%,
+            #0A1224 100%) !important;
+    }
+
+    html.msn-retro .msg-bubble {
+        color: #E0ECFB;
+        border-color: #2A4A78 !important;
+    }
+
+    html.msn-retro .msg-wrapper.own .msg-bubble {
+        color: #D4F0D4;
+        border-color: #2A6A3A !important;
+    }
+
+    html.msn-retro .msg-username {
+        color: #B4D5FF;
+    }
+
+    html.msn-retro .msg-wrapper.own .msg-username {
+        color: #A0E0A0;
+    }
+
+    html.msn-retro .overlay-card {
+        background: linear-gradient(180deg,
+            #18243D 0%,
+            #0F1A2E 100%) !important;
+        border-color: #4DA6FF !important;
+    }
+
+    html.msn-retro *::-webkit-scrollbar-track {
+        background: #0F1A2E;
+        border-color: #1A2A45;
+    }
+
+    html.msn-retro *::-webkit-scrollbar-thumb {
+        background: linear-gradient(90deg,
+            #4DA6FF 0%,
+            #2A4A78 100%);
+        border-color: #2A4A78;
+    }
+}
+
+
+/* ───────────────────────────────────────────────────────────────
+   15. ACCESSIBILITY — respect reduced motion
+   ─────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    html.msn-retro .msg-wrapper,
+    html.msn-retro .online-indicator,
+    html.msn-retro #sidebarBigAvatar,
+    html.msn-retro .msn-nudge {
+        animation: none !important;
+    }
+}
