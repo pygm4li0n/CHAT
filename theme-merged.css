@@ -3361,6 +3361,49 @@ html body .msg-wrapper.sticker-msg .reaction-btn .reaction-count {
         margin-right: auto !important;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   ⚑ NAME + TIME — single-line layout with clean wrap
+   Loaded last → overrides every theme file's .msg-username
+   ═══════════════════════════════════════════════════════════ */
+.msg-username {
+    font-weight: 700;
+    font-size: 0.78rem;
+    color: #45FF6E;
+    margin-bottom: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    line-height: 1.4;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-shadow:
+        0 0 8px rgba(69, 255, 110, 0.9),
+        0 0 22px rgba(69, 255, 110, 0.5);
+}
+.msg-username > .msg-time {
+    flex-shrink: 0;
+    margin-left: 0;
+}
+.msg-time {
+    font-size: 0.65rem;
+    color: #6FAE72;
+    font-weight: 400;
+    font-family: var(--font-mono);
+}
+
+@media (max-width: 768px) {
+    .msg-username {
+        font-size: 0.74rem;
+        gap: 3px 5px;
+        letter-spacing: 0.04em;
+    }
+    .msg-time {
+        font-size: 0.6rem;
+    }
+}
 /* ═══════════════════════════════════════════════════════════════════
    ███  END OF FILE  ███
    ═══════════════════════════════════════════════════════════════════ */
