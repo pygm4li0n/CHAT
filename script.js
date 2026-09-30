@@ -1556,64 +1556,63 @@ function showSuccess(msg) {
         else return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${timeStr}`;
     }
 
-        async function fetchAvatars(usernames) {
-        // ⚑ Re-fetch if avatar missing OR balance missing/zero.
-        //   Old filter skipped users who were in userBalances with 0,
-        //   which blocked the rankings re-fetch.
-        const unique = [...new Set(usernames.filter(u => {
-            if (!u) return false;
-            if (!avatarCache[u]) return true;
-            const bal = userBalances[u];
-            if (bal == null || bal === 0) return true;
-            return false;
-        }))];
-               if (unique.length === 0) return;
+                async function fetchAvatars(usernames) {
+        const unique = [...new Set((usernames || []).filter(Boolean))];
+        if (unique.length === 0) return;
 
-        // ⚑ Query BOTH by username and wallet — catches renamed users
+        // ⚑ Split inputs: which are real wallets, which are usernames
+        const walletList = new Set();
+        const nameList   = new Set();
+        for (const u of unique) {
+            // Resolve username → wallet via identity cache first
+            let w = null;
+            if (window.MSNIdentity && window.MSNIdentity.byUsername) {
+                const map = window.MSNIdentity.byUsername();
+                if (map && map[u]) w = map[u];
+            }
+            if (!w && /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(u))) w = u;
+            if (w) walletList.add(w);
+            else   nameList.add(u);
+        }
+
+        const q = 'username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, token_balance, wallet_address';
         const [byName, byWallet] = await Promise.all([
-            supabase.from('profiles')
-                .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, token_balance, wallet_address')
-                .in('username', unique),
-            supabase.from('profiles')
-                .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, token_balance, wallet_address')
-                .in('wallet_address', unique)
+            nameList.size
+                ? supabase.from('profiles').select(q).in('username', [...nameList])
+                : Promise.resolve({ data: [] }),
+            walletList.size
+                ? supabase.from('profiles').select(q).in('wallet_address', [...walletList])
+                : Promise.resolve({ data: [] })
         ]);
         if (byName.error && byWallet.error) {
             console.warn('Error fetching profiles:', byName.error || byWallet.error);
             return;
         }
-        // Dedup by wallet
-        const seenWallet = new Set();
-        const data = [...(byName.data || []), ...(byWallet.data || [])].filter(function (p) {
+
+        const seen = new Set();
+        const merged = [...(byName.data || []), ...(byWallet.data || [])].filter(p => {
             if (!p) return false;
-            var key = p.wallet_address || p.username;
-            if (!key || seenWallet.has(key)) return false;
-            seenWallet.add(key);
+            const key = p.wallet_address || p.username;
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
             return true;
         });
-        (data || []).forEach(p => {
-            const hasWallet = p.wallet_address && String(p.wallet_address).length > 0;
-            const exists    = p.username in avatarCache;
-            if (hasWallet || !exists) {
-                avatarCache[p.username] = p.avatar_url;
-                userBalances[p.username] = hasWallet ? (p.token_balance || 0) : null;
-            }
-            // ⚑ Feed the canonical identity cache so X-verified
-            //   names + avatars propagate to chat, sidebar, ranks.
-            if (hasWallet && window.MSNIdentity && window.MSNIdentity.remember) {
+
+        merged.forEach(p => {
+            if (!p.username) return;
+            // ⚑ ALWAYS overwrite — DB is source of truth
+            avatarCache[p.username]  = p.avatar_url || null;
+            userBalances[p.username] = p.wallet_address ? (p.token_balance || 0) : null;
+            if (p.wallet_address && window.MSNIdentity && window.MSNIdentity.remember) {
                 window.MSNIdentity.remember(p);
             }
         });
     }
         // ⚑ Canonical identity: X-verified avatar / display_name win.
-    function getAvatarURL(user) {
+        function getAvatarURL(user) {
         if (window.MSNIdentity && window.MSNIdentity.resolve) {
             const r = window.MSNIdentity.resolve(user);
-            if (r) {
-                // X-verified is strict — never fall back to cached avatar
-                if (r.x_verified) return r.avatar || null;
-                if (r.avatar) return r.avatar;
-            }
+            if (r) return r.avatar || null;   // identity record is authoritative
         }
         return avatarCache[user] || null;
     }
@@ -1634,7 +1633,7 @@ function showSuccess(msg) {
        X-verified users are STRICT: name/avatar come only from X.
        Never fall back to the phantom (wallet) name/avatar.
        ═══════════════════════════════════════════════════════════ */
-    function resolveDisplay(user, walletOverride) {
+      function resolveDisplay(user, walletOverride) {
         var r = null;
         var w = walletOverride || null;
 
@@ -1645,16 +1644,19 @@ function showSuccess(msg) {
             r = window.MSNIdentity.resolve(user);
         }
 
-        if (r && r.x_verified) {
+        if (r) {
+            // Identity record found → it's the definitive answer (even for null avatar)
             return {
-                name:   r.displayName || (r.wallet ? r.wallet.slice(0, 4) + '…' : '—'),
+                name:   r.displayName || (r.wallet ? r.wallet.slice(0, 4) + '…' : (user || '—')),
                 avatar: r.avatar || null,
-                isX:    true
+                isX:    !!r.x_verified
             };
         }
+
+        // No identity record at all → legacy username-keyed cache only
         return {
-            name:   (r && r.displayName) || displayNameForUser(user) || user || '—',
-            avatar: (r && r.avatar)      || getAvatarURL(user)      || null,
+            name:   user || '—',
+            avatar: avatarCache[user] || null,
             isX:    false
         };
     }
@@ -1677,7 +1679,7 @@ function showSuccess(msg) {
             }
         }
 
-        // 2. byWallet map — match username, display_name, or x_handle
+               // 2. byWallet map — match on identity-authoritative fields only
         if (window.MSNIdentity && window.MSNIdentity.byWallet) {
             var wallets = window.MSNIdentity.byWallet();
             for (var w in wallets) {
@@ -1686,8 +1688,9 @@ function showSuccess(msg) {
                 if (p.username     && String(p.username).toLowerCase()     === lower) return w;
                 if (p.display_name && String(p.display_name).toLowerCase() === lower) return w;
                 if (p.x_handle) {
-                    var handle = '@' + String(p.x_handle).toLowerCase().replace(/^@+/, '');
-                    if (handle === lower) return w;
+                    var h = String(p.x_handle).toLowerCase().replace(/^@+/, '');
+                    var q = lower.replace(/^@+/, '');
+                    if (h === q) return w;
                 }
             }
         }
@@ -2854,11 +2857,17 @@ function showSuccess(msg) {
                     //   stale if the user renamed on another device/session.
                     walletsToFetch.add(msg.wallet_address);
                 }
-                if (msg.avatar_url && !avatarCache[msg.username]) {
-                    avatarCache[msg.username] = msg.avatar_url;
-                }
-                if (msg.wallet_address && !(msg.username in userBalances)) {
-                    userBalances[msg.username] = msg.token_balance || null;
+                               if (msg.username) {
+                    if (msg.wallet_address) {
+                        // Wallet-anchored → always overwrite
+                        avatarCache[msg.username]  = msg.avatar_url || null;
+                        userBalances[msg.username] = msg.token_balance || null;
+                    } else {
+                        if (!(msg.username in avatarCache))
+                            avatarCache[msg.username] = msg.avatar_url || null;
+                        if (!(msg.username in userBalances))
+                            userBalances[msg.username] = msg.token_balance || null;
+                    }
                 }
             });
 
@@ -3026,53 +3035,70 @@ function showSuccess(msg) {
         setTimeout(() => refreshBtn.classList.remove('spinning'), 700);
     }
 
-        function refreshOwnMessagesInDOM(oldName, newName, newAvatar) {
+                function refreshOwnMessagesInDOM(oldName, newName, newAvatar) {
         var displayName = newName || username;
         if (!displayName) return;
+        var myWallet = getWalletAddress();
+
         document.querySelectorAll('.msg-wrapper').forEach(function (w) {
-            var unameEl = w.querySelector('.msg-username');
-            if (!unameEl) return;
-            var link = unameEl.querySelector('.msn-username-link');
-            var currentName = '';
-            if (link) {
-                currentName = link.textContent.trim();
-            } else {
-                for (var i = 0; i < unameEl.childNodes.length; i++) {
-                    var n = unameEl.childNodes[i];
-                    if (n.nodeType === 3 && n.nodeValue.trim()) {
-                        currentName = n.nodeValue.trim();
-                        break;
+            var isMine = false;
+            var msgWallet = w.getAttribute('data-wallet');
+
+            // Primary: wallet match (rename-proof)
+            if (myWallet && msgWallet && msgWallet === myWallet) {
+                isMine = true;
+            } else if (!msgWallet) {
+                // Fallback: name match for legacy wallet-less messages
+                var unameEl = w.querySelector('.msg-username');
+                if (!unameEl) return;
+                var link = unameEl.querySelector('.msn-username-link');
+                var currentName = link ? link.textContent.trim() : '';
+                if (!currentName) {
+                    for (var i = 0; i < unameEl.childNodes.length; i++) {
+                        var n = unameEl.childNodes[i];
+                        if (n.nodeType === 3 && n.nodeValue.trim()) {
+                            currentName = n.nodeValue.trim();
+                            break;
+                        }
+                    }
+                }
+                if (!currentName) return;
+                if ((oldName && currentName === oldName) || currentName === displayName) {
+                    isMine = true;
+                }
+            }
+            if (!isMine) return;
+
+            // Stamp so future updates are wallet-anchored
+            if (myWallet) w.setAttribute('data-wallet', myWallet);
+            w.setAttribute('data-author', displayName);
+            w.setAttribute('data-display-name', displayName);
+
+            var unameEl2 = w.querySelector('.msg-username');
+            if (unameEl2) {
+                var link2 = unameEl2.querySelector('.msn-username-link');
+                if (link2) {
+                    link2.textContent = displayName;
+                } else {
+                    for (var j = 0; j < unameEl2.childNodes.length; j++) {
+                        var t = unameEl2.childNodes[j];
+                        if (t.nodeType === 3 && t.nodeValue.trim()) {
+                            t.nodeValue = t.nodeValue.replace(t.nodeValue.trim(), displayName);
+                            break;
+                        }
                     }
                 }
             }
-            if (!currentName) return;
-            var matches = false;
-            if (oldName && currentName === oldName) matches = true;
-            if (currentName === displayName)        matches = true;
-            if (!matches) return;
-            if (link) {
-                link.textContent = displayName;
-            } else {
-                for (var j = 0; j < unameEl.childNodes.length; j++) {
-                    var t = unameEl.childNodes[j];
-                    if (t.nodeType === 3 && t.nodeValue.trim()) {
-                        t.nodeValue = t.nodeValue.replace(t.nodeValue.trim(), displayName);
-                        break;
-                    }
-                }
-            }
+
             if (newAvatar) {
                 var av = w.querySelector('.msg-avatar');
                 if (av) {
                     var img = av.querySelector('img');
                     if (img) img.src = newAvatar;
-                    else av.innerHTML = '<img src="' + escapeHtml(newAvatar) + '" alt="" style="width:100%;height:100%;object-fit:cover;">';
+                    else av.innerHTML = '<img src="' + escapeHtml(newAvatar) +
+                        '" alt="" style="width:100%;height:100%;object-fit:cover;">';
                 }
             }
-            try {
-                var wNow = getWalletAddress();
-                if (wNow) w.setAttribute('data-wallet', wNow);
-            } catch (e) {}
         });
     }
 
@@ -3143,6 +3169,17 @@ function showSuccess(msg) {
         await updateSidebarUI();
         setupTypingChannel();
         updateChatAccessibility();
+
+        // ⚑ Re-track presence under new name — otherwise sidebar shows old name
+        try {
+            if (presenceChannel) {
+                await presenceChannel.untrack();
+                supabase.removeChannel(presenceChannel);
+                presenceChannel = null;
+            }
+        } catch (e) {}
+        onlineUsers.clear();
+        setupPresence();
 
         try { window.dispatchEvent(new Event('msn:wallet-connected')); } catch (e) {}
         return true;
@@ -3673,23 +3710,13 @@ function showSuccess(msg) {
             }
             if (!w && !rawUser) return;
 
-                        // ⚑ If wallet is known but not cached, remember from DOM data
-            //   and pull fresh if needed
+                                // ⚑ If wallet known but identity cache missing, fetch fresh.
+            //   DO NOT re-seed cache from DOM attributes — they may be stale.
             if (w && window.MSNIdentity && window.MSNIdentity.byWallet) {
                 var cachedProf = window.MSNIdentity.byWallet()[w];
-                if (!cachedProf || !cachedProf.username) {
-                    if (window.MSNIdentity.remember) {
-                        window.MSNIdentity.remember({
-                            wallet_address: w,
-                            display_name:   wrapper.getAttribute('data-display-name'),
-                            x_handle:       wrapper.getAttribute('data-x-handle'),
-                            x_verified:     wrapper.getAttribute('data-x-verified') === '1',
-                            x_avatar_url:   wrapper.getAttribute('data-x-avatar')
-                        });
-                    }
-                    if (window.MSNIdentity.fetchProfile) {
-                        try { window.MSNIdentity.fetchProfile(w, true); } catch (e) {}
-                    }
+                if ((!cachedProf || !cachedProf.username) && window.MSNIdentity.fetchProfile) {
+                    try { window.MSNIdentity.fetchProfile(w, true); } catch (e) {}
+                    return; // will repaint on next identity-changed
                 }
             }
 
