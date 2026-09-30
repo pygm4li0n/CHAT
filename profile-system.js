@@ -3,7 +3,7 @@
    ────────────────────────────────────────────────────────────
    Drop-in. Load AFTER script.js + wallet-identity.js.
 
-     <script src="profile-system.js?v=8"></script>
+     <script src="profile-system.js?v=9"></script>
 
    • Reuses window.MSN.supabase (or builds a fallback client)
    • Wallet-first lookup — rename-safe, X-aware
@@ -18,13 +18,10 @@
    • Joined date derived from earliest message (truest signal)
    • Ghost users (chatted, no profile row) still render a card
 
-   v3 additions:
-   • fetchProfileData(username, isSelf, wallet) — wallet-first
-   • resolve() / remember() bridges to wallet-identity.js
-   • 𝕏 verified badge next to display name
-   • closeProfile resets open tracking
-   • 'msn:identity-changed' → live re-render of open card
-   • Ranks click prefers data-wallet over name text
+   v4 additions:
+   • EPIC REVAMP: 500px card, ambient halo, animated top line,
+     bigger avatar, brighter HUD, gradient streak row,
+     shine-sweep achievements, layered primary button
    ============================================================ */
 (function () {
     'use strict';
@@ -39,7 +36,7 @@
             return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[m];
         });
     }
-   
+
     /* ── Tier badge — single source of truth for profile card ── */
     function parseBalanceValue(v) {
         if (v == null) return 0;
@@ -63,7 +60,6 @@
         return                     { name: 'Shrimp',  emoji: '🦐' };
     }
 
-    /* Resolve balance from the fetched profile data using every possible field */
     function resolveBalance(data) {
         if (!data) return null;
         var raw =
@@ -96,7 +92,6 @@
         if (window.CSS && CSS.escape) return CSS.escape(s);
         return String(s).replace(/"/g, '\\"');
     }
-    /* Solana base58 address shape (32–48 chars, no whitespace). */
     function isWalletLike(s) {
         return typeof s === 'string'
             && s.length >= 32 && s.length <= 48
@@ -122,7 +117,6 @@
         return !!(item && item.querySelector('.online-indicator'));
     }
 
-    /* ── Canonical identity bridge (delegates to wallet-identity) ── */
     function resolveIdentity(x) {
         if (window.MSNIdentity && window.MSNIdentity.resolve) {
             return window.MSNIdentity.resolve(x);
@@ -135,7 +129,6 @@
         }
     }
 
-    /* ── Read live streak from the tracking system's DOM ──── */
     function readSelfStreakFromDOM() {
         var container = document.getElementById('sidebarStreakDisplay');
         if (!container || container.classList.contains('hidden')) return 0;
@@ -166,7 +159,6 @@
         return null;
     }
 
-    /* ── Toast ─────────────────────────────────────────────── */
     function toast(msg) {
         var el = document.getElementById('errorToast');
         if (!el) { console.log('[profile]', msg); return; }
@@ -178,340 +170,790 @@
         el._msnProfileTimeout = setTimeout(function () { el.classList.remove('visible'); }, 5000);
     }
 
-    /* ── CSS ──────────────────────────────────────────────── */
+    /* ── CSS — EPIC REVAMP v4 ─────────────────────────────── */
     function injectStyles() {
         if (document.getElementById('msn-profile-styles')) return;
-        var css = ''
-        + '.msn-profile-overlay{'
-        +   'position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;'
-        +   'padding:20px;background:rgba(5,8,16,.82);'
-        +   'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);'
-        +   'opacity:0;pointer-events:none;transition:opacity .28s ease;'
-        + '}'
-        + '.msn-profile-overlay.open{opacity:1;pointer-events:auto;}'
-        + '.msn-profile-card{'
-        +   'position:relative;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;overflow-x:hidden;'
-        +   'padding:24px 22px 18px;'
-        +   'background:linear-gradient(180deg,rgba(20,26,40,.97) 0%,rgba(10,14,24,.985) 100%);'
-        +   'border:1px solid var(--border-default,#233261);border-radius:var(--radius-xl,22px);'
-        +   'box-shadow:0 0 0 1px rgba(255,255,255,.04),0 24px 60px rgba(0,0,0,.8),'
-        +               '0 0 40px var(--accent-cyan,rgba(0,240,255,.14));'
-        +   'transform:scale(.94) translateY(10px);opacity:0;'
-        +   'transition:transform .34s cubic-bezier(.16,1,.3,1),opacity .28s ease;'
-        +   'font-family:var(--font-main,"Segoe UI",system-ui,sans-serif);'
-        +   'color:var(--text-primary,#fff);text-align:left;'
-        + '}'
-        + '.msn-profile-overlay.open .msn-profile-card{transform:scale(1) translateY(0);opacity:1;}'
-        + '.msn-profile-card::-webkit-scrollbar{width:6px;}'
-        + '.msn-profile-card::-webkit-scrollbar-track{background:transparent;}'
-        + '.msn-profile-card::-webkit-scrollbar-thumb{background:var(--border-default,#233261);border-radius:3px;}'
-        + '.msn-profile-card::before{'
-        +   'content:"";position:absolute;top:0;left:15%;right:15%;height:1px;'
-        +   'background:linear-gradient(90deg,transparent,var(--accent-cyan,#00f0ff),transparent);'
-        +   'opacity:.75;pointer-events:none;'
-        + '}'
+        var css = `
+/* ═══════════════════════════════════════════════════════
+   MSN PROFILE CARD — EPIC REVAMP
+   ═══════════════════════════════════════════════════════ */
 
-        /* ── Close button (rotates on hover) ── */
-        + '.msn-profile-close{'
-        +   'position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:8px;'
-        +   'border:1px solid var(--border-default,#233261);background:var(--bg-input,#111827);'
-        +   'color:var(--text-secondary,#94a3b8);cursor:pointer;display:flex;align-items:center;'
-        +   'justify-content:center;font-size:.85rem;line-height:1;z-index:3;'
-        +   'transform:rotate(0deg) scale(1);'
-        +   'transition:transform .38s cubic-bezier(.16,1,.3,1),'
-        +               'border-color .22s ease,color .22s ease,box-shadow .22s ease;'
-        + '}'
-        + '.msn-profile-close:hover,.msn-profile-close:focus-visible{'
-        +   'outline:none;'
-        +   'border-color:var(--accent-red,#ff5c7c);color:var(--accent-red,#ff5c7c);'
-        +   'transform:rotate(90deg) scale(1.08);'
-        +   'box-shadow:0 0 14px rgba(255,92,124,.45);'
-        + '}'
-        + '.msn-profile-close:active{transform:rotate(90deg) scale(.96);}'
+.msn-profile-overlay{
+    position:fixed;
+    inset:0;
+    z-index:500;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    background:
+        radial-gradient(ellipse 70% 60% at 50% 45%, rgba(255,255,255,.04) 0%, transparent 65%),
+        rgba(5,8,16,.86);
+    backdrop-filter:blur(14px) saturate(1.2);
+    -webkit-backdrop-filter:blur(14px) saturate(1.2);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .3s cubic-bezier(.16,1,.3,1);
+}
+.msn-profile-overlay.open{opacity:1;pointer-events:auto;}
 
-        /* ── HEADER ── */
-        + '.msn-profile-head{'
-        +   'position:relative;display:flex;align-items:center;gap:18px;'
-        +   'padding:4px 0 18px;margin-bottom:16px;'
-        +   'border-bottom:1px solid rgba(35,50,97,.55);'
-        + '}'
-        + '.msn-profile-head::after{'
-        +   'content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;'
-        +   'background:linear-gradient(90deg,var(--accent-cyan,#00f0ff) 0%,transparent 65%);'
-        +   'opacity:.45;pointer-events:none;'
-        + '}'
+.msn-profile-card{
+    position:relative;
+    width:100%;
+    max-width:500px;
+    max-height:92vh;
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding:32px 26px 22px;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,.03) 0%, rgba(0,0,0,.2) 100%),
+        var(--bg-panel, #111827);
+    border:1px solid var(--border-default, #233261);
+    border-radius:24px;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.06),
+        0 0 0 1px rgba(0,0,0,.5),
+        0 30px 90px rgba(0,0,0,.9),
+        0 0 80px var(--accent-cyan, rgba(0,240,255,.18));
+    transform:scale(.94) translateY(20px);
+    opacity:0;
+    transition:
+        transform .4s cubic-bezier(.16,1,.3,1),
+        opacity .3s cubic-bezier(.16,1,.3,1);
+    font-family:var(--font-main, "Segoe UI", system-ui, sans-serif);
+    color:var(--text-primary, #fff);
+    text-align:left;
+    isolation:isolate;
+}
+.msn-profile-overlay.open .msn-profile-card{
+    transform:scale(1) translateY(0);
+    opacity:1;
+}
+.msn-profile-card::-webkit-scrollbar{width:8px;}
+.msn-profile-card::-webkit-scrollbar-track{background:transparent;}
+.msn-profile-card::-webkit-scrollbar-thumb{
+    background:var(--border-default, #233261);
+    border-radius:4px;
+    border:2px solid transparent;
+    background-clip:content-box;
+}
+.msn-profile-card::after{
+    content:"";
+    position:absolute;
+    top:-40%;
+    left:50%;
+    transform:translateX(-50%);
+    width:140%;
+    height:100%;
+    background:radial-gradient(ellipse at center,
+        var(--accent-cyan, rgba(0,240,255,.08)) 0%,
+        transparent 55%);
+    pointer-events:none;
+    z-index:-1;
+    opacity:.75;
+}
+.msn-profile-card::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:15%;
+    right:15%;
+    height:2px;
+    background:linear-gradient(90deg,
+        transparent 0%,
+        var(--accent-cyan, #00f0ff) 50%,
+        transparent 100%);
+    opacity:.85;
+    pointer-events:none;
+    border-radius:2px;
+    animation:msnTopLineScan 4.5s ease-in-out infinite;
+}
+@keyframes msnTopLineScan{
+    0%,100%{opacity:.55;transform:translateX(-2%);}
+    50%{opacity:1;transform:translateX(2%);}
+}
 
-        /* Avatar — reduced 10%, anchored left */
-        + '.msn-profile-avatar-wrap{position:relative;width:152px;height:152px;flex:0 0 auto;}'
-        + '.msn-profile-avatar{'
-        +   'width:100%;height:100%;border-radius:50%;background:var(--bg-elevated,#151b2d);'
-        +   'border:2px solid var(--accent-cyan,#00f0ff);overflow:hidden;display:flex;'
-        +   'align-items:center;justify-content:center;font-size:3.05rem;font-weight:800;color:#fff;'
-        +   'letter-spacing:.02em;line-height:1;'
-        +   'box-shadow:0 0 0 6px rgba(0,240,255,.05),0 0 32px var(--accent-cyan,rgba(0,240,255,.35));'
-        + '}'
-        + '.msn-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;}'
-        + '.msn-profile-status-dot{'
-        +   'position:absolute;bottom:7px;right:7px;width:20px;height:20px;border-radius:50%;'
-        +   'background:var(--text-muted,#64748b);border:3px solid var(--bg-panel,#111827);'
-        +   'transition:background .25s ease,box-shadow .25s ease;'
-        + '}'
-        + '.msn-profile-status-dot.online{background:#4ade80;box-shadow:0 0 10px #4ade80,0 0 22px rgba(74,222,128,.55);}'
+.msn-profile-close{
+    position:absolute;
+    top:14px;
+    right:14px;
+    width:34px;
+    height:34px;
+    border-radius:10px;
+    border:1px solid var(--border-default, #233261);
+    background:rgba(255,255,255,.03);
+    color:var(--text-secondary, #94a3b8);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:.9rem;
+    line-height:1;
+    z-index:5;
+    transform:rotate(0deg) scale(1);
+    transition:
+        transform .4s cubic-bezier(.16,1,.3,1),
+        border-color .22s ease,
+        color .22s ease,
+        background .22s ease,
+        box-shadow .22s ease;
+}
+.msn-profile-close:hover,
+.msn-profile-close:focus-visible{
+    outline:none;
+    border-color:var(--accent-red, #ff5c7c);
+    color:var(--accent-red, #ff5c7c);
+    background:rgba(255,92,124,.08);
+    transform:rotate(90deg) scale(1.1);
+    box-shadow:0 0 18px rgba(255,92,124,.55);
+}
+.msn-profile-close:active{transform:rotate(90deg) scale(.98);}
 
-        /* Identity column */
-        + '.msn-profile-identity{'
-        +   'flex:1 1 auto;min-width:0;display:flex;flex-direction:column;'
-        +   'align-items:center;justify-content:center;text-align:center;gap:7px;'
-        + '}'
-        + '.msn-profile-username{'
-        +   'margin:0;font-size:1.5rem;font-weight:800;letter-spacing:.01em;line-height:1.12;'
-        +   'color:var(--text-primary,#fff);word-break:break-word;'
-        +   'text-shadow:0 0 14px var(--accent-cyan,rgba(0,240,255,.3));'
-        + '}'
+.msn-profile-head{
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:22px;
+    padding:4px 0 22px;
+    margin-bottom:18px;
+    border-bottom:1px solid rgba(35,50,97,.55);
+}
+.msn-profile-head::after{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:-1px;
+    height:1px;
+    background:linear-gradient(90deg,
+        var(--accent-cyan, #00f0ff) 0%,
+        transparent 70%);
+    opacity:.5;
+    pointer-events:none;
+}
 
-        /* ⚑ X-verified badge */
-        + '.msn-x-badge{'
-        +   'display:inline-flex;align-items:center;justify-content:center;'
-        +   'width:1.15em;height:1.15em;margin-left:.5em;'
-        +   'border-radius:50%;background:#1d9bf0;color:#fff;'
-        +   'font-size:.68em;font-weight:900;line-height:1;'
-        +   'box-shadow:0 0 10px rgba(29,155,240,.7),0 0 4px rgba(29,155,240,.9) inset;'
-        +   'vertical-align:middle;transform:translateY(-1px);'
-        + '}'
+.msn-profile-avatar-wrap{
+    position:relative;
+    width:164px;
+    height:164px;
+    flex:0 0 auto;
+}
+.msn-profile-avatar{
+    width:100%;
+    height:100%;
+    border-radius:50%;
+    background:
+        radial-gradient(circle at 35% 25%, rgba(255,255,255,.06) 0%, transparent 55%),
+        var(--bg-elevated, #151b2d);
+    border:2px solid var(--accent-cyan, #00f0ff);
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:3.2rem;
+    font-weight:800;
+    color:#fff;
+    letter-spacing:.02em;
+    line-height:1;
+    box-shadow:
+        inset 0 0 24px rgba(0,0,0,.65),
+        0 0 0 6px rgba(0,240,255,.05),
+        0 0 40px var(--accent-cyan, rgba(0,240,255,.4));
+}
+.msn-profile-avatar img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+}
+.msn-profile-status-dot{
+    position:absolute;
+    bottom:8px;
+    right:8px;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    background:var(--text-muted, #64748b);
+    border:3px solid var(--bg-panel, #111827);
+    box-shadow:0 0 0 2px rgba(0,0,0,.4);
+    transition:background .25s ease,box-shadow .25s ease;
+}
+.msn-profile-status-dot.online{
+    background:#4ade80;
+    box-shadow:
+        0 0 0 2px rgba(0,0,0,.4),
+        0 0 14px #4ade80,
+        0 0 28px rgba(74,222,128,.55);
+}
 
-        /* ⚑ Tier badge — Whale / Dolphin / Crab / Shrimp */
-        + '.msn-tier-badge{'
-        +   'display:inline-flex;align-items:center;justify-content:center;'
-        +   'min-width:1.15em;height:1.15em;padding:0 .35em;margin-left:.5em;'
-        +   'border-radius:999px;'
-        +   'background:rgba(255,255,255,.08);'
-        +   'border:1px solid var(--border-default,rgba(255,255,255,.18));'
-        +   'font-size:.9em;line-height:1;'
-        +   'vertical-align:middle;transform:translateY(-1px);'
-        +   'box-shadow:0 0 10px rgba(255,255,255,.10);'
-        + '}'
-        + '.msn-tier-badge.msn-tier-whale{'
-        +   'background:rgba(0,225,234,.15);'
-        +   'border-color:rgba(0,225,234,.55);'
-        +   'box-shadow:0 0 14px rgba(0,225,234,.45);'
-        + '}'
-        + '.msn-tier-badge.msn-tier-dolphin{'
-        +   'background:rgba(155,127,232,.15);'
-        +   'border-color:rgba(155,127,232,.55);'
-        +   'box-shadow:0 0 14px rgba(155,127,232,.45);'
-        + '}'
-        + '.msn-tier-badge.msn-tier-crab{'
-        +   'background:rgba(255,138,0,.15);'
-        +   'border-color:rgba(255,138,0,.55);'
-        +   'box-shadow:0 0 14px rgba(255,138,0,.45);'
-        + '}'
-        + '.msn-tier-badge.msn-tier-shrimp{'
-        +   'background:rgba(255,255,255,.06);'
-        +   'border-color:rgba(255,255,255,.18);'
-        + '}'
+.msn-profile-identity{
+    flex:1 1 auto;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    gap:8px;
+}
+.msn-profile-username{
+    margin:0;
+    font-size:1.65rem;
+    font-weight:900;
+    letter-spacing:.01em;
+    line-height:1.15;
+    color:var(--text-primary, #fff);
+    word-break:break-word;
+    text-shadow:
+        0 0 18px var(--accent-cyan, rgba(0,240,255,.35)),
+        0 2px 6px rgba(0,0,0,.8);
+}
+.msn-profile-signature{
+    margin:0;
+    font-size:.88rem;
+    color:var(--text-secondary, #94a3b8);
+    font-style:italic;
+    line-height:1.5;
+    word-break:break-word;
+    min-height:1.3em;
+    max-width:100%;
+}
+.msn-profile-meta{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:4px 10px;
+    margin:0;
+    font-size:.6rem;
+    color:var(--text-muted, #64748b);
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    font-weight:800;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:999px;
+    line-height:1;
+}
 
-        + '.msn-profile-signature{'
-        +   'margin:0;font-size:.84rem;color:var(--text-secondary,#94a3b8);'
-        +   'font-style:italic;line-height:1.45;word-break:break-word;min-height:1.2em;'
-        + '}'
-        + '.msn-profile-meta{'
-        +   'margin:0;font-size:.6rem;color:var(--text-muted,#64748b);'
-        +   'letter-spacing:.14em;text-transform:uppercase;font-weight:700;'
-        + '}'
+.msn-x-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:1.2em;
+    height:1.2em;
+    margin-left:.5em;
+    border-radius:50%;
+    background:linear-gradient(135deg, #1d9bf0 0%, #0a4a9a 100%);
+    color:#fff;
+    font-size:.66em;
+    font-weight:900;
+    line-height:1;
+    box-shadow:
+        0 0 12px rgba(29,155,240,.75),
+        inset 0 1px 0 rgba(255,255,255,.4);
+    vertical-align:middle;
+    transform:translateY(-2px);
+}
 
-        /* HUD stats */
-        + '.msn-profile-hud{'
-        +   'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;'
-        +   'padding:12px 8px;margin-bottom:14px;'
-        +   'background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,rgba(0,0,0,.15) 100%),var(--bg-input,#111827);'
-        +   'border:1px solid var(--border-default,#233261);border-radius:var(--radius-md,10px);'
-        +   'box-shadow:inset 0 1px 0 rgba(255,255,255,.04),inset 0 -1px 0 rgba(0,0,0,.4);'
-        + '}'
-        + '.msn-hud-stat{display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;position:relative;}'
-        + '.msn-hud-stat:not(:last-child)::after{'
-        +   'content:"";position:absolute;right:-3px;top:18%;bottom:18%;width:1px;'
-        +   'background:linear-gradient(180deg,transparent,var(--border-default,#233261),transparent);'
-        + '}'
-        + '.msn-hud-label{'
-        +   'font-size:.56rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;'
-        +   'color:var(--text-muted,#64748b);line-height:1;'
-        + '}'
-        + '.msn-hud-value{'
-        +   'font-family:var(--font-mono,monospace);font-size:1.05rem;font-weight:800;'
-        +   'color:var(--accent-cyan,#00f0ff);line-height:1;font-variant-numeric:tabular-nums;'
-        +   'text-shadow:0 0 10px var(--accent-cyan,rgba(0,240,255,.4));'
-        + '}'
+.msn-tier-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:1.2em;
+    height:1.2em;
+    padding:0 .45em;
+    margin-left:.5em;
+    border-radius:999px;
+    background:rgba(255,255,255,.06);
+    border:1px solid var(--border-default, rgba(255,255,255,.18));
+    font-size:.86em;
+    line-height:1;
+    vertical-align:middle;
+    transform:translateY(-2px);
+    box-shadow:0 0 12px rgba(255,255,255,.10);
+}
+.msn-tier-badge.msn-tier-whale{
+    background:rgba(0,225,234,.15);
+    border-color:rgba(0,225,234,.6);
+    box-shadow:0 0 18px rgba(0,225,234,.55);
+}
+.msn-tier-badge.msn-tier-dolphin{
+    background:rgba(155,127,232,.15);
+    border-color:rgba(155,127,232,.6);
+    box-shadow:0 0 18px rgba(155,127,232,.55);
+}
+.msn-tier-badge.msn-tier-crab{
+    background:rgba(255,138,0,.15);
+    border-color:rgba(255,138,0,.6);
+    box-shadow:0 0 18px rgba(255,138,0,.55);
+}
+.msn-tier-badge.msn-tier-shrimp{
+    background:rgba(255,255,255,.06);
+    border-color:rgba(255,255,255,.2);
+}
 
-        /* Streak row */
-        + '.msn-streak-row{'
-        +   'display:flex;align-items:center;justify-content:space-between;gap:12px;'
-        +   'padding:10px 12px;margin-bottom:16px;'
-        +   'background:linear-gradient(180deg,rgba(249,115,22,.08) 0%,rgba(249,115,22,.02) 100%);'
-        +   'border:1px solid var(--border-default,#233261);border-radius:var(--radius-md,10px);'
-        +   'box-shadow:inset 0 1px 0 rgba(255,255,255,.03);'
-        + '}'
-        + '.msn-streak-label{'
-        +   'font-size:.6rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;'
-        +   'color:var(--text-muted,#64748b);flex-shrink:0;'
-        + '}'
-        + '.msn-streak-fires{display:flex;align-items:center;gap:3px;flex:1;justify-content:center;}'
-        + '.msn-fire{font-size:1rem;line-height:1;display:inline-block;transition:all .3s ease;}'
-        + '.msn-fire.filled{'
-        +   'filter:drop-shadow(0 0 5px rgba(249,115,22,.9)) drop-shadow(0 0 10px rgba(255,165,0,.4));'
-        +   'animation:msnFireFlicker 1.8s ease-in-out infinite;'
-        + '}'
-        + '.msn-fire.empty{filter:grayscale(100%) brightness(.4);opacity:.22;}'
-        + '@keyframes msnFireFlicker{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}'
-        + '.msn-streak-count{'
-        +   'font-family:var(--font-mono,monospace);font-size:1rem;font-weight:800;'
-        +   'color:var(--accent-orange,#f97316);min-width:2.4em;text-align:right;'
-        +   'text-shadow:0 0 10px rgba(249,115,22,.7);'
-        +   'font-variant-numeric:tabular-nums;flex-shrink:0;'
-        + '}'
+.msn-profile-hud{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
+    padding:16px 10px;
+    margin-bottom:16px;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,.035) 0%, rgba(0,0,0,.18) 100%),
+        var(--bg-input, #111827);
+    border:1px solid var(--border-default, #233261);
+    border-radius:14px;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.05),
+        inset 0 -1px 0 rgba(0,0,0,.45);
+}
+.msn-hud-stat{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    padding:6px 2px;
+    position:relative;
+}
+.msn-hud-stat:not(:last-child)::after{
+    content:"";
+    position:absolute;
+    right:-4px;
+    top:22%;
+    bottom:22%;
+    width:1px;
+    background:linear-gradient(180deg,
+        transparent,
+        var(--border-default, #233261),
+        transparent);
+}
+.msn-hud-label{
+    font-size:.58rem;
+    font-weight:800;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--text-muted, #64748b);
+    line-height:1;
+}
+.msn-hud-value{
+    font-family:var(--font-mono, monospace);
+    font-size:1.35rem;
+    font-weight:900;
+    color:var(--accent-cyan, #00f0ff);
+    line-height:1;
+    font-variant-numeric:tabular-nums;
+    text-shadow:0 0 14px var(--accent-cyan, rgba(0,240,255,.5));
+    letter-spacing:.01em;
+}
 
-        /* Achievements */
-        + '.msn-profile-section-label{'
-        +   'font-size:.6rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;'
-        +   'color:var(--text-muted,#64748b);margin:0 0 8px 2px;'
-        + '}'
-        + '.msn-achievements-grid{'
-        +   'display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:0 0 18px;'
-        +   'width:100%;box-sizing:border-box;'
-        + '}'
-        + '.msn-ach-slot{'
-        +   'aspect-ratio:1/1;border-radius:8px;background:var(--bg-input,#111827);'
-        +   'border:1px solid var(--border-default,#233261);display:flex;align-items:center;'
-        +   'justify-content:center;font-size:1.05rem;line-height:1;'
-        +   'transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;cursor:default;'
-        +   'min-width:0;overflow:hidden;'
-        + '}'
-        + '.msn-ach-slot.unlocked{'
-        +   'border-color:var(--accent-cyan,#00f0ff);'
-        +   'box-shadow:0 0 10px var(--accent-cyan,rgba(0,240,255,.35));'
-        + '}'
-        + '.msn-ach-slot.locked{opacity:.32;filter:grayscale(100%);}'
-        + '.msn-ach-slot.empty{opacity:.3;border-style:dashed;font-size:.85rem;color:var(--text-muted,#64748b);}'
-        + '.msn-ach-slot:hover{transform:translateY(-2px);}'
+.msn-streak-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:14px 16px;
+    margin-bottom:18px;
+    background:
+        linear-gradient(180deg, rgba(249,115,22,.10) 0%, rgba(249,115,22,.02) 100%),
+        var(--bg-input, #111827);
+    border:1px solid var(--border-default, #233261);
+    border-radius:14px;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.04),
+        0 0 20px rgba(249,115,22,.08);
+    position:relative;
+    overflow:hidden;
+}
+.msn-streak-row::before{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    top:0;
+    height:1px;
+    background:linear-gradient(90deg,
+        transparent,
+        rgba(249,115,22,.6),
+        transparent);
+}
+.msn-streak-label{
+    font-size:.6rem;
+    font-weight:800;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--text-muted, #64748b);
+    flex-shrink:0;
+}
+.msn-streak-fires{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    flex:1;
+    justify-content:center;
+}
+.msn-fire{
+    font-size:1.15rem;
+    line-height:1;
+    display:inline-block;
+    transition:all .3s ease;
+}
+.msn-fire.filled{
+    filter:
+        drop-shadow(0 0 6px rgba(249,115,22,.9))
+        drop-shadow(0 0 12px rgba(255,165,0,.5));
+    animation:msnFireFlicker 1.8s ease-in-out infinite;
+}
+.msn-fire.empty{
+    filter:grayscale(100%) brightness(.4);
+    opacity:.22;
+}
+@keyframes msnFireFlicker{
+    0%,100%{transform:scale(1);}
+    50%{transform:scale(1.1);}
+}
+.msn-streak-count{
+    font-family:var(--font-mono, monospace);
+    font-size:1.1rem;
+    font-weight:900;
+    color:var(--accent-orange, #f97316);
+    min-width:2.6em;
+    text-align:right;
+    text-shadow:0 0 14px rgba(249,115,22,.75);
+    font-variant-numeric:tabular-nums;
+    flex-shrink:0;
+    letter-spacing:.02em;
+}
 
-        /* Action buttons */
-        + '.msn-profile-actions{display:flex;gap:10px;margin-top:2px;}'
-        + '.msn-action-btn{'
-        +   'flex:1;padding:12px 14px;border-radius:var(--radius-md,10px);'
-        +   'font-weight:700;font-size:.76rem;letter-spacing:.06em;text-transform:uppercase;'
-        +   'cursor:pointer;border:1px solid var(--border-default,#233261);'
-        +   'background:var(--bg-elevated,#151b2d);color:var(--text-primary,#fff);'
-        +   'transition:all .22s ease;font-family:inherit;'
-        + '}'
-        + '.msn-action-btn:hover{'
-        +   'border-color:var(--accent-cyan,#00f0ff);color:var(--accent-cyan,#00f0ff);'
-        +   'box-shadow:0 0 12px var(--accent-cyan,rgba(0,240,255,.3));transform:translateY(-1px);'
-        + '}'
-        + '.msn-action-btn.primary{'
-        +   'background:var(--accent-cyan,#00f0ff);color:#0a0e1a;border-color:var(--accent-cyan,#00f0ff);'
-        +   'box-shadow:0 0 16px var(--accent-cyan,rgba(0,240,255,.45));'
-        + '}'
-        + '.msn-action-btn.primary:hover{color:#0a0e1a;filter:brightness(1.08);}'
+.msn-profile-section-label{
+    font-size:.6rem;
+    font-weight:800;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    color:var(--text-muted, #64748b);
+    margin:0 0 10px 2px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+.msn-profile-section-label::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:linear-gradient(90deg,
+        rgba(255,255,255,.08),
+        transparent);
+}
 
-        /* Loader / error */
-        + '.msn-profile-loader{'
-        +   'display:flex;align-items:center;justify-content:center;gap:10px;'
-        +   'padding:60px 10px;color:var(--text-muted,#64748b);'
-        +   'font-family:var(--font-mono,monospace);font-size:.72rem;letter-spacing:.22em;'
-        +   'text-transform:uppercase;'
-        + '}'
-        + '.msn-profile-loader-dots{display:inline-flex;gap:6px;}'
-        + '.msn-profile-loader-dots span{'
-        +   'width:8px;height:8px;border-radius:50%;background:currentColor;'
-        +   'animation:msnProfilePulse 1.3s ease-in-out infinite;'
-        + '}'
-        + '.msn-profile-loader-dots span:nth-child(2){animation-delay:.18s;}'
-        + '.msn-profile-loader-dots span:nth-child(3){animation-delay:.36s;}'
-        + '@keyframes msnProfilePulse{'
-        +   '0%,100%{opacity:.28;transform:translateY(0) scale(.85);}'
-        +   '50%{opacity:1;transform:translateY(-4px) scale(1);}'
-        + '}'
-        + '.msn-profile-empty{'
-        +   'padding:50px 16px;text-align:center;color:var(--text-muted,#64748b);'
-        +   'font-family:var(--font-mono,monospace);font-size:.72rem;letter-spacing:.18em;'
-        +   'text-transform:uppercase;'
-        + '}'
+.msn-achievements-grid{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:10px;
+    margin:0 0 22px;
+    width:100%;
+    box-sizing:border-box;
+}
+.msn-ach-slot{
+    aspect-ratio:1/1;
+    border-radius:10px;
+    background:var(--bg-input, #111827);
+    border:1px solid var(--border-default, #233261);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.1rem;
+    line-height:1;
+    transition:
+        transform .22s ease,
+        box-shadow .22s ease,
+        border-color .22s ease;
+    cursor:default;
+    min-width:0;
+    overflow:hidden;
+    position:relative;
+}
+.msn-ach-slot.unlocked{
+    border-color:var(--accent-cyan, #00f0ff);
+    background:
+        linear-gradient(180deg, rgba(0,240,255,.08) 0%, rgba(0,0,0,.15) 100%),
+        var(--bg-input, #111827);
+    box-shadow:
+        0 0 14px var(--accent-cyan, rgba(0,240,255,.4)),
+        inset 0 1px 0 rgba(255,255,255,.06);
+}
+.msn-ach-slot.unlocked::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(115deg,
+        transparent 0%,
+        rgba(255,255,255,.2) 50%,
+        transparent 100%);
+    transform:translateX(-100%);
+    animation:msnAchShine 3s ease-in-out infinite;
+    pointer-events:none;
+}
+@keyframes msnAchShine{
+    0%,60%{transform:translateX(-100%);}
+    100%{transform:translateX(100%);}
+}
+.msn-ach-slot.locked{opacity:.32;filter:grayscale(100%);}
+.msn-ach-slot.empty{
+    opacity:.32;
+    border-style:dashed;
+    font-size:.9rem;
+    color:var(--text-muted, #64748b);
+}
+.msn-ach-slot:hover{transform:translateY(-3px);}
 
-        /* Message username: clickable affordance */
-        + '.msg-username .msn-username-link{'
-        +   'cursor:pointer;position:relative;display:inline-block;'
-        +   'transition:color .2s ease,text-shadow .2s ease;'
-        + '}'
-        + '.msg-username .msn-username-link::after{'
-        +   'content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;'
-        +   'background:currentColor;opacity:0;'
-        +   'transform:scaleX(.55);transform-origin:left center;'
-        +   'transition:opacity .2s ease,transform .25s ease;'
-        +   'pointer-events:none;'
-        + '}'
-        + '.msg-username:hover .msn-username-link{'
-        +   'color:var(--accent-cyan,#00f0ff);'
-        +   'text-shadow:0 0 10px var(--accent-cyan,rgba(0,240,255,.55));'
-        + '}'
-        + '.msg-username:hover .msn-username-link::after{'
-        +   'opacity:.9;transform:scaleX(1);'
-        + '}'
-        + '.msg-username .msg-avatar{cursor:pointer;}'
+.msn-profile-actions{
+    display:flex;
+    gap:10px;
+    margin-top:2px;
+}
+.msn-action-btn{
+    flex:1;
+    padding:14px 16px;
+    border-radius:12px;
+    font-weight:800;
+    font-size:.78rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    cursor:pointer;
+    border:1.5px solid var(--border-default, #233261);
+    background:var(--bg-elevated, #151b2d);
+    color:var(--text-primary, #fff);
+    transition:all .24s cubic-bezier(.16,1,.3,1);
+    font-family:inherit;
+    position:relative;
+    overflow:hidden;
+}
+.msn-action-btn:hover{
+    border-color:var(--accent-cyan, #00f0ff);
+    color:var(--accent-cyan, #00f0ff);
+    box-shadow:0 0 16px var(--accent-cyan, rgba(0,240,255,.35));
+    transform:translateY(-2px);
+}
+.msn-action-btn:active{transform:translateY(0) scale(.98);}
+.msn-action-btn.primary{
+    background:
+        linear-gradient(180deg, rgba(255,255,255,.4) 0%, rgba(255,255,255,0) 55%, rgba(0,0,0,.18) 100%),
+        var(--accent-cyan, #00f0ff);
+    color:#0a0e1a;
+    border-color:var(--accent-cyan, #00f0ff);
+    box-shadow:
+        inset 0 2px 0 rgba(255,255,255,.45),
+        inset 0 -2px 0 rgba(0,0,0,.2),
+        0 8px 24px rgba(0,0,0,.5),
+        0 0 24px var(--accent-cyan, rgba(0,240,255,.5));
+    text-shadow:0 1px 0 rgba(255,255,255,.4);
+}
+.msn-action-btn.primary::after{
+    content:"";
+    position:absolute;
+    top:0;
+    left:-100%;
+    width:60%;
+    height:100%;
+    background:linear-gradient(90deg,
+        transparent 0%,
+        rgba(255,255,255,.4) 50%,
+        transparent 100%);
+    transition:left .7s cubic-bezier(.16,1,.3,1);
+    pointer-events:none;
+}
+.msn-action-btn.primary:hover{
+    color:#0a0e1a;
+    filter:brightness(1.08);
+    box-shadow:
+        inset 0 2px 0 rgba(255,255,255,.5),
+        inset 0 -2px 0 rgba(0,0,0,.2),
+        0 12px 30px rgba(0,0,0,.6),
+        0 0 40px var(--accent-cyan, rgba(0,240,255,.7));
+}
+.msn-action-btn.primary:hover::after{left:130%;}
 
-        /* "VIEW PROFILE" hover hint */
-        + '.msg-username,.sidebar-user-profile-big{position:relative;}'
-        + '.msg-username::before,'
-        + '.sidebar-user-item::before,'
-        + '.sidebar-user-profile-big::before{'
-        +   'content:"VIEW PROFILE";'
-        +   'position:absolute;bottom:calc(100% + 6px);left:0;'
-        +   'padding:3px 9px;border-radius:4px;'
-        +   'background:var(--bg-input,#111827);'
-        +   'border:1px solid var(--accent-cyan,#00f0ff);'
-        +   'color:var(--accent-cyan,#00f0ff);'
-        +   'font-family:var(--font-mono,monospace);'
-        +   'font-size:0.55rem;font-weight:800;letter-spacing:0.14em;'
-        +   'white-space:nowrap;line-height:1;'
-        +   'opacity:0;pointer-events:none;'
-        +   'transform:translateY(4px);'
-        +   'transition:opacity .18s ease,transform .18s ease;'
-        +   'z-index:30;'
-        +   'text-shadow:0 0 6px var(--accent-cyan,#00f0ff);'
-        +   'box-shadow:0 0 12px rgba(0,240,255,.3),0 4px 12px rgba(0,0,0,.5);'
-        + '}'
-        + '.msg-username:has(.msg-avatar:hover)::before,'
-        + '.msg-username:has(.msn-username-link:hover)::before,'
-        + '.sidebar-user-item:has(.user-avatar:hover)::before,'
-        + '.sidebar-user-profile-big:has(.big-avatar:hover)::before,'
-        + '.sidebar-user-profile-big:has(.big-name:hover)::before{'
-        +   'opacity:1;transform:translateY(0);'
-        + '}'
+.msn-profile-loader{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    padding:80px 10px;
+    color:var(--text-muted, #64748b);
+    font-family:var(--font-mono, monospace);
+    font-size:.74rem;
+    letter-spacing:.24em;
+    text-transform:uppercase;
+}
+.msn-profile-loader-dots{
+    display:inline-flex;
+    gap:7px;
+}
+.msn-profile-loader-dots span{
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:currentColor;
+    animation:msnProfilePulse 1.3s ease-in-out infinite;
+    box-shadow:0 0 6px currentColor;
+}
+.msn-profile-loader-dots span:nth-child(2){animation-delay:.18s;}
+.msn-profile-loader-dots span:nth-child(3){animation-delay:.36s;}
+@keyframes msnProfilePulse{
+    0%,100%{opacity:.28;transform:translateY(0) scale(.85);}
+    50%{opacity:1;transform:translateY(-4px) scale(1);}
+}
+.msn-profile-empty{
+    padding:70px 16px;
+    text-align:center;
+    color:var(--text-muted, #64748b);
+    font-family:var(--font-mono, monospace);
+    font-size:.74rem;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+}
 
-        /* Mobile */
-        + '@media (max-width:480px){'
-        +   '.msn-profile-overlay{padding:12px;}'
-        +   '.msn-profile-card{max-width:100%;padding:20px 16px 14px;border-radius:16px;max-height:92vh;}'
-        +   '.msn-profile-head{gap:12px;padding:2px 0 14px;margin-bottom:14px;}'
-        +   '.msn-profile-avatar-wrap{width:95px;height:95px;}'
-        +   '.msn-profile-avatar{font-size:2.1rem;}'
-        +   '.msn-profile-status-dot{width:15px;height:15px;border-width:3px;bottom:4px;right:4px;}'
-        +   '.msn-profile-identity{gap:5px;}'
-        +   '.msn-profile-username{font-size:1.12rem;}'
-        +   '.msn-profile-signature{font-size:.76rem;}'
-        +   '.msn-profile-meta{font-size:.53rem;letter-spacing:.1em;}'
-        +   '.msn-profile-hud{gap:4px;padding:10px 4px;margin-bottom:12px;}'
-        +   '.msn-hud-value{font-size:.94rem;}'
-        +   '.msn-hud-label{font-size:.5rem;letter-spacing:.1em;}'
-        +   '.msn-streak-row{padding:9px 10px;margin-bottom:14px;gap:8px;}'
-        +   '.msn-fire{font-size:.9rem;}'
-        +   '.msn-streak-count{font-size:.92rem;}'
-        +   '.msn-achievements-grid{grid-template-columns:repeat(6,1fr);gap:6px;}'
-        +   '.msn-ach-slot{font-size:.92rem;border-radius:6px;}'
-        +   '.msn-action-btn{padding:11px 10px;font-size:.7rem;}'
-        +   '.msn-x-badge{width:1em;height:1em;font-size:.62em;}'
-        +   '.msg-username::before,'
-        +   '.sidebar-user-item::before,'
-        +   '.sidebar-user-profile-big::before{display:none;}'
-        + '}';
+.msg-username .msn-username-link{
+    cursor:pointer;
+    position:relative;
+    display:inline-block;
+    transition:color .2s ease, text-shadow .2s ease;
+}
+.msg-username .msn-username-link::after{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:-1px;
+    height:1px;
+    background:currentColor;
+    opacity:0;
+    transform:scaleX(.55);
+    transform-origin:left center;
+    transition:opacity .2s ease, transform .25s ease;
+    pointer-events:none;
+}
+.msg-username:hover .msn-username-link{
+    color:var(--accent-cyan, #00f0ff);
+    text-shadow:0 0 10px var(--accent-cyan, rgba(0,240,255,.6));
+}
+.msg-username:hover .msn-username-link::after{
+    opacity:.9;
+    transform:scaleX(1);
+}
+.msg-username .msg-avatar{cursor:pointer;}
+
+.msg-username,
+.sidebar-user-profile-big,
+.sidebar-user-item{position:relative;}
+.msg-username::before,
+.sidebar-user-item::before,
+.sidebar-user-profile-big::before{
+    content:"VIEW PROFILE";
+    position:absolute;
+    bottom:calc(100% + 8px);
+    left:0;
+    padding:4px 10px;
+    border-radius:6px;
+    background:var(--bg-input, #111827);
+    border:1px solid var(--accent-cyan, #00f0ff);
+    color:var(--accent-cyan, #00f0ff);
+    font-family:var(--font-mono, monospace);
+    font-size:.55rem;
+    font-weight:800;
+    letter-spacing:.16em;
+    white-space:nowrap;
+    line-height:1;
+    opacity:0;
+    pointer-events:none;
+    transform:translateY(6px);
+    transition:opacity .2s ease, transform .2s ease;
+    z-index:30;
+    text-shadow:0 0 8px var(--accent-cyan, #00f0ff);
+    box-shadow:
+        0 0 14px rgba(0,240,255,.35),
+        0 6px 16px rgba(0,0,0,.55);
+}
+.msg-username:has(.msg-avatar:hover)::before,
+.msg-username:has(.msn-username-link:hover)::before,
+.sidebar-user-item:has(.user-avatar:hover)::before,
+.sidebar-user-profile-big:has(.big-avatar:hover)::before,
+.sidebar-user-profile-big:has(.big-name:hover)::before{
+    opacity:1;
+    transform:translateY(0);
+}
+
+@media (max-width:480px){
+    .msn-profile-overlay{padding:12px;}
+    .msn-profile-card{
+        max-width:100%;
+        padding:24px 18px 18px;
+        border-radius:20px;
+        max-height:94vh;
+    }
+    .msn-profile-head{
+        gap:14px;
+        padding:2px 0 16px;
+        margin-bottom:14px;
+    }
+    .msn-profile-avatar-wrap{
+        width:104px;
+        height:104px;
+    }
+    .msn-profile-avatar{
+        font-size:2.2rem;
+    }
+    .msn-profile-status-dot{
+        width:16px;
+        height:16px;
+        border-width:3px;
+        bottom:4px;
+        right:4px;
+    }
+    .msn-profile-identity{gap:6px;}
+    .msn-profile-username{font-size:1.2rem;}
+    .msn-profile-signature{font-size:.78rem;}
+    .msn-profile-meta{
+        font-size:.52rem;
+        letter-spacing:.12em;
+        padding:3px 8px;
+    }
+    .msn-profile-hud{
+        gap:5px;
+        padding:12px 6px;
+        margin-bottom:14px;
+    }
+    .msn-hud-value{font-size:1.05rem;}
+    .msn-hud-label{font-size:.5rem;letter-spacing:.12em;}
+    .msn-streak-row{
+        padding:11px 12px;
+        margin-bottom:16px;
+        gap:10px;
+    }
+    .msn-fire{font-size:1rem;}
+    .msn-streak-count{font-size:.98rem;}
+    .msn-achievements-grid{gap:7px;}
+    .msn-ach-slot{font-size:.98rem;border-radius:8px;}
+    .msn-action-btn{
+        padding:12px 12px;
+        font-size:.72rem;
+    }
+    .msn-x-badge{width:1.05em;height:1.05em;font-size:.6em;}
+    .msg-username::before,
+    .sidebar-user-item::before,
+    .sidebar-user-profile-big::before{display:none;}
+}
+
+@media (prefers-reduced-motion: reduce){
+    .msn-profile-card,
+    .msn-profile-card::before,
+    .msn-ach-slot.unlocked::after,
+    .msn-fire.filled,
+    .msn-profile-loader-dots span{
+        animation:none !important;
+    }
+    .msn-profile-card{transition:none !important;}
+}
+`;
         var tag = document.createElement('style');
         tag.id = 'msn-profile-styles';
         tag.textContent = css;
@@ -622,28 +1064,23 @@
             achievements: [],
             hasProfile: false
         };
-        /* Rich select pulls X fields when the DB has them.
-           Include token_balance so the tier badge works. */
         var richSel = 'username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address, xp, messages_count, token_balance, updated_at';
         var minSel  = 'username, avatar_url, wallet_address, xp, token_balance';
 
         var profile = null;
 
-        /* 1. Wallet-first — rename-safe + X-aware */
         if (wallet) {
             try {
                 var r0 = await sb.from('profiles').select(richSel).eq('wallet_address', wallet).maybeSingle();
                 if (!r0.error && r0.data) profile = r0.data;
             } catch (e) { /* fall through */ }
         }
-        /* 2. By username */
         if (!profile) {
             try {
                 var r1 = await sb.from('profiles').select(richSel).eq('username', username).maybeSingle();
                 if (!r1.error && r1.data) profile = r1.data;
             } catch (e) { /* fall through */ }
         }
-        /* 3. Minimal select — older schema */
         if (!profile) {
             try {
                 var r2 = await sb.from('profiles').select(minSel).eq('username', username).maybeSingle();
@@ -659,13 +1096,9 @@
             out.level          = levelFromXp(out.xp);
             out.messages_count = Number(profile.messages_count || 0);
             out.token_balance  = profile.token_balance ?? null;
-            /* Feed canonical identity cache */
             rememberIdentity(profile);
         }
 
-        // ⚑ Fallback: if the profiles row has no balance, check userBalances
-        //   which may have been populated by script.js from the message feed
-        //   or by an earlier fetchAvatars call.
         if (out.token_balance == null && username) {
             try {
                 var cached = window.userBalances && window.userBalances[username];
@@ -673,7 +1106,6 @@
             } catch (e) {}
         }
 
-        /* ── Canonical identity overlay — X wins ── */
         var resolved = resolveIdentity(out.wallet_address || username);
         if (resolved) {
             if (resolved.displayName) out.display_name = resolved.displayName;
@@ -692,8 +1124,6 @@
             out.x_verified = !!profile.x_verified;
         }
 
-        /* ── Message count fallback — ONLY for other users ──
-           Self always reads the wallet-keyed column. */
         if (!isSelf && !out.messages_count) {
             try {
                 var mc = await sb.from('messages')
@@ -703,7 +1133,6 @@
             } catch (e) { /* ignore */ }
         }
 
-        /* ── Joined date — earliest message is the truest signal ── */
         try {
             var fm = await sb.from('messages')
                 .select('created_at')
@@ -719,14 +1148,10 @@
             out.created_at = profile.updated_at;
         }
 
-        /* ── Ghost user? ── */
         if (!out.hasProfile && !out.created_at) {
             return { error: 'not-found' };
         }
 
-        /* ── Streak ──
-           SELF: live DOM (tracking system is source of truth)
-           OTHER: RPC reads wallet_streaks.login_streak */
         if (isSelf) {
             out.current_streak = readSelfStreakFromDOM();
         } else if (out.wallet_address) {
@@ -738,7 +1163,6 @@
             } catch (e) { /* RPC may not exist yet */ }
         }
 
-        /* ── Achievements ── */
         try {
             var ac = await sb.from('user_achievements')
                 .select('achievement_code, unlocked_at')
@@ -755,7 +1179,6 @@
     function avatarHTML(data) {
         var url  = data.avatar_url;
         var name = data.display_name || data.username || '?';
-        /* Belt-and-braces: prefer canonical resolver when available */
         var r = resolveIdentity(data.wallet_address || data.username);
         if (r) {
             if (r.avatar)      url  = r.avatar;
@@ -783,7 +1206,7 @@
         for (var i = 0; i < MAX; i++) {
             fires += '<span class="msn-fire ' + (i < filled ? 'filled' : 'empty') + '">🔥</span>';
         }
-        var count = 'X' + streak; // always visible, even at 0/1
+        var count = 'X' + streak;
         return ''
             + '<div class="msn-streak-row">'
             +   '<span class="msn-streak-label">Streak</span>'
@@ -800,13 +1223,11 @@
 
         var online = isSelf ? true : isUserOnline(data.username);
 
-       /* Canonical display name + X badge */
         var shownName = data.display_name || data.username || 'anon';
         var xBadge = data.x_verified
             ? '<span class="msn-x-badge" title="Verified on X" aria-label="Verified on X">𝕏</span>'
             : '';
 
-        /* ⚑ Tier badge — Whale / Dolphin / Crab / Shrimp */
         var tierBadge = '';
         var tier = tierFor(resolveBalance(data));
         if (tier) {
@@ -844,7 +1265,6 @@
 
         bodyEl.innerHTML = ''
 
-            /* Header — avatar left · identity centered in remaining space */
             + '<div class="msn-profile-head">'
             +   '<div class="msn-profile-avatar-wrap">'
             +     '<div class="msn-profile-avatar">' + avatarHTML(data) + '</div>'
@@ -961,8 +1381,6 @@
         var isWallet = isWalletLike(usernameOrWallet);
         var isSelf = !isWallet && (usernameOrWallet === me);
 
-        /* Resolve wallet from canonical cache — supports both
-           a raw wallet address and a username/display_name. */
         var wallet = isWallet ? usernameOrWallet : null;
         if (!wallet) {
             var r = resolveIdentity(usernameOrWallet);
@@ -984,9 +1402,6 @@
         currentUsernameOpen = null;
     }
 
-    /* ⚑ Live re-render when identity changes for the open profile.
-       Fires right after X auth writes display_name / x_handle, or
-       after any realtime profile update. */
     document.addEventListener('msn:identity-changed', function (e) {
         if (!overlay || !overlay.classList.contains('open')) return;
         if (!currentUsernameOpen) return;
@@ -994,7 +1409,6 @@
         var changedWallet = e.detail && e.detail.wallet;
         if (!changedWallet) return;
 
-        /* Does the changed wallet match the currently-open target? */
         var openWallet = isWalletLike(currentUsernameOpen)
             ? currentUsernameOpen
             : (resolveIdentity(currentUsernameOpen) || {}).wallet;
@@ -1009,7 +1423,6 @@
         var t = e.target;
         if (!t || !t.closest) return;
 
-        /* Chat usernames */
         var unameEl = t.closest('.msg-username');
         if (unameEl) {
             if (t.closest('.msg-actions-container, .msg-time, .user-badge, .msg-edited, .reply-ref-block')) return;
@@ -1020,7 +1433,6 @@
             if (target) { e.preventDefault(); e.stopPropagation(); openProfile(target); return; }
         }
 
-        /* Sidebar avatars */
         var sideAvatar = t.closest('.sidebar-user-item .user-avatar');
         if (sideAvatar) {
             var sideItem = sideAvatar.closest('.sidebar-user-item');
@@ -1030,7 +1442,6 @@
             if (sideTarget) { e.preventDefault(); e.stopPropagation(); openProfile(sideTarget); return; }
         }
 
-        /* Big profile block — self-view on desktop */
         var bigAvatar = t.closest('.sidebar-user-profile-big .big-avatar');
         if (bigAvatar && !t.closest('button, .edit-profile-btn, #sidebarChangeNameBtn')) {
             var isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -1040,7 +1451,6 @@
             }
         }
 
-        /* Rankings rows — prefer data-wallet over name text */
         var rankRow = t.closest('#rankingsOverlay .rank-row');
         if (rankRow && t.closest('.rank-avatar, .rank-name, .rank-avatar-fallback')) {
             var rankWallet = rankRow.getAttribute('data-wallet');
@@ -1088,5 +1498,5 @@
         boot();
     }
 
-    console.log('[profile-system] loaded v3 — click any avatar or username');
+    console.log('[profile-system] loaded v4 — click any avatar or username');
 })();
