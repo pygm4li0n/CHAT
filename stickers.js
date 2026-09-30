@@ -1,13 +1,14 @@
 /* ============================================================
-   stickers.js — MSN Sticker Pack  ·  v8
+   stickers.js — MSN Sticker Pack  ·  v9
    ────────────────────────────────────────────────────────────
-     <script src="stickers.js?v=9"></script>
+     <script src="stickers.js?v=10"></script>
 
    • ✨ button left of the image button
    • Picker is position:fixed on <body> — no clipping possible
    • 4×4 grid of clean rounded-square thumbnails
    • All 20 stickers render — grid auto-grows in rows of 4
    • Hidden scrollbar — max 4 rows visible, rest scroll silently
+   • No caret/diamond — clean rounded rectangle
    • Click a sticker → sends instantly + jumps to bottom
    • Sticker messages render without bubble
    ============================================================ */
@@ -43,7 +44,7 @@
         { key: 'CRAB', url: 'https://i.postimg.cc/MZ911fLC/crab.png' },
         { key: 'DOLPHIN', url: 'https://i.postimg.cc/XNs99BPt/Chat-GPT-Image-22-sept-2026-07-24-56-p-m-(1)-(1)-(3).png' },
         { key: 'WHALE', url: 'https://i.postimg.cc/v8055xKN/whale.png' },
-        
+
     ];
 
     var GRID_SLOTS = 16;   // base 4 × 4
@@ -204,7 +205,7 @@
         var css = [
             '.btn-upload-img.sticker-btn { font-size: 1.1rem; }',
 
-            /* Picker — no fixed height, no scrollbar by default */
+            /* Picker — fixed on body, no caret, no scrollbar by default */
             '.sticker-picker {',
             '  position: fixed !important;',
             '  z-index: 999999 !important;',
@@ -223,7 +224,7 @@
             '}',
             '.sticker-picker::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }',
 
-            /* ⚑ Minimal hidden scrollbar — only when stickers exceed one page */
+            /* Hidden scrollbar — only when stickers exceed one page */
             '.sticker-picker.sticker-picker-scrollable {',
             '  max-height: 336px !important;',
             '  overflow-y: auto !important;',
@@ -239,18 +240,6 @@
             '  height: 0 !important;',
             '}',
 
-            '.sticker-picker::after {',
-            '  content: "";',
-            '  position: absolute;',
-            '  left: var(--caret-x, 20px);',
-            '  bottom: -7px;',
-            '  width: 12px; height: 12px;',
-            '  background: rgba(10,14,24,.995);',
-            '  border-right: 1px solid var(--border-default, #233261);',
-            '  border-bottom: 1px solid var(--border-default, #233261);',
-            '  transform: rotate(45deg);',
-            '  pointer-events: none;',
-            '}',
             '@keyframes stickerPickerIn {',
             '  from { opacity: 0; transform: translateY(8px) scale(.94); }',
             '  to   { opacity: 1; transform: translateY(0) scale(1); }',
@@ -289,18 +278,18 @@
             '.sticker-item:hover img { transform: scale(1.06); }',
             '.sticker-item:active { transform: scale(.94); }',
 
-          '.sticker-item.sticker-empty {',
-'  border: none !important;',
-'  background: transparent !important;',
-'  box-shadow: none !important;',
-'  cursor: default !important;',
-'  pointer-events: none !important;',
-'  opacity: 0 !important;',
-'  visibility: hidden !important;',
-'}',
-'.sticker-item.sticker-empty::before {',
-'  content: none !important;',
-'}',
+            '.sticker-item.sticker-empty {',
+            '  border: none !important;',
+            '  background: transparent !important;',
+            '  box-shadow: none !important;',
+            '  cursor: default !important;',
+            '  pointer-events: none !important;',
+            '  opacity: 0 !important;',
+            '  visibility: hidden !important;',
+            '}',
+            '.sticker-item.sticker-empty::before {',
+            '  content: none !important;',
+            '}',
 
             '.msg-wrapper.sticker-msg .msg-bubble {',
             '  background: transparent !important;',
@@ -419,15 +408,10 @@
 
         pickerEl.style.left = left + 'px';
         pickerEl.style.top = top + 'px';
-
-        var caretX = btnRect.left + btnRect.width / 2 - left - 6;
-        if (caretX < 12) caretX = 12;
-        if (caretX > pickerWidth - 24) caretX = pickerWidth - 24;
-        pickerEl.style.setProperty('--caret-x', caretX + 'px');
     }
 
     /* ═══════════════════════════════════════════════════════
-       ⚑ UPDATED: renderPicker
+       renderPicker
        - Renders ALL stickers (no cap at GRID_SLOTS)
        - Pads only to a clean multiple of 4
        - Enables hidden scroll when total > one page
@@ -438,7 +422,6 @@
 
         var cells = [];
 
-        // Render every sticker
         for (var i = 0; i < STICKERS.length; i++) {
             var s = STICKERS[i];
             cells.push(
@@ -448,7 +431,6 @@
             );
         }
 
-        // Pad to next multiple of 4 (min GRID_SLOTS) for a clean grid
         var total = Math.max(
             GRID_SLOTS,
             Math.ceil(STICKERS.length / 4) * 4
@@ -459,7 +441,6 @@
 
         grid.innerHTML = cells.join('');
 
-        // Enable hidden scroll only when we exceed one page
         if (pickerEl) {
             pickerEl.classList.toggle('sticker-picker-scrollable', STICKERS.length > GRID_SLOTS);
         }
@@ -516,7 +497,6 @@
             var res = await sb.from(table).insert([payload]).select().single();
             if (res.error) throw res.error;
 
-            // ⚑ Local echo — render immediately in sender's own chat
             try {
                 document.dispatchEvent(new CustomEvent('msn:render-local-message', {
                     detail: { message: res.data, isPrivate: isPrivate }
@@ -567,5 +547,5 @@
         }
     };
 
-    console.log('[stickers] v8 loaded — ' + STICKERS.length + ' sticker(s), ' + GRID_SLOTS + ' slots');
+    console.log('[stickers] v9 loaded — ' + STICKERS.length + ' sticker(s), ' + GRID_SLOTS + ' slots');
 })();
