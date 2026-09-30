@@ -26,7 +26,7 @@
     var SUPABASE_ANON_KEY = 'sb_publishable_cLeBoHrdvg1b7WlnyJ-oVQ_6skjHc_H';
     var PROFILE_COLS =
         'wallet_address, username, display_name, avatar_url, ' +
-        'x_handle, x_verified, x_avatar_url';
+        'x_handle, x_verified, x_avatar_url, updated_at';
 
     var CACHE_KEY = 'msn_identity_cache';
 
@@ -67,7 +67,7 @@
     var _hydrating    = false;
     var _persistTimer = null;
 
-       function persistNow() {
+           function persistNow() {
         try {
             var snap = {};
             var now  = Date.now();
@@ -82,6 +82,9 @@
                     x_handle:       p.x_handle     || null,
                     x_verified:     !!p.x_verified,
                     x_avatar_url:   p.x_avatar_url || null,
+                    // ⚑ Persist the profile's true DB timestamp so the
+                    //   next-session hydrate restores _ts correctly.
+                    updated_at:     p._ts ? new Date(p._ts).toISOString() : null,
                     cached_at:      now
                 };
             }
@@ -113,19 +116,39 @@
         return profile.avatar_url || profile.x_avatar_url || null;
     }
 
-    function rememberProfile(p) {
+      function rememberProfile(p) {
         if (!p || !p.wallet_address) return;
+
+        // ⚑ Compute the incoming timestamp.
+        //   Prefer updated_at (DB truth). Fall back to cached_at (hydrate).
+        //   Reject anything without a timestamp — it's an untrusted write
+        //   (message snapshot, stale DOM, etc.).
+        var incomingTs = 0;
+        if (p.updated_at)     incomingTs = new Date(p.updated_at).getTime();
+        else if (p.cached_at) incomingTs = new Date(p.cached_at).getTime();
+        if (!incomingTs || isNaN(incomingTs)) return;
+
         var prev = byWallet[p.wallet_address] || {};
-        // ⚑ Treat null AND undefined the same — never wipe a good cached
-        //   value with a partial update. Only overwrite when the incoming
-        //   field actually has content.
+        var prevTs = prev._ts || 0;
+
+        // ⚑ Last stance wins — reject older writes.
+        //   This is what kills the "create-stage name" flash:
+        //   a stale snapshot cannot overwrite a fresher DB row.
+        if (prevTs > incomingTs) return;
+
+             // ⚑ Distinguish "field absent" (keep prev) from "field = null"
+        //   (explicit clear, e.g. X disconnect). This is what lets
+        //   display_name/x_handle/x_avatar_url revert to null.
+        var has = function (k) { return Object.prototype.hasOwnProperty.call(p, k); };
+
         var next = {
-            username:     (p.username     != null) ? p.username     : prev.username,
-            display_name: (p.display_name != null) ? p.display_name : prev.display_name,
-            avatar_url:   (p.avatar_url   != null) ? p.avatar_url   : prev.avatar_url,
-            x_handle:     (p.x_handle     != null) ? p.x_handle     : prev.x_handle,
-            x_verified:   (p.x_verified   != null) ? !!p.x_verified : prev.x_verified,
-            x_avatar_url: (p.x_avatar_url != null) ? p.x_avatar_url : prev.x_avatar_url
+            username:     has('username')     ? p.username     : prev.username,
+            display_name: has('display_name') ? p.display_name : prev.display_name,
+            avatar_url:   has('avatar_url')   ? p.avatar_url   : prev.avatar_url,
+            x_handle:     has('x_handle')     ? p.x_handle     : prev.x_handle,
+            x_verified:   has('x_verified')   ? !!p.x_verified : prev.x_verified,
+            x_avatar_url: has('x_avatar_url') ? p.x_avatar_url : prev.x_avatar_url,
+            _ts:          incomingTs
         };
         byWallet[p.wallet_address] = next;
         if (p.username) byUsername[p.username] = p.wallet_address;
@@ -215,12 +238,16 @@
                     var link = unameEl.querySelector('.msn-username-link');
                     if (link) link.textContent = label;
                 }
-                if (avatar) {
-                    var avatarEl = w.querySelector('.msg-avatar');
-                    if (avatarEl) {
+                                var avatarEl = w.querySelector('.msg-avatar');
+                if (avatarEl) {
+                    if (avatar) {
                         var img = avatarEl.querySelector('img');
                         if (!img) avatarEl.innerHTML = '<img src="' + esc(avatar) + '" alt="">';
                         else img.src = avatar;
+                    } else {
+                        // ⚑ No avatar (X disconnected / cleared) → paint initial
+                        var nm = isValidLabel(label) ? label : '?';
+                        avatarEl.innerHTML = (nm[0] || '?').toUpperCase();
                     }
                 }
             });
@@ -246,12 +273,15 @@
                         }
                     }
                 }
-                if (avatar) {
-                    var av = item.querySelector('.user-avatar');
-                    if (av) {
-                        var img = av.querySelector('img');
-                        if (!img) av.insertAdjacentHTML('afterbegin', '<img src="' + esc(avatar) + '" alt="">');
-                        else img.src = avatar;
+                             var av = item.querySelector('.user-avatar');
+                if (av) {
+                    var oldImg = av.querySelector('img');
+                    if (avatar) {
+                        if (!oldImg) av.insertAdjacentHTML('afterbegin', '<img src="' + esc(avatar) + '" alt="">');
+                        else oldImg.src = avatar;
+                    } else {
+                        // ⚑ Clear the img so the fallback initial (or empty) shows
+                        if (oldImg) oldImg.remove();
                     }
                 }
             });
@@ -266,10 +296,10 @@
         var label = displayNameFor(p);
         if (nameEl && isValidLabel(label)) nameEl.textContent = label;
 
-        var avatar = avatarFor(p);
-        if (avatar) {
-            var av = row.querySelector('.rank-avatar');
-            if (av) {
+                var avatar = avatarFor(p);
+        var av = row.querySelector('.rank-avatar');
+        if (av) {
+            if (avatar) {
                 if (av.tagName === 'IMG') {
                     av.src = avatar;
                 } else {
@@ -280,6 +310,12 @@
                     img.loading = 'lazy';
                     av.replaceWith(img);
                 }
+            } else if (av.tagName === 'IMG') {
+                // ⚑ No avatar → revert to fallback initial
+                var fallback = document.createElement('div');
+                fallback.className = 'rank-avatar rank-avatar-fallback';
+                fallback.textContent = ((isValidLabel(label) ? label : '?')[0] || '?').toUpperCase();
+                av.replaceWith(fallback);
             }
         }
         row.setAttribute('data-x-verified', p.x_verified ? '1' : '0');
@@ -396,8 +432,15 @@
         var avatar = avatarFor(profile);
         var bigName = document.getElementById('sidebarBigName');
         var bigAv = document.getElementById('sidebarBigAvatar');
-        if (bigName && isValidLabel(label)) bigName.textContent = label;
-        if (bigAv && avatar) bigAv.innerHTML = '<img src="' + esc(avatar) + '" alt="">';
+                if (bigName && isValidLabel(label)) bigName.textContent = label;
+        if (bigAv) {
+            if (avatar) {
+                bigAv.innerHTML = '<img src="' + esc(avatar) + '" alt="">';
+            } else {
+                var nm = isValidLabel(label) ? label : '?';
+                bigAv.innerHTML = (nm[0] || '?').toUpperCase();
+            }
+        }
     }
 
     /* ═══════════════════════════════════════════════════════
@@ -629,6 +672,7 @@
                     }
                     var prev = byWallet[row.wallet_address];
                     var changed = !prev
+                        || prev.username     !== row.username
                         || prev.display_name !== row.display_name
                         || prev.avatar_url   !== row.avatar_url
                         || prev.x_handle     !== row.x_handle
