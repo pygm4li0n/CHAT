@@ -2223,3 +2223,149 @@ button.send-btn-main:disabled::after { display: none; }
     color: #FAE9B0 !important;
     opacity: 1 !important;
 }
+
+
+/* ═══════════════════════════════════════════════════════
+   STICKER — GOLDEN PLATE + GOLDEN NAME  (add-on)
+   Fixes: black stickers invisible on dark LCD background,
+   and sender name that was dark-brown on the sticker plate.
+   ═══════════════════════════════════════════════════════ */
+
+/* 1 ── sticker wrapper: light cream-gold plate so black art shows */
+.msg-bubble.sticker,
+.msg-bubble.sticker-bubble,
+.msg-bubble.sticker-msg,
+.msg-sticker,
+.msg-sticker-wrap,
+.sticker-message,
+.sticker-wrap,
+.sticker-container,
+.sticker-bubble {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    line-height: 0;
+    max-width: 220px;
+    border-radius: 6px;
+    border: 1px solid var(--gold);
+    background:
+        repeating-linear-gradient(115deg,
+            rgba(255,255,255,0.10) 0px, rgba(255,255,255,0.10) 1px,
+            transparent 1px, transparent 5px),
+        linear-gradient(160deg, #FCF1D4 0%, #F5E7BC 42%, #E8D49C 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.72),
+        inset 0 -2px 5px rgba(107,63,36,0.22),
+        0 2px 10px rgba(0,0,0,0.50),
+        0 0 0 1px rgba(212,169,58,0.20),
+        0 0 22px rgba(212,169,58,0.28);
+    transition: box-shadow 0.28s, transform 0.2s;
+}
+
+/* own stickers → brighter gold plate */
+.msg-wrapper.own .msg-bubble.sticker,
+.msg-wrapper.own .msg-sticker,
+.msg-wrapper.own .sticker-wrap,
+.msg-wrapper.own .sticker-container {
+    background:
+        repeating-linear-gradient(115deg,
+            rgba(255,255,255,0.10) 0px, rgba(255,255,255,0.10) 1px,
+            transparent 1px, transparent 5px),
+        linear-gradient(160deg, #FAE9B0 0%, #F2D780 45%, #E5BF52 100%);
+    border-color: var(--gold-dark);
+}
+
+/* 2 ── sticker image itself */
+.msg-bubble.sticker img,
+.msg-sticker img,
+.msg-sticker-wrap img,
+.sticker-message img,
+.sticker-wrap img,
+.sticker-container img,
+.sticker-bubble img,
+.sticker-img,
+img.sticker {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 180px;
+    max-height: 180px;
+    object-fit: contain;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    filter:
+        drop-shadow(0 1px 2px rgba(42,24,6,0.30))
+        drop-shadow(0 0 8px rgba(212,169,58,0.30));
+}
+
+/* 3 ── STICKER USERNAME → CLEAN GOLD */
+.msg-wrapper.sticker-wrapper .msg-username,
+.msg-wrapper:has(> .msg-bubble.sticker) .msg-username,
+.msg-wrapper:has(> .msg-sticker) .msg-username,
+.msg-wrapper:has([class*="sticker"]) .msg-username,
+.msg-bubble.sticker .msg-username,
+.msg-sticker .msg-username,
+.msg-sticker-wrap .msg-username,
+.sticker-message .msg-username,
+.sticker-wrap .msg-username,
+.sticker-container .msg-username,
+.sticker-bubble .msg-username {
+    color: var(--gold-light) !important;
+    text-shadow:
+        0 1px 2px rgba(0,0,0,0.85),
+        0 0 10px rgba(212,169,58,0.80),
+        0 0 22px rgba(212,169,58,0.40) !important;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+/* 4 ── sticker timestamp → dim champagne */
+.msg-wrapper:has([class*="sticker"]) .msg-time,
+.msg-bubble.sticker .msg-time,
+.msg-sticker .msg-time,
+.sticker-wrap .msg-time,
+.sticker-container .msg-time {
+    color: var(--champagne) !important;
+    opacity: 0.85;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.80);
+}
+
+/* 5 ── own stickers get brighter gold name */
+.msg-wrapper.own:has([class*="sticker"]) .msg-username,
+.msg-wrapper.own .msg-bubble.sticker .msg-username,
+.msg-wrapper.own .msg-sticker .msg-username {
+    color: var(--gold-bright) !important;
+    text-shadow:
+        0 1px 2px rgba(0,0,0,0.85),
+        0 0 12px rgba(255,215,0,0.90),
+        0 0 26px rgba(212,169,58,0.45) !important;
+}
+
+/* 6 ── catch-all: unknown sticker class names still get gold name */
+.messages-container [class*="sticker"] {
+    color: var(--gold-light);
+}
+.messages-container [class*="sticker"] img {
+    display: block;
+    max-width: 180px;
+    max-height: 180px;
+    object-fit: contain;
+    background: transparent;
+    filter:
+        drop-shadow(0 1px 2px rgba(42,24,6,0.30))
+        drop-shadow(0 0 8px rgba(212,169,58,0.30));
+}
+
+/* mobile */
+@media (max-width: 768px) {
+    .msg-bubble.sticker,
+    .msg-sticker,
+    .sticker-wrap,
+    .sticker-container { max-width: 150px; padding: 8px; }
+    .msg-bubble.sticker img,
+    .msg-sticker img,
+    .sticker-wrap img,
+    .sticker-container img { max-width: 130px; max-height: 130px; }
+}
