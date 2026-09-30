@@ -464,7 +464,7 @@
                     display: none !important;
                 }
 
-                .messages-container {
+                               .messages-container {
                     padding: 12px 14px !important;
                     gap: 10px !important;
                 }
@@ -474,6 +474,42 @@
                 .mod-message-box {
                     max-width: min(90%, 500px) !important;
                 }
+            }
+
+                      /* ═══════════════════════════════════════════════════════════
+               ⚑ USERNAME READABILITY — text-only contrast (no container)
+                 No pill, no background. Just an outline + halo so the
+                 name stays readable on any background (stickers, images).
+            ═══════════════════════════════════════════════════════════ */
+
+            /* Sticker / bare-name messages — no bubble behind the text */
+            .msg-wrapper:not(:has(.msg-bubble)) .msg-username {
+                -webkit-text-stroke: 2px rgba(0, 0, 0, 0.55);
+                paint-order: stroke fill;
+                text-shadow:
+                    0 0 3px rgba(0, 0, 0, 0.95),
+                    0 0 6px rgba(0, 0, 0, 0.80),
+                    0 1px 3px rgba(0, 0, 0, 1),
+                    0 -1px 2px rgba(0, 0, 0, 0.85);
+            }
+
+            /* Own messages — same treatment so the green text still pops */
+            .msg-wrapper.own:not(:has(.msg-bubble)) .msg-username {
+                -webkit-text-stroke: 2px rgba(0, 0, 0, 0.50);
+                text-shadow:
+                    0 0 3px rgba(0, 0, 0, 0.95),
+                    0 0 6px rgba(0, 0, 0, 0.80),
+                    0 1px 3px rgba(0, 0, 0, 1),
+                    0 -1px 2px rgba(0, 0, 0, 0.85);
+            }
+
+            /* Timestamp + (edited) on stickers — same halo */
+            .msg-wrapper:not(:has(.msg-bubble)) .msg-time,
+            .msg-wrapper:not(:has(.msg-bubble)) .msg-edited {
+                text-shadow:
+                    0 0 3px rgba(0, 0, 0, 0.95),
+                    0 0 5px rgba(0, 0, 0, 0.75),
+                    0 1px 2px rgba(0, 0, 0, 1);
             }
         `;
         const tag = document.createElement('style');
