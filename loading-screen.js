@@ -44,7 +44,7 @@
     var FADE_DURATION = 500;
     var MAX_WAIT = 12000;     // hard timeout — never sticks
     var MIN_DISPLAY = 2800;   // always show at least one full spin cycle
-    var MOUNT_TIME = Date.now();
+    var MOUNT_TIME;
 
     var LOGO_URL = 'https://i.postimg.cc/fbZCV8sQ/Chat-GPT-Image-20-sept-2026-23-51-47.png';
     var LOGO_FALLBACK = 'https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png';
@@ -210,6 +210,8 @@
             if (pc && !pc.classList.contains('hidden')) pc.scrollTop = pc.scrollHeight;
             var pv = document.getElementById('privateMessagesContainer');
             if (pv && !pv.classList.contains('hidden')) pv.scrollTop = pv.scrollHeight;
+            var wc = document.getElementById('whaleMessagesContainer');
+            if (wc && !wc.classList.contains('hidden')) wc.scrollTop = wc.scrollHeight;
         } catch (e) {}
     }
 
