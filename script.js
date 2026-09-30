@@ -606,6 +606,8 @@
     const sidebar = document.getElementById('sidebar');
     const publicEmptyHint = document.getElementById('publicEmptyHint');
     const privateEmptyHint = document.getElementById('privateEmptyHint');
+    const whaleContainer   = document.getElementById('whaleMessagesContainer');
+    const whaleEmptyHint   = document.getElementById('whaleEmptyHint');
     const onlineCountNumber = document.getElementById('onlineCountNumber');
     const scrollBottomBtn = document.getElementById('scrollBottomBtn');
     const imagePreviewRow = document.getElementById('imagePreviewRow');
@@ -949,10 +951,19 @@
         if (b >= 100000)  return { emoji: '🦀', name: 'Crab' };
         return { emoji: '🦐', name: 'Shrimp' };
     }
-    function getBadgeForUser(user) {
+      function getBadgeForUser(user) {
         const bal = userBalances[user];
         if (bal === null || bal === undefined) return null;
         return getBadge(bal);
+    }
+
+    // ⚑ Whale = ≥ 1M tokens. Client-side UX gate only —
+    //   server-side RPC is the real enforcement.
+    function isWhale() {
+        if (!username) return false;
+        const bal = userBalances[username];
+        if (bal == null) return false;
+        return parseBalanceValue(bal) >= WHALE_MIN_BALANCE;
     }
 
     function updateUserRank(balance) {
@@ -1335,12 +1346,19 @@
     let typingChannel = null;
     let lastLoadedPrivatePartner = null;
 
-    // ⚑ Public-chat pagination state (infinite scroll upward)
+     // ⚑ Public-chat pagination state (infinite scroll upward)
     const PUBLIC_PAGE_SIZE       = 50;
     let oldestPublicSortOrder    = null;
     let isLoadingOlderPublic     = false;
     let hasMoreOlderPublic       = true;
 
+    // ⚑ Whale room state
+    const WHALE_MIN_BALANCE      = 1_000_000;
+    let knownWhaleIds            = new Set();
+    let oldestWhaleSortOrder     = null;
+    let isLoadingOlderWhale      = false;
+    let hasMoreOlderWhale        = true;
+    let whaleLoadedOnce          = false;
     let acceptedPrivateChats;
     try {
         acceptedPrivateChats = new Set(JSON.parse(localStorage.getItem('msn_accepted_chats') || '[]'));
@@ -2568,15 +2586,27 @@ function showSuccess(msg) {
         tabs.forEach(t => t.classList.remove('active'));
         const activeTab = chatTabs.querySelector(`[data-tab="${tabName}"]`);
         if(activeTab) activeTab.classList.add('active');
-        if(tabName === 'public') {
+                if(tabName === 'public') {
             publicContainer.classList.remove('hidden');
             privateContainer.classList.add('hidden');
+            whaleContainer.classList.add('hidden');
             privateIndicatorBar.classList.add('hidden');
             messageInput.placeholder = 'Type a message...';
             autoScroll = true;
             setTimeout(() => { scrollContainerToBottom(publicContainer); updateScrollButtonVisibility(publicContainer); }, 150);
+        } else if (tabName === 'whale') {
+            publicContainer.classList.add('hidden');
+            privateContainer.classList.add('hidden');
+            whaleContainer.classList.remove('hidden');
+            privateIndicatorBar.classList.add('hidden');
+            messageInput.placeholder = isWhale()
+                ? '🐋 Whale chat…'
+                : '🚫 Whale chat — 1M+ holders only';
+            autoScroll = true;
+            setTimeout(() => { scrollContainerToBottom(whaleContainer); }, 150);
         } else {
             publicContainer.classList.add('hidden');
+            whaleContainer.classList.add('hidden');
             privateContainer.classList.remove('hidden');
          if(activePrivateChat) {
                 privateIndicatorBar.classList.remove('hidden');
@@ -2593,10 +2623,20 @@ function showSuccess(msg) {
         if (messageInput.value.length > 0) startTyping();
     }
 
-    chatTabs.addEventListener('click', (e) => {
+      chatTabs.addEventListener('click', (e) => {
         const tab = e.target.closest('.chat-tab');
         if (!tab) return;
         const tabName = tab.getAttribute('data-tab');
+
+        if (tabName === 'whale') {
+            if (!isWhale()) {
+                showError('🐋 Whale chat is 1M+ holders only.');
+                return;
+            }
+            switchTab('whale');
+            if (!whaleLoadedOnce) loadWhaleMessages();
+            return;
+        }
 
         if (tabName === 'private') {
             if (!activePrivateChat) {
@@ -2951,6 +2991,190 @@ function showSuccess(msg) {
             }).subscribe();
     }
 
+               /* ═══════════════════════════════════════════════════════════
+           ⚑ WHALE CHAT — gated read/write via RPC
+           ═══════════════════════════════════════════════════════════ */
+
+        async function loadWhaleMessages() {
+            if (!whaleContainer) return;
+            if (!isWhale()) {
+                whaleContainer.innerHTML =
+                    '<div class="empty-chat-hint">🚫 Only 🐋 Whale holders (1M+ tokens) can access this room.</div>';
+                return;
+            }
+
+            whaleContainer.innerHTML = '';
+            showMsgLoader(whaleContainer, 'Loading whale chat');
+
+            knownWhaleIds.clear();
+            oldestWhaleSortOrder = null;
+            hasMoreOlderWhale    = true;
+
+            try {
+                const wallet = getWalletAddress();
+                if (!wallet) { showError('Connect wallet to view whale chat'); return; }
+
+                const { data, error } = await supabase.rpc('get_whale_messages', {
+                    p_wallet: wallet,
+                    p_limit:  PUBLIC_PAGE_SIZE
+                });
+                if (error) throw error;
+
+                const rows = (data || []).slice().sort(
+                    (a, b) => (a.sort_order || 0) - (b.sort_order || 0)
+                );
+
+                if (rows.length > 0) oldestWhaleSortOrder = rows[0].sort_order;
+                if (rows.length < PUBLIC_PAGE_SIZE) hasMoreOlderWhale = false;
+
+                const walletsToFetch = new Set();
+                rows.forEach(msg => {
+                    if (msg.wallet_address) {
+                        walletsToFetch.add(msg.wallet_address);
+                        if (msg.username) {
+                            avatarCache[msg.username]  = msg.avatar_url || null;
+                            userBalances[msg.username] = msg.token_balance || null;
+                        }
+                    }
+                });
+                if (walletsToFetch.size && window.MSNIdentity && window.MSNIdentity.fetchProfilesFor) {
+                    try { await window.MSNIdentity.fetchProfilesFor([...walletsToFetch]); }
+                    catch (e) { /* ignore */ }
+                }
+
+                const holder = document.createElement('div');
+                holder.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
+
+                if (rows.length === 0) {
+                    holder.innerHTML = '<div class="empty-chat-hint">🐋 No whale messages yet — you can start.</div>';
+                } else {
+                    for (const msg of rows) {
+                        const node = await buildMessageNode(msg, false);
+                        knownWhaleIds.add(msg.id);
+                        holder.appendChild(node);
+                    }
+                }
+
+                whaleContainer.innerHTML = '';
+                while (holder.firstChild) whaleContainer.appendChild(holder.firstChild);
+
+                autoScroll = true;
+                whaleContainer.scrollTop = whaleContainer.scrollHeight;
+                requestAnimationFrame(() => { whaleContainer.scrollTop = whaleContainer.scrollHeight; });
+
+                whaleLoadedOnce = true;
+            } catch (err) {
+                console.error('loadWhaleMessages failed:', err);
+                if (/not_a_whale/.test(err.message || '')) {
+                    whaleContainer.innerHTML =
+                        '<div class="empty-chat-hint">🚫 Only 🐋 Whale holders (1M+ tokens) can access this room.</div>';
+                } else {
+                    whaleContainer.innerHTML = '<div class="empty-chat-hint">Failed to load whale chat</div>';
+                }
+            }
+        }
+
+        async function sendWhaleMessage(text) {
+            const wallet = getWalletAddress();
+            if (!wallet) { showError('Connect wallet first'); return; }
+            if (!isWhale()) { showError('🐋 Whale chat is 1M+ holders only.'); return; }
+
+            const params = {
+                p_wallet:    wallet,
+                p_username:  username,
+                p_message:   text || null,
+                p_image_url: pendingImageUrl || null
+            };
+
+            if (replyingTo?.id) {
+                params.p_reply_to_id         = replyingTo.id;
+                params.p_reply_to_username   = replyingTo.username;
+                params.p_reply_to_message    = replyingTo.message || null;
+                params.p_reply_to_image_url  = replyingTo.imageUrl || null;
+            }
+
+            try {
+                const { data: inserted, error } = await supabase.rpc('post_whale_message', params);
+                if (error) throw error;
+
+                messageInput.value = '';
+                setReplyingTo(null);
+                clearAttachedImage();
+                stopTyping();
+                startCooldown(modCooldownSeconds);
+                if (window.addXP && inserted?.id) window.addXP(inserted.id);
+
+                if (!knownWhaleIds.has(inserted.id)) {
+                    knownWhaleIds.add(inserted.id);
+                    if (whaleEmptyHint) whaleEmptyHint.style.display = 'none';
+                    const wrapper = await buildMessageNode(inserted, false);
+                    whaleContainer.appendChild(wrapper);
+                    autoScroll = true;
+                    whaleContainer.scrollTop = whaleContainer.scrollHeight;
+                }
+            } catch (err) {
+                if (/not_a_whale/.test(err.message || '')) {
+                    showError('🐋 Whale chat is 1M+ holders only.');
+                } else {
+                    showError('Send failed: ' + err.message);
+                }
+            } finally {
+                sendBtn.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        async function loadOlderWhaleMessages() {
+            if (isLoadingOlderWhale) return;
+            if (!hasMoreOlderWhale)  return;
+            if (oldestWhaleSortOrder == null) return;
+            if (!isWhale()) return;
+
+            isLoadingOlderWhale = true;
+            const prevH = whaleContainer.scrollHeight;
+            const prevT = whaleContainer.scrollTop;
+
+            try {
+                const { data, error } = await supabase.rpc('get_whale_messages', {
+                    p_wallet:      getWalletAddress(),
+                    p_limit:       PUBLIC_PAGE_SIZE,
+                    p_before_sort: oldestWhaleSortOrder
+                });
+                if (error) throw error;
+
+                const rows = (data || []).slice().sort(
+                    (a, b) => (a.sort_order || 0) - (b.sort_order || 0)
+                );
+                if (rows.length === 0) { hasMoreOlderWhale = false; return; }
+
+                oldestWhaleSortOrder = rows[0].sort_order;
+                if (rows.length < PUBLIC_PAGE_SIZE) hasMoreOlderWhale = false;
+
+                const frag = document.createDocumentFragment();
+                for (const msg of rows) {
+                    if (knownWhaleIds.has(msg.id)) continue;
+                    knownWhaleIds.add(msg.id);
+                    const node = await buildMessageNode(msg, false);
+                    frag.appendChild(node);
+                }
+                whaleContainer.insertBefore(frag, whaleContainer.firstChild);
+
+                const newH = whaleContainer.scrollHeight;
+                whaleContainer.scrollTop = newH - prevH + prevT;
+            } catch (e) {
+                console.warn('[whale] older load failed:', e);
+            } finally {
+                isLoadingOlderWhale = false;
+            }
+        }
+
+        if (whaleContainer) {
+            whaleContainer.addEventListener('scroll', () => {
+                if (currentTab !== 'whale') return;
+                if (whaleContainer.scrollTop < 120) loadOlderWhaleMessages();
+            }, { passive: true });
+        }
+
         async function loadMessages() {
         setConnection('connecting');
         publicContainer.innerHTML = '';
@@ -3061,9 +3285,17 @@ function showSuccess(msg) {
                 return;
             }
         }
-        const text = messageInput.value.trim();
+               const text = messageInput.value.trim();
         if (!text && !pendingImageUrl) return;
         sendBtn.disabled = true;
+
+        // ⚑ Whale room — route through gated RPC
+        if (currentTab === 'whale') {
+            await sendWhaleMessage(text);
+            sendBtn.disabled = false;
+            return;
+        }
+
         const isPrivate = (currentTab === 'private' && activePrivateChat);
         if (isPrivate && !activePrivateChat) {
             showError('No private partner selected.');
@@ -3315,6 +3547,9 @@ function showSuccess(msg) {
         onlineUsers.clear();
         setupPresence();
 
+           knownWhaleIds.clear();
+        whaleLoadedOnce = false;
+
         try { window.dispatchEvent(new Event('msn:wallet-connected')); } catch (e) {}
         return true;
     }
@@ -3561,6 +3796,8 @@ function showSuccess(msg) {
                     currentAvatarUrl = null;
                     pendingImageUrl = null;
                     knownMessageIds.clear();
+                    knownWhaleIds.clear();
+                    whaleLoadedOnce = false;
                     username = '';
                     try { localStorage.removeItem(STORAGE_KEY_NAME); } catch (e) {}
 
