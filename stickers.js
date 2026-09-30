@@ -1,5 +1,5 @@
 /* ============================================================
-   stickers.js — MSN Sticker Pack  ·  v9
+   stickers.js — MSN Sticker Pack  ·  v10 (theme-aware)
    ────────────────────────────────────────────────────────────
      <script src="stickers.js?v=10"></script>
 
@@ -8,9 +8,11 @@
    • 4×4 grid of clean rounded-square thumbnails
    • All 20 stickers render — grid auto-grows in rows of 4
    • Hidden scrollbar — max 4 rows visible, rest scroll silently
-   • No caret/diamond — clean rounded rectangle
    • Click a sticker → sends instantly + jumps to bottom
-   • Sticker messages render without bubble
+   • Sticker messages get a light theme-aware plate so dark
+     stickers are visible on any theme background
+   • ALL picker / plate colors come from CSS variables so the
+     UI matches whatever theme is loaded (gold, cyan, etc.)
    ============================================================ */
 (function () {
     'use strict';
@@ -44,7 +46,6 @@
         { key: 'CRAB', url: 'https://i.postimg.cc/MZ911fLC/crab.png' },
         { key: 'DOLPHIN', url: 'https://i.postimg.cc/XNs99BPt/Chat-GPT-Image-22-sept-2026-07-24-56-p-m-(1)-(1)-(3).png' },
         { key: 'WHALE', url: 'https://i.postimg.cc/v8055xKN/whale.png' },
-
     ];
 
     var GRID_SLOTS = 16;   // base 4 × 4
@@ -199,21 +200,36 @@
         mo.observe(el, { childList: true, characterData: true, subtree: true });
     }
 
-    /* ── CSS ─────────────────────────────────────────────── */
+    /* ═══════════════════════════════════════════════════════
+       CSS — THEME-AWARE
+       Every color below comes from a CSS variable defined in
+       the theme file, with a safe fallback. This means the
+       picker + sticker plate auto-reskin on any theme that
+       defines the same var names (gold, cyan, purple, etc.).
+       ═══════════════════════════════════════════════════════ */
     function injectStyles() {
         if (document.getElementById('msn-sticker-styles')) return;
         var css = [
+            /* the ✨ trigger button */
             '.btn-upload-img.sticker-btn { font-size: 1.1rem; }',
 
-            /* Picker — fixed on body, no caret, no scrollbar by default */
+            /* ══ PICKER PANEL — mirrors the theme's elevated panel ══ */
             '.sticker-picker {',
             '  position: fixed !important;',
             '  z-index: 999999 !important;',
             '  padding: 12px !important;',
-            '  background: linear-gradient(180deg, rgba(20,26,40,.99) 0%, rgba(10,14,24,.995) 100%) !important;',
-            '  border: 1px solid var(--border-default, #233261) !important;',
-            '  border-radius: 16px !important;',
-            '  box-shadow: 0 12px 40px rgba(0,0,0,.8), 0 0 24px var(--accent-cyan, rgba(0,240,255,.2)) !important;',
+            /* theme surface: walnut on gold theme, navy on cyan, etc. */
+            '  background: var(--bg-panel, var(--bg-elevated, var(--walnut-dark, #2a1e0a))) !important;',
+            '  background-image: var(--tex-wood, var(--tex-brushed, none)) !important;',
+            /* theme border */
+            '  border: 2px solid var(--border-strong, var(--gold, var(--accent-cyan, #d4a93a))) !important;',
+            '  border-radius: 12px !important;',
+            /* theme glow — gold amber on gold, cyan bloom on cyan, etc. */
+            '  box-shadow:',
+            '    0 12px 40px rgba(0,0,0,.80),',
+            '    inset 0 2px 0 rgba(255,248,220,.20),',
+            '    inset 0 -2px 0 rgba(0,0,0,.45),',
+            '    0 0 26px var(--glow-amber, var(--glow-cyan, rgba(212,169,58,.35))) !important;',
             '  width: 336px !important;',
             '  box-sizing: border-box !important;',
             '  overflow: visible !important;',
@@ -224,7 +240,7 @@
             '}',
             '.sticker-picker::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }',
 
-            /* Hidden scrollbar — only when stickers exceed one page */
+            /* hidden-scroll only when there are more than 16 stickers */
             '.sticker-picker.sticker-picker-scrollable {',
             '  max-height: 336px !important;',
             '  overflow-y: auto !important;',
@@ -251,12 +267,17 @@
             '  gap: 8px !important;',
             '}',
 
+            /* ══ TILE — subtle theme-tinted surface ══ */
             '.sticker-item {',
             '  aspect-ratio: 1 / 1;',
             '  padding: 4px;',
             '  border-radius: 12px;',
-            '  background: rgba(255,255,255,.035);',
-            '  border: 1px solid rgba(35,50,97,.6);',
+            '  background:',
+            '    var(--tex-brushed, none),',
+            '    linear-gradient(150deg,',
+            '      rgba(255,248,220,.06) 0%,',
+            '      rgba(0,0,0,.10) 100%);',
+            '  border: 1px solid var(--border-subtle, rgba(212,169,58,.35));',
             '  cursor: pointer;',
             '  display: flex; align-items: center; justify-content: center;',
             '  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;',
@@ -269,10 +290,15 @@
             '  transition: transform .16s ease;',
             '  border-radius: 8px;',
             '}',
+            /* hover uses the theme accent */
             '.sticker-item:hover {',
-            '  border-color: var(--accent-cyan, #00f0ff);',
-            '  background: rgba(0,240,255,.07);',
-            '  box-shadow: 0 0 14px var(--accent-cyan, rgba(0,240,255,.45));',
+            '  border-color: var(--accent-cyan, var(--gold, #d4a93a));',
+            '  background:',
+            '    var(--tex-brushed, none),',
+            '    linear-gradient(150deg,',
+            '      rgba(212,169,58,.14) 0%,',
+            '      rgba(0,0,0,.12) 100%);',
+            '  box-shadow: 0 0 14px var(--glow-amber, var(--glow-cyan, rgba(212,169,58,.55)));',
             '  transform: translateY(-2px);',
             '}',
             '.sticker-item:hover img { transform: scale(1.06); }',
@@ -287,10 +313,13 @@
             '  opacity: 0 !important;',
             '  visibility: hidden !important;',
             '}',
-            '.sticker-item.sticker-empty::before {',
-            '  content: none !important;',
-            '}',
+            '.sticker-item.sticker-empty::before { content: none !important; }',
 
+            /* ══ STICKER MESSAGE ══
+               The bubble itself stays invisible (sticker looks like
+               a bare image), but the inner .msg-image-wrap gets a
+               light plate from the theme's cream / champagne vars —
+               so black stickers are readable on any theme. */
             '.msg-wrapper.sticker-msg .msg-bubble {',
             '  background: transparent !important;',
             '  border: none !important;',
@@ -301,27 +330,69 @@
             '}',
             '.msg-wrapper.sticker-msg .msg-bubble::before,',
             '.msg-wrapper.sticker-msg .msg-bubble::after { content: none !important; display: none !important; }',
+
+            /* the light plate behind the sticker image */
             '.msg-wrapper.sticker-msg .msg-image-wrap {',
             '  margin-top: 4px;',
             '  max-width: 260px;',
+            '  padding: 8px;',
             '  border-radius: 10px;',
-            '  background: transparent; border: none; box-shadow: none;',
+            /* cream plate from the theme, fallback to a warm light */
+            '  background:',
+            '    repeating-linear-gradient(115deg,',
+            '      rgba(255,255,255,.08) 0px, rgba(255,255,255,.08) 1px,',
+            '      transparent 1px, transparent 5px),',
+            '    linear-gradient(160deg,',
+            '      var(--cream-bright, #fcf1d4) 0%,',
+            '      var(--cream, #f5e7bc) 42%,',
+            '      var(--champagne, #e8d49c) 100%);',
+            '  border: 1px solid var(--gold, var(--accent-cyan, #d4a93a));',
+            '  box-shadow:',
+            '    inset 0 1px 0 rgba(255,255,255,.70),',
+            '    inset 0 -2px 5px rgba(107,63,36,.22),',
+            '    0 2px 10px rgba(0,0,0,.50),',
+            '    0 0 22px var(--glow-amber, var(--glow-cyan, rgba(212,169,58,.28)));',
             '  cursor: pointer;',
-            '  transition: transform .2s ease;',
+            '  transition: transform .2s ease, box-shadow .25s ease;',
             '}',
             '.msg-wrapper.sticker-msg .msg-image-wrap img {',
             '  width: 100%; height: auto; max-height: 260px;',
             '  object-fit: contain; display: block;',
-            '  filter: drop-shadow(0 4px 12px rgba(0,0,0,.5));',
+            '  background: transparent; border: none;',
+            '  filter: drop-shadow(0 1px 2px rgba(42,24,6,.30));',
             '}',
-            '.msg-wrapper.sticker-msg .msg-image-wrap:hover { box-shadow: none; transform: translateY(-2px); }',
+            '.msg-wrapper.sticker-msg .msg-image-wrap:hover {',
+            '  transform: translateY(-2px);',
+            '  box-shadow:',
+            '    inset 0 1px 0 rgba(255,255,255,.75),',
+            '    inset 0 -2px 5px rgba(107,63,36,.22),',
+            '    0 4px 16px rgba(0,0,0,.55),',
+            '    0 0 30px var(--glow-amber, var(--glow-cyan, rgba(255,215,0,.60)));',
+            '}',
 
+            /* ══ STICKER USERNAME — pure theme accent ══ */
+            '.msg-wrapper.sticker-msg .msg-username {',
+            '  color: var(--gold-light, var(--accent-cyan, #f2d780)) !important;',
+            '  text-shadow:',
+            '    0 1px 2px rgba(0,0,0,.85),',
+            '    0 0 10px var(--glow-amber, var(--glow-cyan, rgba(212,169,58,.75))),',
+            '    0 0 22px var(--glow-amber, var(--glow-cyan, rgba(212,169,58,.35))) !important;',
+            '  font-weight: 700;',
+            '  letter-spacing: .08em;',
+            '}',
+            '.msg-wrapper.sticker-msg .msg-time {',
+            '  color: var(--champagne, var(--ink-2, #e8d49c)) !important;',
+            '  opacity: .85;',
+            '  text-shadow: 0 1px 2px rgba(0,0,0,.80);',
+            '}',
+
+            /* mobile */
             '@media (max-width: 480px) {',
             '  .sticker-picker { width: 280px !important; padding: 10px !important; }',
             '  .sticker-picker.sticker-picker-scrollable { max-height: 288px !important; }',
             '  .sticker-picker-grid { gap: 6px !important; }',
             '  .sticker-item { padding: 3px; border-radius: 10px; }',
-            '  .msg-wrapper.sticker-msg .msg-image-wrap { max-width: 190px; }',
+            '  .msg-wrapper.sticker-msg .msg-image-wrap { max-width: 190px; padding: 6px; }',
             '  .msg-wrapper.sticker-msg .msg-image-wrap img { max-height: 190px; }',
             '}'
         ].join('\n');
@@ -410,12 +481,6 @@
         pickerEl.style.top = top + 'px';
     }
 
-    /* ═══════════════════════════════════════════════════════
-       renderPicker
-       - Renders ALL stickers (no cap at GRID_SLOTS)
-       - Pads only to a clean multiple of 4
-       - Enables hidden scroll when total > one page
-       ═══════════════════════════════════════════════════════ */
     function renderPicker() {
         var grid = document.getElementById('stickerPickerGrid');
         if (!grid) return;
@@ -547,5 +612,5 @@
         }
     };
 
-    console.log('[stickers] v9 loaded — ' + STICKERS.length + ' sticker(s), ' + GRID_SLOTS + ' slots');
+    console.log('[stickers] v10 loaded — ' + STICKERS.length + ' sticker(s), theme-aware');
 })();
