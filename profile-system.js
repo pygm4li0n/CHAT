@@ -5,11 +5,7 @@
 
      <script src="profile-system.js?v=10"></script>
 
-   v5 additions:
-   • EPIC HUD REVAMP: aurora border, rotating avatar ring,
-     radar ping, targeting brackets, staggered achievement
-     reveal, animated name shine, high-contrast palette,
-     SCANNING loader, bounce-cascade fires, HUD flavor text
+   v6: simplified + still animated. Cleaner HUD, smoother vibes.
    ============================================================ */
 (function () {
     'use strict';
@@ -60,7 +56,6 @@
         try { return new Date(iso).toLocaleDateString([], { month: 'short', year: 'numeric' }); }
         catch (e) { return '—'; }
     }
-    function xpForLevel(L) { return L <= 1 ? 0 : 25 * (L - 1) * L; }
     function levelFromXp(xp) {
         if (!xp || xp < 50) return 1;
         return Math.max(1, Math.floor((1 + Math.sqrt(1 + (xp * 4 / 25))) / 2));
@@ -133,14 +128,13 @@
     }
 
     /* ═══════════════════════════════════════════════════════
-       CSS — EPIC HUD REVAMP v5
+       CSS — SIMPLIFIED ANIMATED HUD v6
        ═══════════════════════════════════════════════════════ */
     function injectStyles() {
         if (document.getElementById('msn-profile-styles')) return;
         var css = `
 /* ═══════════════════════════════════════════════════════
-   MSN PROFILE CARD — EPIC HUD MODE v5
-   High-contrast · Animated · HUD-styled · Funny
+   MSN PROFILE CARD — clean HUD
    ═══════════════════════════════════════════════════════ */
 
 .msn-profile-overlay{
@@ -151,15 +145,12 @@
     align-items:center;
     justify-content:center;
     padding:20px;
-    background:
-        radial-gradient(ellipse 75% 60% at 50% 40%, rgba(0,240,255,.10) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 45% at 50% 100%, rgba(168,85,247,.08) 0%, transparent 65%),
-        radial-gradient(circle at 50% 50%, rgba(10,16,30,.95) 0%, rgba(2,4,10,.98) 100%);
-    backdrop-filter:blur(18px) saturate(1.35);
-    -webkit-backdrop-filter:blur(18px) saturate(1.35);
+    background:radial-gradient(ellipse at center, rgba(8,14,26,.92) 0%, rgba(2,4,10,.98) 100%);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
     opacity:0;
     pointer-events:none;
-    transition:opacity .35s cubic-bezier(.16,1,.3,1);
+    transition:opacity .3s ease;
 }
 .msn-profile-overlay.open{opacity:1;pointer-events:auto;}
 
@@ -167,290 +158,158 @@
 .msn-profile-card{
     position:relative;
     width:100%;
-    max-width:520px;
+    max-width:500px;
     max-height:92vh;
     overflow-y:auto;
     overflow-x:hidden;
-    padding:40px 30px 26px;
-    background:
-        linear-gradient(180deg, #0d1528 0%, #050810 100%);
-    border-radius:26px;
+    padding:36px 28px 24px;
+    background:linear-gradient(180deg, #0d1528 0%, #050810 100%);
+    border-radius:22px;
     box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.10),
-        inset 0 0 60px rgba(0,240,255,.035),
-        0 0 0 1px rgba(0,0,0,.6),
-        0 40px 120px rgba(0,0,0,.95),
-        0 0 100px rgba(0,240,255,.24),
-        0 0 200px rgba(168,85,247,.14);
-    transform:scale(.9) translateY(30px);
+        0 0 0 1px rgba(0,240,255,.25),
+        0 0 60px rgba(0,240,255,.18),
+        0 30px 90px rgba(0,0,0,.9);
+    transform:scale(.92) translateY(20px);
     opacity:0;
-    transition:
-        transform .55s cubic-bezier(.16,1,.3,1),
-        opacity .35s cubic-bezier(.16,1,.3,1);
+    transition:transform .4s cubic-bezier(.16,1,.3,1), opacity .3s ease;
     font-family:var(--font-main, "Segoe UI", system-ui, sans-serif);
-    color:#ffffff;
+    color:#fff;
     text-align:left;
-    isolation:isolate;
 }
 .msn-profile-overlay.open .msn-profile-card{
     transform:scale(1) translateY(0);
     opacity:1;
 }
-.msn-profile-card::-webkit-scrollbar{width:8px;}
-.msn-profile-card::-webkit-scrollbar-track{background:transparent;}
+.msn-profile-card::-webkit-scrollbar{width:6px;}
 .msn-profile-card::-webkit-scrollbar-thumb{
-    background:linear-gradient(180deg, rgba(0,240,255,.6), rgba(168,85,247,.6));
-    border-radius:4px;
-    border:2px solid transparent;
-    background-clip:content-box;
+    background:rgba(0,240,255,.4);
+    border-radius:3px;
 }
 
-/* Aurora border */
+/* Animated gradient border */
 .msn-profile-card::after{
     content:"";
     position:absolute;
-    inset:-2px;
-    border-radius:28px;
-    padding:2px;
-    background:conic-gradient(from 0deg,
-        #00f0ff 0deg,
-        #a855f7 90deg,
-        #ec4899 180deg,
-        #00f0ff 360deg);
-    -webkit-mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
+    inset:-1px;
+    border-radius:23px;
+    padding:1.5px;
+    background:conic-gradient(from 0deg, #00f0ff, #a855f7, #ec4899, #00f0ff);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite:xor;
             mask-composite:exclude;
     pointer-events:none;
-    z-index:-1;
-    animation:msnAuroraSpin 8s linear infinite;
-    opacity:.85;
+    animation:msnBorderSpin 6s linear infinite;
+    opacity:.9;
 }
-@keyframes msnAuroraSpin{
-    to{transform:rotate(360deg);}
-}
-
-/* Inner bloom */
-.msn-profile-card::before{
-    content:"";
-    position:absolute;
-    top:-30%;
-    left:50%;
-    transform:translateX(-50%);
-    width:160%;
-    height:80%;
-    background:radial-gradient(ellipse at center,
-        rgba(0,240,255,.14) 0%,
-        rgba(168,85,247,.06) 40%,
-        transparent 65%);
-    pointer-events:none;
-    z-index:0;
-    animation:msnCardBloom 6s ease-in-out infinite;
-}
-@keyframes msnCardBloom{
-    0%,100%{opacity:.7;transform:translateX(-50%) scale(1);}
-    50%{opacity:1;transform:translateX(-50%) scale(1.08);}
-}
-
-/* HUD targeting brackets — four corners */
-.msn-profile-head::before,
-.msn-profile-head::after{
-    content:"";
-    position:absolute;
-    width:22px;
-    height:22px;
-    border-color:rgba(0,240,255,.9);
-    border-style:solid;
-    border-width:0;
-    pointer-events:none;
-    animation:msnBracketPulse 2.4s ease-in-out infinite;
-}
-.msn-profile-head::before{
-    top:-14px; left:-8px;
-    border-top-width:2px;
-    border-left-width:2px;
-    border-top-left-radius:8px;
-}
-.msn-profile-head::after{
-    top:-14px; right:-8px;
-    border-top-width:2px;
-    border-right-width:2px;
-    border-top-right-radius:8px;
-}
-@keyframes msnBracketPulse{
-    0%,100%{opacity:.55;}
-    50%{opacity:1;}
-}
+@keyframes msnBorderSpin{to{transform:rotate(360deg);}}
 
 /* ── Close button ── */
 .msn-profile-close{
     position:absolute;
-    top:16px;
-    right:16px;
-    width:36px;
-    height:36px;
+    top:14px;
+    right:14px;
+    width:34px;
+    height:34px;
     border-radius:50%;
-    border:1.5px solid rgba(0,240,255,.4);
+    border:1.5px solid rgba(0,240,255,.35);
     background:rgba(10,16,30,.9);
     color:#00f0ff;
     cursor:pointer;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:.95rem;
-    line-height:1;
+    font-size:.9rem;
     z-index:5;
-    transform:rotate(0deg) scale(1);
-    transition:
-        transform .5s cubic-bezier(.16,1,.3,1),
-        border-color .22s ease,
-        color .22s ease,
-        background .22s ease,
-        box-shadow .22s ease;
-    box-shadow:
-        0 0 12px rgba(0,240,255,.35),
-        inset 0 0 10px rgba(0,240,255,.08);
+    transition:transform .35s cubic-bezier(.16,1,.3,1), border-color .2s, color .2s, box-shadow .2s;
 }
 .msn-profile-close:hover,
 .msn-profile-close:focus-visible{
     outline:none;
     border-color:#ff2d55;
     color:#ff2d55;
-    background:rgba(255,45,85,.1);
-    transform:rotate(180deg) scale(1.15);
-    box-shadow:
-        0 0 24px rgba(255,45,85,.8),
-        0 0 48px rgba(255,45,85,.35),
-        inset 0 0 12px rgba(255,45,85,.2);
+    transform:rotate(90deg) scale(1.1);
+    box-shadow:0 0 20px rgba(255,45,85,.6);
 }
-.msn-profile-close:active{transform:rotate(180deg) scale(.98);}
 
 /* ── HEADER ── */
 .msn-profile-head{
-    position:relative;
     display:flex;
     align-items:center;
-    gap:24px;
-    padding:8px 0 26px;
-    margin-bottom:22px;
-    border-bottom:1px solid rgba(0,240,255,.2);
-    z-index:1;
+    gap:22px;
+    padding-bottom:22px;
+    margin-bottom:20px;
+    border-bottom:1px solid rgba(0,240,255,.15);
 }
-.msn-profile-head > *{position:relative; z-index:1;}
 
 /* ── Avatar ── */
 .msn-profile-avatar-wrap{
     position:relative;
-    width:168px;
-    height:168px;
+    width:132px;
+    height:132px;
     flex:0 0 auto;
 }
-
-/* Rotating conic ring */
 .msn-profile-avatar-wrap::before{
     content:"";
     position:absolute;
-    inset:-10px;
+    inset:-6px;
     border-radius:50%;
-    background:conic-gradient(from 0deg,
-        transparent 0deg,
-        #00f0ff 40deg,
-        transparent 90deg,
-        transparent 180deg,
-        #a855f7 220deg,
-        transparent 270deg,
-        transparent 360deg);
-    animation:msnRingSpin 4s linear infinite;
-    filter:blur(.5px);
-    opacity:.85;
+    background:conic-gradient(from 0deg, transparent 0deg, #00f0ff 60deg, transparent 140deg, transparent 220deg, #a855f7 280deg, transparent 360deg);
+    animation:msnBorderSpin 3.5s linear infinite;
+    opacity:.8;
     z-index:0;
     pointer-events:none;
 }
-@keyframes msnRingSpin{ to{transform:rotate(360deg);} }
-
-/* Second slow ring counter-rotating */
-.msn-profile-avatar-wrap::after{
-    content:"";
-    position:absolute;
-    inset:-16px;
-    border-radius:50%;
-    border:1px dashed rgba(0,240,255,.28);
-    animation:msnRingSpin 12s linear infinite reverse;
-    z-index:0;
-    pointer-events:none;
-}
-
 .msn-profile-avatar{
     position:relative;
     width:100%;
     height:100%;
     border-radius:50%;
-    background:
-        radial-gradient(circle at 35% 25%, rgba(0,240,255,.12) 0%, transparent 55%),
-        #050810;
+    background:#050810;
     border:2px solid #00f0ff;
     overflow:hidden;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:3.4rem;
+    font-size:2.8rem;
     font-weight:900;
-    color:#ffffff;
-    letter-spacing:.02em;
-    line-height:1;
+    color:#fff;
     z-index:1;
     box-shadow:
-        inset 0 0 40px rgba(0,0,0,.85),
-        inset 0 0 60px rgba(0,240,255,.08),
-        0 0 0 3px rgba(0,240,255,.12),
-        0 0 50px rgba(0,240,255,.5),
-        0 0 100px rgba(0,240,255,.25);
-    text-shadow:
-        0 0 20px rgba(0,240,255,.9),
-        0 0 40px rgba(0,240,255,.5);
+        inset 0 0 30px rgba(0,0,0,.8),
+        0 0 30px rgba(0,240,255,.4);
+    text-shadow:0 0 16px rgba(0,240,255,.8);
 }
-.msn-profile-avatar img{
-    width:100%; height:100%; object-fit:cover; display:block;
-}
+.msn-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
 
-/* Radar ping on status */
+/* Online dot */
 .msn-profile-status-dot{
     position:absolute;
-    bottom:6px;
-    right:6px;
-    width:24px;
-    height:24px;
+    bottom:4px;
+    right:4px;
+    width:22px;
+    height:22px;
     border-radius:50%;
     background:#5a6b88;
     border:3px solid #050810;
     z-index:3;
-    transition:background .25s ease, box-shadow .25s ease;
-    box-shadow:
-        0 0 0 3px rgba(0,240,255,.2),
-        0 0 12px rgba(0,0,0,.6);
+    transition:background .25s, box-shadow .25s;
 }
 .msn-profile-status-dot.online{
     background:#4ade80;
-    box-shadow:
-        0 0 0 3px rgba(74,222,128,.3),
-        0 0 18px #4ade80,
-        0 0 36px rgba(74,222,128,.7);
+    box-shadow:0 0 14px #4ade80, 0 0 28px rgba(74,222,128,.6);
 }
-.msn-profile-status-dot.online::before,
-.msn-profile-status-dot.online::after{
+.msn-profile-status-dot.online::before{
     content:"";
     position:absolute;
     inset:-3px;
     border-radius:50%;
     border:2px solid #4ade80;
-    animation:msnRadarPing 2s cubic-bezier(.4,0,.6,1) infinite;
+    animation:msnPing 1.8s ease-out infinite;
     pointer-events:none;
 }
-.msn-profile-status-dot.online::after{animation-delay:1s;}
-@keyframes msnRadarPing{
+@keyframes msnPing{
     0%{transform:scale(1);opacity:.9;}
-    100%{transform:scale(2.6);opacity:0;}
+    100%{transform:scale(2.2);opacity:0;}
 }
 
 /* ── Identity ── */
@@ -460,32 +319,23 @@
     display:flex;
     flex-direction:column;
     align-items:flex-start;
-    text-align:left;
-    gap:10px;
+    gap:8px;
 }
 .msn-profile-username{
     margin:0;
-    font-size:1.75rem;
+    font-size:1.6rem;
     font-weight:900;
     letter-spacing:.02em;
-    line-height:1.1;
-    color:#ffffff;
+    line-height:1.15;
+    color:#fff;
     word-break:break-word;
-    text-shadow:
-        0 0 24px rgba(0,240,255,.5),
-        0 2px 8px rgba(0,0,0,.9);
-    position:relative;
-    background:linear-gradient(90deg,
-        #ffffff 0%,
-        #ffffff 40%,
-        #00f0ff 48%,
-        #ffffff 56%,
-        #ffffff 100%);
+    text-shadow:0 0 20px rgba(0,240,255,.4), 0 2px 6px rgba(0,0,0,.9);
+    background:linear-gradient(90deg, #fff 0%, #fff 45%, #00f0ff 50%, #fff 55%, #fff 100%);
     background-size:200% 100%;
     -webkit-background-clip:text;
             background-clip:text;
     -webkit-text-fill-color:transparent;
-    animation:msnNameShine 4s linear infinite;
+    animation:msnNameShine 3.5s linear infinite;
 }
 @keyframes msnNameShine{
     0%{background-position:200% 0;}
@@ -493,32 +343,30 @@
 }
 .msn-profile-signature{
     margin:0;
-    font-size:.9rem;
+    font-size:.88rem;
     color:#b8c8e0;
     font-style:italic;
     line-height:1.5;
     word-break:break-word;
-    min-height:1.3em;
+    min-height:1.2em;
     max-width:100%;
 }
 .msn-profile-meta{
     display:inline-flex;
     align-items:center;
     gap:8px;
-    padding:5px 12px;
-    margin:0;
-    font-size:.62rem;
+    padding:5px 11px;
+    font-size:.6rem;
     color:#00f0ff;
-    letter-spacing:.18em;
+    letter-spacing:.16em;
     text-transform:uppercase;
     font-weight:800;
     font-family:var(--font-mono, monospace);
     background:rgba(0,240,255,.06);
-    border:1px solid rgba(0,240,255,.35);
+    border:1px solid rgba(0,240,255,.3);
     border-radius:6px;
     line-height:1;
-    text-shadow:0 0 8px rgba(0,240,255,.6);
-    box-shadow:inset 0 0 10px rgba(0,240,255,.08);
+    text-shadow:0 0 6px rgba(0,240,255,.5);
 }
 
 /* ── X badge ── */
@@ -528,24 +376,16 @@
     justify-content:center;
     width:1.15em;
     height:1.15em;
-    margin-left:.45em;
+    margin-left:.4em;
     border-radius:50%;
     background:linear-gradient(135deg, #1d9bf0 0%, #0a4a9a 100%);
     color:#fff;
-    font-size:.62em;
+    font-size:.6em;
     font-weight:900;
     line-height:1;
-    box-shadow:
-        0 0 18px rgba(29,155,240,.9),
-        0 0 36px rgba(29,155,240,.4),
-        inset 0 1px 0 rgba(255,255,255,.4);
+    box-shadow:0 0 14px rgba(29,155,240,.8);
     vertical-align:middle;
     transform:translateY(-3px);
-    animation:msnXPulse 2.5s ease-in-out infinite;
-}
-@keyframes msnXPulse{
-    0%,100%{box-shadow:0 0 18px rgba(29,155,240,.9),0 0 36px rgba(29,155,240,.4),inset 0 1px 0 rgba(255,255,255,.4);}
-    50%{box-shadow:0 0 26px rgba(29,155,240,1),0 0 52px rgba(29,155,240,.6),inset 0 1px 0 rgba(255,255,255,.5);}
 }
 
 /* ── Tier badge ── */
@@ -555,109 +395,68 @@
     justify-content:center;
     min-width:1.4em;
     height:1.4em;
-    padding:0 .55em;
-    margin-left:.45em;
+    padding:0 .5em;
+    margin-left:.4em;
     border-radius:999px;
     background:rgba(255,255,255,.08);
     border:1.5px solid rgba(255,255,255,.25);
-    font-size:.72em;
+    font-size:.7em;
     line-height:1;
     vertical-align:middle;
     transform:translateY(-3px);
-    animation:msnTierPulse 3s ease-in-out infinite;
+    animation:msnTierPulse 2.5s ease-in-out infinite;
 }
 .msn-tier-badge.msn-tier-whale{
-    background:linear-gradient(135deg, rgba(0,240,255,.25) 0%, rgba(0,240,255,.08) 100%);
+    background:rgba(0,240,255,.18);
     border-color:#00f0ff;
-    box-shadow:0 0 22px rgba(0,240,255,.7),0 0 44px rgba(0,240,255,.3);
+    box-shadow:0 0 16px rgba(0,240,255,.6);
 }
 .msn-tier-badge.msn-tier-dolphin{
-    background:linear-gradient(135deg, rgba(168,85,247,.25) 0%, rgba(168,85,247,.08) 100%);
+    background:rgba(168,85,247,.18);
     border-color:#a855f7;
-    box-shadow:0 0 22px rgba(168,85,247,.7),0 0 44px rgba(168,85,247,.3);
+    box-shadow:0 0 16px rgba(168,85,247,.6);
 }
 .msn-tier-badge.msn-tier-crab{
-    background:linear-gradient(135deg, rgba(255,138,0,.25) 0%, rgba(255,138,0,.08) 100%);
+    background:rgba(255,138,0,.18);
     border-color:#ff8a00;
-    box-shadow:0 0 22px rgba(255,138,0,.7),0 0 44px rgba(255,138,0,.3);
-}
-.msn-tier-badge.msn-tier-shrimp{
-    background:rgba(255,255,255,.08);
-    border-color:rgba(255,255,255,.3);
+    box-shadow:0 0 16px rgba(255,138,0,.6);
 }
 @keyframes msnTierPulse{
     0%,100%{transform:translateY(-3px) scale(1);}
-    50%{transform:translateY(-3px) scale(1.06);}
+    50%{transform:translateY(-3px) scale(1.08);}
 }
 
 /* ── HUD ── */
 .msn-profile-hud{
     display:grid;
     grid-template-columns:repeat(3,1fr);
-    gap:12px;
-    padding:18px 10px 16px;
-    margin-bottom:20px;
-    background:
-        linear-gradient(180deg, rgba(0,240,255,.06) 0%, rgba(0,240,255,.01) 100%),
-        #0a1220;
-    border:1px solid rgba(0,240,255,.25);
-    border-radius:14px;
-    box-shadow:
-        inset 0 1px 0 rgba(0,240,255,.15),
-        inset 0 -1px 0 rgba(0,0,0,.6),
-        0 0 30px rgba(0,240,255,.08);
-    position:relative;
-    overflow:hidden;
-}
-.msn-profile-hud::before{
-    content:"";
-    position:absolute;
-    top:0; left:-100%;
-    width:100%;
-    height:100%;
-    background:linear-gradient(90deg,
-        transparent,
-        rgba(0,240,255,.08) 40%,
-        rgba(0,240,255,.15) 50%,
-        rgba(0,240,255,.08) 60%,
-        transparent);
-    animation:msnHudSweep 5s ease-in-out infinite;
-    pointer-events:none;
-}
-@keyframes msnHudSweep{
-    0%,60%{left:-100%;}
-    100%{left:100%;}
+    gap:10px;
+    padding:16px 8px;
+    margin-bottom:18px;
+    background:rgba(0,240,255,.04);
+    border:1px solid rgba(0,240,255,.2);
+    border-radius:12px;
 }
 .msn-hud-stat{
     display:flex;
     flex-direction:column;
     align-items:center;
-    gap:8px;
-    padding:6px 2px;
+    gap:6px;
+    padding:4px 2px;
     position:relative;
-    z-index:1;
 }
 .msn-hud-stat:not(:last-child)::after{
     content:"";
     position:absolute;
-    right:-6px;
-    top:20%; bottom:20%;
+    right:-5px;
+    top:25%; bottom:25%;
     width:1px;
-    background:linear-gradient(180deg,
-        transparent,
-        rgba(0,240,255,.5),
-        transparent);
-    box-shadow:0 0 8px rgba(0,240,255,.6);
-    animation:msnDividerPulse 2s ease-in-out infinite;
-}
-@keyframes msnDividerPulse{
-    0%,100%{opacity:.5;}
-    50%{opacity:1;}
+    background:linear-gradient(180deg, transparent, rgba(0,240,255,.4), transparent);
 }
 .msn-hud-label{
-    font-size:.6rem;
+    font-size:.58rem;
     font-weight:800;
-    letter-spacing:.2em;
+    letter-spacing:.18em;
     text-transform:uppercase;
     color:#6a7a96;
     line-height:1;
@@ -665,20 +464,12 @@
 }
 .msn-hud-value{
     font-family:var(--font-mono, monospace);
-    font-size:1.5rem;
+    font-size:1.35rem;
     font-weight:900;
     color:#00f0ff;
     line-height:1;
     font-variant-numeric:tabular-nums;
-    text-shadow:
-        0 0 16px rgba(0,240,255,.9),
-        0 0 32px rgba(0,240,255,.4);
-    letter-spacing:.02em;
-    animation:msnValuePulse 3s ease-in-out infinite;
-}
-@keyframes msnValuePulse{
-    0%,100%{transform:scale(1);}
-    50%{transform:scale(1.05);}
+    text-shadow:0 0 12px rgba(0,240,255,.7);
 }
 
 /* ── Streak row ── */
@@ -686,65 +477,41 @@
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap:16px;
-    padding:16px 18px;
-    margin-bottom:22px;
-    background:
-        linear-gradient(180deg, rgba(255,106,0,.18) 0%, rgba(255,106,0,.04) 100%),
-        #0a1220;
-    border:1px solid rgba(255,106,0,.4);
-    border-radius:14px;
-    box-shadow:
-        inset 0 1px 0 rgba(255,200,140,.15),
-        0 0 30px rgba(255,106,0,.15);
-    position:relative;
-    overflow:hidden;
-}
-.msn-streak-row::before{
-    content:"";
-    position:absolute;
-    top:0; left:0; right:0;
-    height:1px;
-    background:linear-gradient(90deg,
-        transparent,
-        rgba(255,140,0,.9),
-        rgba(255,220,100,1),
-        rgba(255,140,0,.9),
-        transparent);
-    box-shadow:0 0 12px rgba(255,140,0,.8);
+    gap:14px;
+    padding:14px 16px;
+    margin-bottom:20px;
+    background:rgba(255,106,0,.08);
+    border:1px solid rgba(255,106,0,.35);
+    border-radius:12px;
 }
 .msn-streak-label{
-    font-size:.62rem;
+    font-size:.6rem;
     font-weight:800;
-    letter-spacing:.22em;
+    letter-spacing:.2em;
     text-transform:uppercase;
     color:#ffb066;
     flex-shrink:0;
     font-family:var(--font-mono, monospace);
-    text-shadow:0 0 10px rgba(255,140,0,.6);
 }
 .msn-streak-fires{
     display:flex;
     align-items:center;
-    gap:6px;
+    gap:5px;
     flex:1;
     justify-content:center;
 }
 .msn-fire{
-    font-size:1.3rem;
+    font-size:1.2rem;
     line-height:1;
     display:inline-block;
-    transition:all .3s ease;
 }
 .msn-fire.filled{
-    filter:
-        drop-shadow(0 0 8px rgba(255,140,0,1))
-        drop-shadow(0 0 16px rgba(255,220,100,.7));
+    filter:drop-shadow(0 0 6px rgba(255,140,0,.9));
     animation:msnFireBounce 1.6s ease-in-out infinite;
 }
 .msn-fire.empty{
-    filter:grayscale(100%) brightness(.35);
-    opacity:.2;
+    filter:grayscale(100%) brightness(.4);
+    opacity:.25;
 }
 .msn-fire:nth-child(1).filled{animation-delay:0s;}
 .msn-fire:nth-child(2).filled{animation-delay:.1s;}
@@ -755,32 +522,28 @@
 .msn-fire:nth-child(7).filled{animation-delay:.6s;}
 @keyframes msnFireBounce{
     0%,100%{transform:scale(1) translateY(0);}
-    40%{transform:scale(1.18) translateY(-3px);}
-    60%{transform:scale(1.12) translateY(-1px);}
+    50%{transform:scale(1.15) translateY(-2px);}
 }
 .msn-streak-count{
     font-family:var(--font-mono, monospace);
-    font-size:1.15rem;
+    font-size:1.1rem;
     font-weight:900;
     color:#ffb066;
-    min-width:2.8em;
+    min-width:2.6em;
     text-align:right;
-    text-shadow:
-        0 0 16px rgba(255,140,0,1),
-        0 0 32px rgba(255,140,0,.5);
+    text-shadow:0 0 12px rgba(255,140,0,.8);
     font-variant-numeric:tabular-nums;
     flex-shrink:0;
-    letter-spacing:.02em;
 }
 
 /* ── Section label ── */
 .msn-profile-section-label{
-    font-size:.62rem;
+    font-size:.6rem;
     font-weight:800;
-    letter-spacing:.24em;
+    letter-spacing:.22em;
     text-transform:uppercase;
     color:#6a7a96;
-    margin:0 0 12px 2px;
+    margin:0 0 10px 2px;
     display:flex;
     align-items:center;
     gap:10px;
@@ -790,164 +553,106 @@
     content:"◆";
     color:#00f0ff;
     font-size:.7rem;
-    text-shadow:0 0 8px rgba(0,240,255,.8);
 }
 .msn-profile-section-label::after{
     content:"";
     flex:1;
     height:1px;
-    background:linear-gradient(90deg,
-        rgba(0,240,255,.4),
-        rgba(0,240,255,.05),
-        transparent);
+    background:linear-gradient(90deg, rgba(0,240,255,.3), transparent);
 }
 
 /* ── Achievements ── */
 .msn-achievements-grid{
     display:grid;
     grid-template-columns:repeat(6,1fr);
-    gap:10px;
-    margin:0 0 24px;
+    gap:8px;
+    margin:0 0 22px;
     width:100%;
     box-sizing:border-box;
 }
 .msn-ach-slot{
     aspect-ratio:1/1;
-    border-radius:10px;
+    border-radius:9px;
     background:#0a1220;
     border:1px solid rgba(0,240,255,.15);
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:1.15rem;
+    font-size:1.1rem;
     line-height:1;
-    transition:all .24s ease;
-    cursor:default;
+    transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
     min-width:0;
     overflow:hidden;
-    position:relative;
     opacity:0;
-    transform:translateY(8px) scale(.9);
-    animation:msnAchReveal .5s cubic-bezier(.16,1,.3,1) forwards;
+    transform:translateY(6px) scale(.9);
+    animation:msnAchIn .45s cubic-bezier(.16,1,.3,1) forwards;
 }
-.msn-ach-slot:nth-child(1){animation-delay:.28s;}
-.msn-ach-slot:nth-child(2){animation-delay:.34s;}
-.msn-ach-slot:nth-child(3){animation-delay:.40s;}
-.msn-ach-slot:nth-child(4){animation-delay:.46s;}
-.msn-ach-slot:nth-child(5){animation-delay:.52s;}
-.msn-ach-slot:nth-child(6){animation-delay:.58s;}
-@keyframes msnAchReveal{
+.msn-ach-slot:nth-child(1){animation-delay:.20s;}
+.msn-ach-slot:nth-child(2){animation-delay:.26s;}
+.msn-ach-slot:nth-child(3){animation-delay:.32s;}
+.msn-ach-slot:nth-child(4){animation-delay:.38s;}
+.msn-ach-slot:nth-child(5){animation-delay:.44s;}
+.msn-ach-slot:nth-child(6){animation-delay:.50s;}
+@keyframes msnAchIn{
     to{opacity:1;transform:translateY(0) scale(1);}
 }
 .msn-ach-slot.unlocked{
     border-color:#00f0ff;
-    background:
-        linear-gradient(180deg, rgba(0,240,255,.14) 0%, rgba(0,240,255,.03) 100%),
-        #0a1220;
-    box-shadow:
-        0 0 18px rgba(0,240,255,.5),
-        inset 0 1px 0 rgba(255,255,255,.1);
+    background:rgba(0,240,255,.1);
+    box-shadow:0 0 14px rgba(0,240,255,.4);
 }
-.msn-ach-slot.unlocked::after{
-    content:"";
-    position:absolute;
-    inset:0;
-    background:linear-gradient(115deg,
-        transparent 0%,
-        rgba(255,255,255,.35) 50%,
-        transparent 100%);
-    transform:translateX(-100%);
-    animation:msnAchShine 3.5s ease-in-out infinite;
-    pointer-events:none;
-}
-@keyframes msnAchShine{
-    0%,50%{transform:translateX(-100%);}
-    100%{transform:translateX(100%);}
-}
-.msn-ach-slot.locked{opacity:.3;filter:grayscale(100%);}
 .msn-ach-slot.empty{
-    opacity:.32;
+    opacity:.3;
     border-style:dashed;
-    font-size:.9rem;
+    font-size:.85rem;
     color:#6a7a96;
 }
 .msn-ach-slot:hover{
-    transform:translateY(-4px) scale(1.06);
+    transform:translateY(-3px) scale(1.05);
     border-color:#00f0ff;
-    box-shadow:0 0 24px rgba(0,240,255,.6);
+    box-shadow:0 0 18px rgba(0,240,255,.5);
 }
 
 /* ── Actions ── */
 .msn-profile-actions{
     display:flex;
-    gap:12px;
+    gap:10px;
     margin-top:4px;
 }
 .msn-action-btn{
     flex:1;
-    padding:16px 18px;
-    border-radius:12px;
+    padding:14px 16px;
+    border-radius:10px;
     font-weight:900;
-    font-size:.8rem;
-    letter-spacing:.12em;
+    font-size:.78rem;
+    letter-spacing:.1em;
     text-transform:uppercase;
     cursor:pointer;
-    border:1.5px solid rgba(0,240,255,.35);
+    border:1.5px solid rgba(0,240,255,.3);
     background:#0a1220;
-    color:#ffffff;
-    transition:all .26s cubic-bezier(.16,1,.3,1);
+    color:#fff;
+    transition:all .22s ease;
     font-family:var(--font-mono, monospace);
-    position:relative;
-    overflow:hidden;
 }
 .msn-action-btn:hover{
     border-color:#00f0ff;
     color:#00f0ff;
-    box-shadow:
-        0 0 24px rgba(0,240,255,.5),
-        inset 0 0 12px rgba(0,240,255,.1);
-    transform:translateY(-3px);
+    box-shadow:0 0 18px rgba(0,240,255,.4);
+    transform:translateY(-2px);
 }
 .msn-action-btn:active{transform:translateY(0) scale(.97);}
 .msn-action-btn.primary{
-    background:
-        linear-gradient(180deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,.2) 100%),
-        linear-gradient(135deg, #00f0ff 0%, #00b8d4 100%);
+    background:linear-gradient(135deg, #00f0ff 0%, #00b8d4 100%);
     color:#001018;
     border-color:#00f0ff;
-    box-shadow:
-        inset 0 2px 0 rgba(255,255,255,.6),
-        inset 0 -2px 0 rgba(0,0,0,.25),
-        0 10px 30px rgba(0,0,0,.6),
-        0 0 40px rgba(0,240,255,.7),
-        0 0 80px rgba(0,240,255,.3);
-    text-shadow:0 1px 0 rgba(255,255,255,.5);
-}
-.msn-action-btn.primary::after{
-    content:"";
-    position:absolute;
-    top:0;
-    left:-100%;
-    width:60%;
-    height:100%;
-    background:linear-gradient(90deg,
-        transparent,
-        rgba(255,255,255,.6) 50%,
-        transparent);
-    transition:left .8s cubic-bezier(.16,1,.3,1);
-    pointer-events:none;
+    box-shadow:0 0 30px rgba(0,240,255,.5);
+    text-shadow:0 1px 0 rgba(255,255,255,.4);
 }
 .msn-action-btn.primary:hover{
     color:#001018;
     filter:brightness(1.1);
-    box-shadow:
-        inset 0 2px 0 rgba(255,255,255,.7),
-        inset 0 -2px 0 rgba(0,0,0,.25),
-        0 14px 40px rgba(0,0,0,.65),
-        0 0 60px rgba(0,240,255,.9),
-        0 0 120px rgba(0,240,255,.5);
+    box-shadow:0 0 44px rgba(0,240,255,.8);
 }
-.msn-action-btn.primary:hover::after{left:130%;}
 
 /* ── Loader ── */
 .msn-profile-loader{
@@ -956,186 +661,95 @@
     align-items:center;
     justify-content:center;
     gap:18px;
-    padding:90px 10px;
+    padding:70px 10px;
     color:#00f0ff;
     font-family:var(--font-mono, monospace);
-    font-size:.74rem;
-    letter-spacing:.28em;
+    font-size:.72rem;
+    letter-spacing:.24em;
     text-transform:uppercase;
-    text-shadow:0 0 12px rgba(0,240,255,.7);
-    position:relative;
+    text-shadow:0 0 10px rgba(0,240,255,.6);
 }
 .msn-profile-loader-dots{
     display:inline-flex;
     gap:8px;
 }
 .msn-profile-loader-dots span{
-    width:11px;
-    height:11px;
+    width:10px;
+    height:10px;
     border-radius:50%;
     background:#00f0ff;
-    animation:msnLoaderPulse 1.4s ease-in-out infinite;
-    box-shadow:
-        0 0 10px #00f0ff,
-        0 0 20px rgba(0,240,255,.6);
+    animation:msnLoaderPulse 1.3s ease-in-out infinite;
+    box-shadow:0 0 10px #00f0ff;
 }
-.msn-profile-loader-dots span:nth-child(2){animation-delay:.2s;}
-.msn-profile-loader-dots span:nth-child(3){animation-delay:.4s;}
+.msn-profile-loader-dots span:nth-child(2){animation-delay:.15s;}
+.msn-profile-loader-dots span:nth-child(3){animation-delay:.3s;}
 @keyframes msnLoaderPulse{
-    0%,100%{opacity:.2;transform:translateY(0) scale(.85);}
-    50%{opacity:1;transform:translateY(-6px) scale(1.15);}
-}
-.msn-profile-loader::before{
-    content:"";
-    position:absolute;
-    top:40px; left:50%; transform:translateX(-50%);
-    width:70px; height:70px;
-    border:2px dashed rgba(0,240,255,.4);
-    border-radius:50%;
-    animation:msnRingSpin 3s linear infinite;
-    pointer-events:none;
+    0%,100%{opacity:.25;transform:translateY(0) scale(.85);}
+    50%{opacity:1;transform:translateY(-5px) scale(1.15);}
 }
 
 .msn-profile-empty{
-    padding:80px 16px;
+    padding:70px 16px;
     text-align:center;
     color:#6a7a96;
     font-family:var(--font-mono, monospace);
-    font-size:.74rem;
-    letter-spacing:.24em;
+    font-size:.72rem;
+    letter-spacing:.22em;
     text-transform:uppercase;
 }
 
 /* ── Username clickable affordance ── */
 .msg-username .msn-username-link{
     cursor:pointer;
-    position:relative;
-    display:inline-block;
     transition:color .2s ease, text-shadow .2s ease;
-}
-.msg-username .msn-username-link::after{
-    content:"";
-    position:absolute;
-    left:0; right:0; bottom:-1px;
-    height:1px;
-    background:currentColor;
-    opacity:0;
-    transform:scaleX(.55);
-    transform-origin:left center;
-    transition:opacity .2s ease, transform .25s ease;
-    pointer-events:none;
 }
 .msg-username:hover .msn-username-link{
     color:#00f0ff;
-    text-shadow:0 0 14px rgba(0,240,255,.9), 0 0 28px rgba(0,240,255,.5);
-}
-.msg-username:hover .msn-username-link::after{
-    opacity:.9; transform:scaleX(1);
+    text-shadow:0 0 12px rgba(0,240,255,.8);
 }
 .msg-username .msg-avatar{cursor:pointer;}
-
-/* ── VIEW PROFILE tooltip ── */
-.msg-username,
-.sidebar-user-profile-big,
-.sidebar-user-item{position:relative;}
-.msg-username::before,
-.sidebar-user-item::before,
-.sidebar-user-profile-big::before{
-    content:"⦿ VIEW PROFILE";
-    position:absolute;
-    bottom:calc(100% + 8px);
-    left:0;
-    padding:5px 12px;
-    border-radius:6px;
-    background:#0a1220;
-    border:1px solid #00f0ff;
-    color:#00f0ff;
-    font-family:var(--font-mono, monospace);
-    font-size:.55rem;
-    font-weight:800;
-    letter-spacing:.18em;
-    white-space:nowrap;
-    line-height:1;
-    opacity:0;
-    pointer-events:none;
-    transform:translateY(8px);
-    transition:opacity .2s ease, transform .2s ease;
-    z-index:30;
-    text-shadow:0 0 10px #00f0ff;
-    box-shadow:
-        0 0 20px rgba(0,240,255,.5),
-        0 8px 20px rgba(0,0,0,.7);
-}
-.msg-username:has(.msg-avatar:hover)::before,
-.msg-username:has(.msn-username-link:hover)::before,
-.sidebar-user-item:has(.user-avatar:hover)::before,
-.sidebar-user-profile-big:has(.big-avatar:hover)::before,
-.sidebar-user-profile-big:has(.big-name:hover)::before{
-    opacity:1;
-    transform:translateY(0);
-}
 
 /* ── Mobile ── */
 @media (max-width:480px){
     .msn-profile-overlay{padding:12px;}
     .msn-profile-card{
         max-width:100%;
-        padding:28px 20px 20px;
-        border-radius:22px;
+        padding:26px 18px 18px;
+        border-radius:20px;
         max-height:94vh;
     }
     .msn-profile-head{
         gap:16px;
-        padding:4px 0 18px;
-        margin-bottom:16px;
+        padding-bottom:16px;
+        margin-bottom:14px;
     }
-    .msn-profile-avatar-wrap{
-        width:108px;
-        height:108px;
-    }
-    .msn-profile-avatar{font-size:2.3rem;}
-    .msn-profile-status-dot{
-        width:18px; height:18px;
-        border-width:3px;
-        bottom:4px; right:4px;
-    }
-    .msn-profile-identity{gap:8px;}
-    .msn-profile-username{font-size:1.3rem;}
-    .msn-profile-signature{font-size:.8rem;}
-    .msn-profile-meta{font-size:.55rem; letter-spacing:.14em; padding:4px 10px;}
-    .msn-profile-hud{gap:8px; padding:14px 6px; margin-bottom:16px;}
-    .msn-hud-value{font-size:1.15rem;}
-    .msn-hud-label{font-size:.52rem; letter-spacing:.14em;}
-    .msn-streak-row{padding:12px 14px; margin-bottom:18px; gap:10px;}
-    .msn-fire{font-size:1.05rem;}
-    .msn-streak-count{font-size:1rem;}
-    .msn-achievements-grid{gap:7px;}
-    .msn-ach-slot{font-size:1rem; border-radius:8px;}
-    .msn-action-btn{padding:13px 12px; font-size:.72rem; letter-spacing:.08em;}
-    .msn-x-badge{width:1.05em;height:1.05em;font-size:.6em;}
-    .msg-username::before,
-    .sidebar-user-item::before,
-    .sidebar-user-profile-big::before{display:none;}
+    .msn-profile-avatar-wrap{width:96px;height:96px;}
+    .msn-profile-avatar{font-size:2.1rem;}
+    .msn-profile-status-dot{width:18px;height:18px;border-width:3px;}
+    .msn-profile-username{font-size:1.25rem;}
+    .msn-profile-signature{font-size:.78rem;}
+    .msn-profile-meta{font-size:.54rem;letter-spacing:.12em;padding:4px 9px;}
+    .msn-profile-hud{gap:8px;padding:12px 4px;margin-bottom:14px;}
+    .msn-hud-value{font-size:1.05rem;}
+    .msn-hud-label{font-size:.5rem;letter-spacing:.12em;}
+    .msn-streak-row{padding:11px 12px;margin-bottom:16px;gap:8px;}
+    .msn-fire{font-size:1rem;}
+    .msn-streak-count{font-size:.95rem;}
+    .msn-achievements-grid{gap:6px;}
+    .msn-ach-slot{font-size:.95rem;border-radius:7px;}
+    .msn-action-btn{padding:12px 10px;font-size:.7rem;letter-spacing:.06em;}
+    .msn-x-badge{width:1.05em;height:1.05em;font-size:.58em;}
 }
 
 @media (prefers-reduced-motion: reduce){
     .msn-profile-card,
-    .msn-profile-card::before,
     .msn-profile-card::after,
     .msn-profile-avatar-wrap::before,
-    .msn-profile-avatar-wrap::after,
     .msn-profile-status-dot.online::before,
-    .msn-profile-status-dot.online::after,
     .msn-profile-username,
-    .msn-profile-hud::before,
-    .msn-hud-value,
-    .msn-hud-stat::after,
     .msn-fire.filled,
     .msn-ach-slot,
-    .msn-ach-slot.unlocked::after,
     .msn-profile-loader-dots span,
-    .msn-profile-loader::before,
-    .msn-x-badge,
     .msn-tier-badge{
         animation:none !important;
     }
@@ -1322,7 +936,7 @@
         bodyEl.innerHTML = ''
             + '<div class="msn-profile-loader">'
             +   '<span class="msn-profile-loader-dots"><span></span><span></span><span></span></span>'
-            +   '<span>⦿ Scanning Identity</span>'
+            +   '<span>Loading…</span>'
             + '</div>';
     }
     function renderError(msg) {
@@ -1566,5 +1180,5 @@
         boot();
     }
 
-    console.log('[profile-system] loaded v5 — EPIC HUD MODE');
+    console.log('[profile-system] loaded v6 — simplified + animated');
 })();
