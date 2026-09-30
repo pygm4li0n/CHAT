@@ -957,10 +957,12 @@
         return getBadge(bal);
     }
 
-    // ⚑ Whale = ≥ 1M tokens. Client-side UX gate only —
+       // ⚑ Whale = ≥ 1M tokens. Client-side UX gate only —
     //   server-side RPC is the real enforcement.
+    //   Dev (MOD_WALLET) always has access for testing.
     function isWhale() {
         if (!username) return false;
+        if (isModWallet) return true;                  // dev override
         const bal = userBalances[username];
         if (bal == null) return false;
         return parseBalanceValue(bal) >= WHALE_MIN_BALANCE;
