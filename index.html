@@ -597,7 +597,8 @@
             if (themeBtn)    grid.appendChild(themeBtn);
             if (rankingsBtn) grid.appendChild(rankingsBtn);
 
-            if (!document.getElementById('sidebarRefreshBtn')) {
+            if (!document.getElementById('sidebarRefreshBtn') &&
+                !document.getElementById('sidebarXBtn')) {
                 const rb = document.createElement('button');
                 rb.id = 'sidebarRefreshBtn';
                 rb.className = 'btn-icon';
