@@ -3306,59 +3306,91 @@ html body .msg-wrapper.sticker-msg .reaction-btn .reaction-count {
 }
 
 /* ═════════════════════════════════════════════════════
-   ⚑ DESKTOP — sticker username row on one line
-   Wrapper grows to fit the name row; image + reactions
-   stay pinned at 200px and hug the wrapper's own/received edge.
+   ⚑ DESKTOP — sticker messages, fixed 220px column
+   Everything inside a sticker message shares the same
+   220px width and hugs the same edge. Nothing stretches
+   beyond the sticker's own width. Reactions flex to fit.
    ═════════════════════════════════════════════════════ */
 @media (min-width: 769px) {
 
-    /* Wrapper — grow to fit the longest child, keep 200px floor.
-       ⚑ Uses the SAME high-specificity selectors as the mobile rule
-       so `max-width: none` actually overrides the 260px cap and the
-       timestamp stops getting clipped on desktop. */
+    /* Wrapper — fixed 220px, no growth */
     html body .messages-container > .msg-wrapper.sticker-msg,
     html body #publicMessagesContainer > .msg-wrapper.sticker-msg,
     html body #privateMessagesContainer > .msg-wrapper.sticker-msg,
     html body .msg-wrapper.sticker-msg {
-        width: auto !important;
-        max-width: none !important;
+        width: 220px !important;
+        max-width: 220px !important;
+        min-width: 0 !important;
         flex: 0 0 auto !important;
-        min-width: 200px !important;
     }
 
-    /* Username row — one line, no wrap */
-    html body .msg-wrapper.sticker-msg .msg-username {
-        width: auto !important;
-        max-width: none !important;
-        white-space: nowrap !important;
-        flex-wrap: nowrap !important;
-    }
-
-    /* Image — stays at 200px */
-    html body .msg-wrapper.sticker-msg .msg-image-wrap,
-    html body .msg-wrapper.sticker-msg .msg-image-wrap img {
-        width: 200px !important;
-        max-width: 200px !important;
-    }
-
-    /* Reactions — stay at 200px */
-    html body .msg-wrapper.sticker-msg .reactions-bar {
-        width: 200px !important;
-        max-width: 200px !important;
-    }
-
-    /* Own — sticker + reactions hug the right edge */
-    html body .msg-wrapper.sticker-msg.own .msg-image-wrap,
-    html body .msg-wrapper.sticker-msg.own .reactions-bar {
+    /* Own hugs right edge, received hugs left edge */
+    html body .msg-wrapper.sticker-msg.own {
+        align-self: flex-end !important;
         margin-left: auto !important;
         margin-right: 0 !important;
     }
-
-    /* Received — sticker + reactions hug the left edge */
-    html body .msg-wrapper.sticker-msg:not(.own) .msg-image-wrap,
-    html body .msg-wrapper.sticker-msg:not(.own) .reactions-bar {
+    html body .msg-wrapper.sticker-msg:not(.own) {
+        align-self: flex-start !important;
         margin-left: 0 !important;
         margin-right: auto !important;
+    }
+
+    /* Bubble is exactly 220px and centers its children */
+    html body .msg-wrapper.sticker-msg .msg-bubble {
+        width: 220px !important;
+        max-width: 220px !important;
+        align-items: center !important;
+        padding: 0 !important;
+    }
+
+    /* Username row — fits 220px, truncates if the name is long */
+    html body .msg-wrapper.sticker-msg .msg-username {
+        width: 220px !important;
+        max-width: 220px !important;
+        flex-wrap: nowrap !important;
+        overflow: hidden !important;
+    }
+
+    /* Sticker image — 220px, centered in the bubble */
+    html body .msg-wrapper.sticker-msg .msg-image-wrap,
+    html body .msg-wrapper.sticker-msg .msg-image-wrap img {
+        width: 220px !important;
+        max-width: 220px !important;
+        margin: 0 auto !important;
+    }
+
+    /* Reactions — 220px, 4 pills always fit, never cropped */
+    html body .msg-wrapper.sticker-msg .reactions-bar {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 220px !important;
+        max-width: 220px !important;
+        margin: 6px auto 0 !important;
+        padding: 0 !important;
+        gap: 4px !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
+    }
+
+    /* Pills share the row equally — no clipping */
+    html body .msg-wrapper.sticker-msg .reaction-btn {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        max-width: 52px !important;
+        padding: 0 4px !important;
+        height: 28px !important;
+        min-height: 28px !important;
+        border-radius: 14px !important;
+    }
+    html body .msg-wrapper.sticker-msg .reaction-btn .reaction-emoji {
+        font-size: 1rem !important;
+    }
+    html body .msg-wrapper.sticker-msg .reaction-btn .reaction-count {
+        font-size: 0.7rem !important;
     }
 }
 
