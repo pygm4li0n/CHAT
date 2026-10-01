@@ -3782,7 +3782,7 @@ switchTab('public');
     // ═══════════════════════════════════════════════════════════
     const _rsMoved = [];
 
-    function buildRightSidebar() {
+        function buildRightSidebar() {
         if (document.getElementById('msnRightSidebar')) return;
         const chatPanel = document.getElementById('chatPanel');
         if (!chatPanel) return;
@@ -3800,14 +3800,30 @@ switchTab('public');
 
         chatPanel.appendChild(right);
 
-        // ⚑ chatTabs stays in the chat panel — NOT moved here.
+        // ⚑ Set each card's logo image here.
+        //   Replace the URLs with your own logo images.
         const moves = [
-            { el: document.getElementById('headerThemeBtn'), into: actionsWrap, label: 'SKINS' },
-            { el: document.getElementById('rankingsBtn'),    into: actionsWrap, label: 'RANK'  },
-            { el: document.getElementById('modSettingsBtn'), into: actionsWrap, label: 'MOD'   },
+            {
+                el:    document.getElementById('headerThemeBtn'),
+                into:  actionsWrap,
+                label: 'SKINS',
+                logo:  'https://i.postimg.cc/85PqTLJq/Chat-GPT-Image-14-sept-2026-03-21-20-a-m-(1).png'
+            },
+            {
+                el:    document.getElementById('rankingsBtn'),
+                into:  actionsWrap,
+                label: 'RANK',
+                logo:  'https://i.postimg.cc/yxPGtPTx/Chat-GPT-Image-14-sept-2026-04-59-15.png'
+            },
+            {
+                el:    document.getElementById('modSettingsBtn'),
+                into:  actionsWrap,
+                label: 'MOD',
+                logo:  'https://i.postimg.cc/90GTkrdk/images-(33).png'
+            },
         ];
 
-        moves.forEach(({ el, into, label }) => {
+        moves.forEach(({ el, into, label, logo }) => {
             if (!el || !into) return;
 
             _rsMoved.push({
@@ -3816,6 +3832,17 @@ switchTab('public');
                 next: el.nextSibling
             });
 
+            // ⚑ Inject the logo image inside the card
+            if (logo && !el.querySelector('.msn-rs-card-logo')) {
+                const img = document.createElement('img');
+                img.className = 'msn-rs-card-logo';
+                img.src = logo;
+                img.alt = label || '';
+                img.loading = 'lazy';
+                el.appendChild(img);
+            }
+
+            // Label stays below the logo
             if (label && !el.querySelector('.msn-rs-card-label')) {
                 const lbl = document.createElement('span');
                 lbl.className = 'msn-rs-card-label';
