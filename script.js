@@ -3810,7 +3810,7 @@ switchTab('public');
             {
                 el:   document.getElementById('rankingsBtn'),
                 into: actionsWrap,
-                logo: 'https://i.postimg.cc/yxPGtPTx/Chat-GPT-Image-14-sept-2026-04-59-15.png'
+                logo: 'https://i.postimg.cc/DZLKBM7S/Trofeo-dorado-de-clasificaciones-neon-(1).png'
             },
             {
                 el:   document.getElementById('modSettingsBtn'),
