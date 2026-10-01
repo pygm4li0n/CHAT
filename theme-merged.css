@@ -3477,6 +3477,69 @@ html[data-theme="gold"] .msg-time {
     color: #1a1a1a !important;
     text-shadow: none !important;
 }
+
+/* ═════════════════════════════════════════════════════
+   ⚑ RIGHT SIDEBAR — CUSTOM LOGOS on SKINS / RANK / MOD
+   Replaces the emoji with a full-size logo image.
+   The label ("SKINS" / "RANK" / "MOD") stays below.
+   ═════════════════════════════════════════════════════ */
+@media (min-width: 769px) {
+
+    /* Hide the emoji character — the logo replaces it */
+    .msn-right-sidebar .msn-rs-actions .msn-rs-card {
+        font-size: 0 !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+
+    /* Kill the background-image treatment from theme-merged.css
+       (the ::after that painted a soft-light image behind the card).
+       The logo <img> is now the visual. */
+    .msn-right-sidebar .msn-rs-actions .msn-rs-card::after {
+        content: none !important;
+        display: none !important;
+    }
+
+    /* The logo image — fills most of the card, centered */
+    .msn-right-sidebar .msn-rs-actions .msn-rs-card-logo {
+        display: block !important;
+        width: 60% !important;
+        max-width: 80px !important;
+        height: auto !important;
+        max-height: 60% !important;
+        object-fit: contain !important;
+        position: relative !important;
+        z-index: 1 !important;
+        pointer-events: none !important;
+        filter:
+            drop-shadow(0 4px 12px rgba(0, 0, 0, 0.7))
+            drop-shadow(0 0 14px rgba(0, 229, 255, 0.35)) !important;
+        transition: transform 0.25s ease, filter 0.25s ease !important;
+    }
+
+    /* Card layout — stack logo above label */
+    .msn-right-sidebar .msn-rs-actions .msn-rs-card {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 12px !important;
+    }
+
+    /* Logo on hover — pop + brighten */
+    .msn-right-sidebar .msn-rs-actions .msn-rs-card:hover .msn-rs-card-logo {
+        transform: scale(1.08) !important;
+        filter:
+            drop-shadow(0 6px 16px rgba(0, 0, 0, 0.8))
+            drop-shadow(0 0 22px rgba(0, 229, 255, 0.6)) !important;
+    }
+
+    /* Label stays visible below the logo */
+    .msn-right-sidebar .msn-rs-actions .msn-rs-card-label {
+        position: relative !important;
+        z-index: 1 !important;
+    }
+}
 /* ═══════════════════════════════════════════════════════════════════
    ███  END OF FILE  ███
    ═══════════════════════════════════════════════════════════════════ */
