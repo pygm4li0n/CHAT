@@ -3805,12 +3805,12 @@ switchTab('public');
             {
                 el:   document.getElementById('headerThemeBtn'),
                 into: actionsWrap,
-                logo: 'https://i.postimg.cc/85PqTLJq/Chat-GPT-Image-14-sept-2026-03-21-20-a-m-(1).png'
+                logo: 'https://i.postimg.cc/5jcgpsN0/themes.png'
             },
             {
                 el:   document.getElementById('rankingsBtn'),
                 into: actionsWrap,
-                logo: 'https://i.postimg.cc/DZLKBM7S/Trofeo-dorado-de-clasificaciones-neon-(1).png'
+                logo: 'https://i.postimg.cc/hhFsM2PG/leaderboards.png'
             },
             {
                 el:   document.getElementById('modSettingsBtn'),
