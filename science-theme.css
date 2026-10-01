@@ -1825,3 +1825,77 @@ button.send-btn-main:disabled {
     border-color: var(--accent-cyan);
     box-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
 }
+
+/* =====================================================
+   CONTAINER-NAME MESSAGES — remove ALL glow (badge stays)
+   Add this at the very END of your stylesheet so it wins
+   the cascade against the base rules.
+
+   Triggers on either:
+     • a class on the wrapper:  .msg-wrapper.has-container-name
+     • or automatically via :has() if the bubble contains
+       .container-name / .msg-container-name
+===================================================== */
+
+/* ---------- BASE MESSAGE BUBBLE ---------- */
+.msg-wrapper.has-container-name .msg-bubble,
+.msg-wrapper.has-container-name .msg-bubble:hover,
+.msg-bubble:has(.container-name),
+.msg-bubble:has(.container-name):hover,
+.msg-bubble:has(.msg-container-name),
+.msg-bubble:has(.msg-container-name):hover {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+}
+
+/* own-message variant (magenta edge) */
+.msg-wrapper.own.has-container-name .msg-bubble,
+.msg-wrapper.own.has-container-name .msg-bubble:hover,
+.msg-wrapper.own .msg-bubble:has(.container-name),
+.msg-wrapper.own .msg-bubble:has(.container-name):hover,
+.msg-wrapper.own .msg-bubble:has(.msg-container-name),
+.msg-wrapper.own .msg-bubble:has(.msg-container-name):hover {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+}
+
+/* ---------- BADGE EMOJI (kept visible, glow removed) ---------- */
+.msg-wrapper.has-container-name .user-badge,
+.msg-wrapper.has-container-name .user-badge.small,
+.msg-wrapper.has-container-name .msg-username .user-badge,
+.msg-wrapper.has-container-name .msg-username .user-badge.small,
+.msg-bubble:has(.container-name) .user-badge,
+.msg-bubble:has(.container-name) .user-badge.small,
+.msg-bubble:has(.container-name) .msg-username .user-badge,
+.msg-bubble:has(.container-name) .msg-username .user-badge.small,
+.msg-bubble:has(.msg-container-name) .user-badge,
+.msg-bubble:has(.msg-container-name) .user-badge.small,
+.msg-bubble:has(.msg-container-name) .msg-username .user-badge,
+.msg-bubble:has(.msg-container-name) .msg-username .user-badge.small {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+}
+
+/* ---------- OTHER GLOWING PIECES INSIDE THE MESSAGE ---------- */
+.msg-wrapper.has-container-name .msg-image-wrap,
+.msg-wrapper.has-container-name .msg-image-wrap:hover,
+.msg-wrapper.has-container-name .reply-ref-block,
+.msg-wrapper.has-container-name .msg-avatar,
+.msg-wrapper.has-container-name .reaction-btn.active,
+.msg-bubble:has(.container-name) .msg-image-wrap,
+.msg-bubble:has(.container-name) .msg-image-wrap:hover,
+.msg-bubble:has(.container-name) .reply-ref-block,
+.msg-bubble:has(.container-name) .msg-avatar,
+.msg-bubble:has(.container-name) .reaction-btn.active,
+.msg-bubble:has(.msg-container-name) .msg-image-wrap,
+.msg-bubble:has(.msg-container-name) .msg-image-wrap:hover,
+.msg-bubble:has(.msg-container-name) .reply-ref-block,
+.msg-bubble:has(.msg-container-name) .msg-avatar,
+.msg-bubble:has(.msg-container-name) .reaction-btn.active {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+}
