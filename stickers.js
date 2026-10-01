@@ -46,7 +46,7 @@
         { key: 'THUMBUP', url: 'https://i.postimg.cc/hPF272Qp/THUMBUP.png' },
         { key: 'THUMBDOWN', url: 'https://i.postimg.cc/TY8tWt50/THUMBDOWN.png' },
         { key: 'HEART', url: 'https://i.postimg.cc/vHR060xX/HEART.png' },
-        { key: 'AWE', url: 'https://i.postimg.cc/RVrgngJg/AWE.png' },
+        { key: 'AWE', url: 'https://i.postimg.cc/4NbVrf8X/ezgif-com-gif-maker-(13)-(1).gif' },
         { key: 'SHRIMP', url: 'https://i.postimg.cc/fW8YYSPp/shrimp.png' },
         { key: 'CRAB', url: 'https://i.postimg.cc/MZ911fLC/crab.png' },
         { key: 'DOLPHIN', url: 'https://i.postimg.cc/XNs99BPt/Chat-GPT-Image-22-sept-2026-07-24-56-p-m-(1)-(1)-(3).png' },
