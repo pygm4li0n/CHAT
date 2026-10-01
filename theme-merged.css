@@ -3480,36 +3480,44 @@ html[data-theme="gold"] .msg-time {
 
 /* ═════════════════════════════════════════════════════
    ⚑ RIGHT SIDEBAR — CUSTOM LOGOS on SKINS / RANK / MOD
-   Replaces the emoji with a full-size logo image.
-   The label ("SKINS" / "RANK" / "MOD") stays below.
+   • Texture (::after soft-light image) stays intact
+   • Emoji text hidden via html body prefix + font-size: 0
+   • SKINS/RANK/MOD label hidden completely
+   • Only the logo <img> is visible
    ═════════════════════════════════════════════════════ */
 @media (min-width: 769px) {
 
-    /* Hide the emoji character — the logo replaces it */
-    .msn-right-sidebar .msn-rs-actions .msn-rs-card {
+    /* Card: flex column, center, kill emoji text.
+       html body prefix + !important beats the theme's 2rem rule. */
+    html body .msn-right-sidebar .msn-rs-actions .msn-rs-card,
+    html body .msn-right-sidebar .msn-rs-actions .btn-icon.msn-rs-card,
+    html body .msn-right-sidebar .msn-rs-actions .header-theme-btn.msn-rs-card,
+    html body .msn-right-sidebar .msn-rs-actions .rankings-btn.msn-rs-card {
         font-size: 0 !important;
-        position: relative !important;
-        overflow: hidden !important;
+        line-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0 !important;
+        padding: 0 !important;
     }
 
-    /* Kill the background-image treatment from theme-merged.css
-       (the ::after that painted a soft-light image behind the card).
-       The logo <img> is now the visual. */
-    .msn-right-sidebar .msn-rs-actions .msn-rs-card::after {
-        content: none !important;
+    /* Hide the label entirely */
+    html body .msn-right-sidebar .msn-rs-actions .msn-rs-card-label {
         display: none !important;
     }
 
-    /* The logo image — fills most of the card, centered */
-    .msn-right-sidebar .msn-rs-actions .msn-rs-card-logo {
+    /* The custom logo — the only visible content */
+    html body .msn-right-sidebar .msn-rs-actions .msn-rs-card-logo {
         display: block !important;
-        width: 60% !important;
-        max-width: 80px !important;
+        width: 70% !important;
+        max-width: 110px !important;
         height: auto !important;
-        max-height: 60% !important;
+        max-height: 70% !important;
         object-fit: contain !important;
         position: relative !important;
-        z-index: 1 !important;
+        z-index: 2 !important;
         pointer-events: none !important;
         filter:
             drop-shadow(0 4px 12px rgba(0, 0, 0, 0.7))
@@ -3517,27 +3525,12 @@ html[data-theme="gold"] .msg-time {
         transition: transform 0.25s ease, filter 0.25s ease !important;
     }
 
-    /* Card layout — stack logo above label */
-    .msn-right-sidebar .msn-rs-actions .msn-rs-card {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 12px !important;
-    }
-
-    /* Logo on hover — pop + brighten */
-    .msn-right-sidebar .msn-rs-actions .msn-rs-card:hover .msn-rs-card-logo {
-        transform: scale(1.08) !important;
+    /* Logo pop on hover */
+    html body .msn-right-sidebar .msn-rs-actions .msn-rs-card:hover .msn-rs-card-logo {
+        transform: scale(1.1) !important;
         filter:
-            drop-shadow(0 6px 16px rgba(0, 0, 0, 0.8))
-            drop-shadow(0 0 22px rgba(0, 229, 255, 0.6)) !important;
-    }
-
-    /* Label stays visible below the logo */
-    .msn-right-sidebar .msn-rs-actions .msn-rs-card-label {
-        position: relative !important;
-        z-index: 1 !important;
+            drop-shadow(0 6px 16px rgba(0, 0, 0, 0.85))
+            drop-shadow(0 0 24px rgba(0, 229, 255, 0.65)) !important;
     }
 }
 /* ═══════════════════════════════════════════════════════════════════
