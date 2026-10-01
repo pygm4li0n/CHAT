@@ -3509,12 +3509,12 @@ html[data-theme="gold"] .msg-time {
     }
 
     /* The custom logo — the only visible content */
-    html body .msn-right-sidebar .msn-rs-actions .msn-rs-card-logo {
+        html body .msn-right-sidebar .msn-rs-actions .msn-rs-card-logo {
         display: block !important;
-        width: 70% !important;
-        max-width: 110px !important;
+        width: 80% !important;
+        max-width: 127px !important;
         height: auto !important;
-        max-height: 70% !important;
+        max-height: 80% !important;
         object-fit: contain !important;
         position: relative !important;
         z-index: 2 !important;
