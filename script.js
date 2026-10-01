@@ -2448,7 +2448,13 @@ function showSuccess(msg) {
             if (editBtn) editBtn.addEventListener('click', (e) => { e.stopPropagation(); startEditMessage(msg, isPrivate); });
             if (deleteBtn) deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteMessage(msg, isPrivate); });
         }
-        updateReactionUI(wrapper, isPrivate, isWhale);
+            updateReactionUI(wrapper, isPrivate, isWhale);
+
+        // ⚑ Transform stickers synchronously so the raw marker is never
+        //   visible — no flicker, no container shape flash.
+        if (window.MSNStickers && typeof window.MSNStickers.transformMessage === 'function') {
+            try { window.MSNStickers.transformMessage(wrapper); } catch (e) {}
+        }
 
         return wrapper;
     }
