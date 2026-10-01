@@ -243,7 +243,6 @@ body {
     border: none;
     text-shadow: 0 1px 2px rgba(0,0,0,.6);
 }
-.big-rank::before { content: '🍒 '; filter: var(--cherry-pop); }
 .big-rank.hidden { display: none; }
 
 .sidebar-section-label {
@@ -479,7 +478,6 @@ body {
     background: var(--gloss-cherry);
     box-shadow: var(--bevel-gloss), 0 0 20px rgba(255,45,85,.75), 0 0 38px rgba(255,45,85,.35);
 }
-.badge-pill.connected-pill::before { content: '🍒'; filter: var(--cherry-pop); }
 .badge-pill.disconnected-pill {
     border-color: transparent; color: #ffd4de;
     background: linear-gradient(180deg, #5a1020, #3a0a14);
@@ -780,7 +778,7 @@ body {
 
 .btn-upload-img {
     width: 42px; height: 42px;
-    border-radius: 50%;
+    border-radius: 14px;
     background: var(--chrome);
     border: 1px solid var(--border-default);
     color: var(--text-primary);
@@ -1162,3 +1160,137 @@ button.send-btn-main:disabled::before { filter: grayscale(1); opacity: .5; }
 }
 .theme-select:hover { border-color: var(--accent-cyan); box-shadow: var(--bevel-out), var(--glow-cyan); }
 .theme-select:focus { outline: none; border-color: var(--accent-cyan); box-shadow: var(--bevel-out), var(--glow-cyan); }
+
+
+/* =====================================================
+   v2.1 – OTHERS vs OWN MESSAGES, SQUIRCLE BUTTONS, CLEANUP
+===================================================== */
+
+/* ---- remove the dot on active users ---- */
+.sidebar-user-item .online-indicator { display: none !important; }
+
+/* ---- shared sheen sweep on bubbles ---- */
+.msg-bubble::after {
+    content: '';
+    position: absolute; top: 0; left: -70%;
+    width: 45%; height: 100%;
+    background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,.14) 50%, transparent 100%);
+    transform: skewX(-18deg);
+    transition: left .9s ease;
+    pointer-events: none;
+}
+.msg-bubble:hover::after { left: 130%; }
+
+/* ---- OTHER USERS: smoked rose-glass, cool and clean ---- */
+.msg-wrapper:not(.own) .msg-bubble {
+    background:
+        radial-gradient(circle at 0% 0%, rgba(255,179,193,.16) 0%, transparent 55%),
+        linear-gradient(160deg, #3a2730 0%, #1b1015 100%);
+    border: 1px solid rgba(255,190,205,.34);
+    border-radius: 4px var(--radius-lg) var(--radius-lg) var(--radius-lg);
+    box-shadow:
+        0 0 18px rgba(255,179,193,.16),
+        0 6px 16px rgba(0,0,0,.55),
+        inset 0 1px 0 rgba(255,255,255,.2);
+}
+.msg-wrapper:not(.own) .msg-bubble:hover {
+    border-color: rgba(255,205,217,.6);
+    box-shadow:
+        0 0 26px rgba(255,179,193,.34),
+        0 0 50px rgba(255,179,193,.14),
+        0 6px 18px rgba(0,0,0,.55),
+        inset 0 1px 0 rgba(255,255,255,.28);
+}
+.msg-wrapper:not(.own) .msg-username {
+    color: #ffc9d5;
+    text-shadow: 0 0 10px rgba(255,179,193,.55), 0 1px 0 #000;
+}
+.msg-wrapper:not(.own) .msg-username::before {
+    content: '\2726';              /* ✦ pale star for others */
+    color: #ffd4de;
+    font-size: .7rem;
+    filter: drop-shadow(0 0 5px rgba(255,179,193,.9));
+}
+.msg-wrapper:not(.own) .msg-text {
+    color: #fff6f8;
+    text-shadow: 0 0 8px rgba(255,179,193,.16);
+}
+.msg-wrapper:not(.own) .msg-avatar { border-color: #ffc2cf; box-shadow: 0 0 10px rgba(255,179,193,.5); }
+
+/* ---- OWN: vivid candy-cherry, bold ---- */
+.msg-wrapper.own .msg-bubble {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255,120,150,.35) 0%, transparent 55%),
+        linear-gradient(180deg, #8a1f3c 0%, #4a1226 55%, #35101d 100%);
+    border: 1px solid rgba(255,110,140,.85);
+    border-radius: var(--radius-lg) 4px var(--radius-lg) var(--radius-lg);
+    box-shadow:
+        0 0 22px rgba(255,45,85,.6),
+        0 0 46px rgba(255,45,85,.26),
+        0 6px 16px rgba(0,0,0,.55),
+        inset 0 1px 0 rgba(255,255,255,.32);
+}
+.msg-wrapper.own .msg-username { color: #ff7f9a; justify-content: flex-end; }
+.msg-wrapper.own .msg-username::before { content: '🍒'; }
+
+/* ---- IMAGE + STICKER BUTTONS: squircle with effects ---- */
+.btn-upload-img,
+.input-row-wrap > button:not(.send-btn-main) {
+    width: 42px; height: 42px;
+    border-radius: 14px;
+    background: var(--chrome);
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+    cursor: pointer; font-size: 1.05rem;
+    flex-shrink: 0;
+    transition: transform .25s cubic-bezier(.3,1.6,.5,1), box-shadow .25s, border-color .25s, background .25s;
+    box-shadow: var(--bevel-out), 0 3px 8px rgba(0,0,0,.45);
+}
+/* glass dome gloss */
+.btn-upload-img::before,
+.input-row-wrap > button:not(.send-btn-main)::before {
+    content: '';
+    position: absolute; left: 0; right: 0; top: 0; height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,0));
+    border-radius: 14px 14px 40% 40%;
+    pointer-events: none;
+}
+/* light sweep */
+.btn-upload-img::after,
+.input-row-wrap > button:not(.send-btn-main)::after {
+    content: '';
+    position: absolute; top: -20%; left: -80%;
+    width: 50%; height: 140%;
+    background: linear-gradient(105deg, transparent, rgba(255,255,255,.4), transparent);
+    transform: skewX(-18deg);
+    transition: left .55s ease;
+    pointer-events: none;
+}
+.btn-upload-img:hover,
+.input-row-wrap > button:not(.send-btn-main):hover {
+    background: var(--gloss-cherry);
+    border-color: transparent;
+    transform: translateY(-3px) rotate(-4deg) scale(1.06);
+    box-shadow: var(--bevel-gloss), 0 8px 18px rgba(0,0,0,.5), 0 0 22px rgba(255,45,85,.85), 0 0 44px rgba(255,45,85,.4);
+    animation: squircleRing 1.4s ease-out infinite;
+}
+.btn-upload-img:hover::after,
+.input-row-wrap > button:not(.send-btn-main):hover::after { left: 130%; }
+.btn-upload-img:active,
+.input-row-wrap > button:not(.send-btn-main):active {
+    transform: translateY(1px) scale(.94);
+    box-shadow: var(--bevel-in), 0 0 14px rgba(255,45,85,.6);
+    animation: none;
+}
+.btn-upload-img.has-image {
+    background: var(--gloss-cherry);
+    border-color: transparent;
+    box-shadow: var(--bevel-gloss), 0 0 18px rgba(255,45,85,.7);
+}
+.btn-upload-img.uploading { animation: spin .8s linear infinite; }
+@keyframes squircleRing {
+    0%   { outline: 0 solid rgba(255,45,85,.55); outline-offset: 0; }
+    100% { outline: 7px solid rgba(255,45,85,0); outline-offset: 5px; }
+}
