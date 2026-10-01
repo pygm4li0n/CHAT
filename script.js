@@ -2147,17 +2147,26 @@ function showSuccess(msg) {
         updateReactionUI(w, isPrivate, isWhale);
     });
 }
-        function subscribeReactions() {
+            function subscribeReactions() {
         if (reactionsChannel) supabase.removeChannel(reactionsChannel);
         reactionsChannel = supabase.channel('pub-react')
-            .on('postgres_changes', { event:'*', schema:'public', table:'message_reactions' }, () => {
-                // Public + whale share the same table — repaint both.
-                loadReactions('message_reactions', false);
-                if (whaleContainer && whaleContainer.querySelectorAll('.msg-wrapper').length) {
-                    loadReactions('message_reactions', false, true);
-                }
-            })
+            .on('postgres_changes', { event:'*', schema:'public', table:'message_reactions' },
+                () => loadReactions('message_reactions', false))
             .subscribe();
+
+        // Separate channel for whale reactions (its own table now).
+        if (privReactionsChannel) supabase.removeChannel(privReactionsChannel);
+        privReactionsChannel = supabase.channel('priv-react')
+            .on('postgres_changes', { event:'*', schema:'public', table:'private_message_reactions' },
+                () => loadReactions('private_message_reactions', true))
+            .on('postgres_changes', { event:'*', schema:'public', table:'whale_message_reactions' },
+                () => {
+                    if (whaleContainer && whaleContainer.querySelectorAll('.msg-wrapper').length) {
+                        loadReactions('whale_message_reactions', false, true);
+                    }
+                })
+            .subscribe();
+    }
         if (privReactionsChannel) supabase.removeChannel(privReactionsChannel);
         privReactionsChannel = supabase.channel('priv-react')
             .on('postgres_changes', { event:'*', schema:'public', table:'private_message_reactions' }, () => loadReactions('private_message_reactions', true))
@@ -2207,9 +2216,10 @@ function showSuccess(msg) {
     async function toggleReaction(messageId, emoji, isPrivate, isWhale, btnEl) {
     if (!username) { showError('Set your username first'); return; }
 
-    // Whale reactions reuse the public message_reactions table.
-    // Message IDs are UUIDs — no collision risk.
-       const table = isPrivate ? 'private_message_reactions' : 'message_reactions';
+        // Whale reactions get their own table — FK-safe, no ID collisions.
+    const table = isWhale
+        ? 'whale_message_reactions'
+        : (isPrivate ? 'private_message_reactions' : 'message_reactions');
     const store = isWhale
         ? whaleMessageReactions
         : (isPrivate ? privateMessageReactions : messageReactions);
@@ -3256,7 +3266,7 @@ function showSuccess(msg) {
                 requestAnimationFrame(() => { whaleContainer.scrollTop = whaleContainer.scrollHeight; });
 
                 // ⚑ Load reactions for whale messages too (reuses message_reactions).
-                loadReactions('message_reactions', false, true);
+                loadReactions('whale_message_reactions', false, true);
 
                 whaleLoadedOnce = true;
             } catch (err) {
