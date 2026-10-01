@@ -2147,31 +2147,26 @@ function showSuccess(msg) {
         updateReactionUI(w, isPrivate, isWhale);
     });
 }
-            function subscribeReactions() {
-        if (reactionsChannel) supabase.removeChannel(reactionsChannel);
-        reactionsChannel = supabase.channel('pub-react')
-            .on('postgres_changes', { event:'*', schema:'public', table:'message_reactions' },
-                () => loadReactions('message_reactions', false))
-            .subscribe();
+            function sfunction subscribeReactions() {
+    if (reactionsChannel) supabase.removeChannel(reactionsChannel);
+    reactionsChannel = supabase.channel('pub-react')
+        .on('postgres_changes', { event:'*', schema:'public', table:'message_reactions' },
+            () => loadReactions('message_reactions', false))
+        .subscribe();
 
-        // Separate channel for whale reactions (its own table now).
-        if (privReactionsChannel) supabase.removeChannel(privReactionsChannel);
-        privReactionsChannel = supabase.channel('priv-react')
-            .on('postgres_changes', { event:'*', schema:'public', table:'private_message_reactions' },
-                () => loadReactions('private_message_reactions', true))
-            .on('postgres_changes', { event:'*', schema:'public', table:'whale_message_reactions' },
-                () => {
-                    if (whaleContainer && whaleContainer.querySelectorAll('.msg-wrapper').length) {
-                        loadReactions('whale_message_reactions', false, true);
-                    }
-                })
-            .subscribe();
-    }
-        if (privReactionsChannel) supabase.removeChannel(privReactionsChannel);
-        privReactionsChannel = supabase.channel('priv-react')
-            .on('postgres_changes', { event:'*', schema:'public', table:'private_message_reactions' }, () => loadReactions('private_message_reactions', true))
-            .subscribe();
-    }
+    // Separate channel for whale reactions (its own table now).
+    if (privReactionsChannel) supabase.removeChannel(privReactionsChannel);
+    privReactionsChannel = supabase.channel('priv-react')
+        .on('postgres_changes', { event:'*', schema:'public', table:'private_message_reactions' },
+            () => loadReactions('private_message_reactions', true))
+        .on('postgres_changes', { event:'*', schema:'public', table:'whale_message_reactions' },
+            () => {
+                if (whaleContainer && whaleContainer.querySelectorAll('.msg-wrapper').length) {
+                    loadReactions('whale_message_reactions', false, true);
+                }
+            })
+        .subscribe();
+}
        /* ═══════════════════════════════════════════════════════════
        REACTIONS — optimistic, self-healing, centered
        ───────────────────────────────────────────────────────────
