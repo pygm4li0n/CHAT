@@ -2209,9 +2209,8 @@ function showSuccess(msg) {
 
     // Whale reactions reuse the public message_reactions table.
     // Message IDs are UUIDs — no collision risk.
-    const table = isPrivate ? 'private_message_reactions' : 'message_reactions';
+       const table = isPrivate ? 'private_message_reactions' : 'message_reactions';
     const store = isWhale
-    console.log('[reaction-debug] click', { messageId, emoji, isPrivate, isWhale, table });    
         ? whaleMessageReactions
         : (isPrivate ? privateMessageReactions : messageReactions);
 
@@ -2249,16 +2248,14 @@ function showSuccess(msg) {
                     .delete()
                     .match({ message_id: messageId, username, emoji });
                 if (error) throw error;
-                console.log('[reaction-debug] delete ok', { messageId, emoji });
             } else {
                 const { error } = await supabase.from(table)
                     .insert({ message_id: messageId, username, emoji });
                 if (error && !/duplicate|unique/i.test(error.message || '')) throw error;
-                console.log('[reaction-debug] insert ok', { messageId, emoji, error });
             }
-        } catch (err) {
+                } catch (err) {
             /* ── 5. Roll back ── */
-            console.warn('[reaction-debug] SAVE FAILED:', err);
+            console.warn('[reaction] save failed — rolling back:', err);
             if (wasActive) {
                 bucket.users.add(username);
                 bucket.count += 1;
