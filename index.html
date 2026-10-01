@@ -225,7 +225,7 @@
                 science:  'science-theme.css?v=70',
                 lava:     'lava-theme.css?v=70'
             };
-            var saved = localStorage.getItem(THEME_KEY) || 'original';
+            var saved = localStorage.getItem(THEME_KEY) || 'science';
             var href = themes[saved] || themes.original;
             document.write('<link id="themeStylesheet" rel="stylesheet" href="' + href + '">');
         })();
@@ -497,10 +497,6 @@
         <div class="overlay-card theme-overlay-card">
             <h3>Select Theme</h3>
             <div class="theme-options">
-                <button class="theme-option" data-theme="original">
-                    <span class="emoji">🎨</span>
-                    <span class="theme-name">OG</span>
-                </button>
                 <button class="theme-option" data-theme="orange">
                     <span class="emoji">🟠</span>
                     <span class="theme-name">Orange</span>
@@ -764,7 +760,7 @@
             });
 
             highlightCurrentTheme();
-            setTheme(localStorage.getItem(THEME_KEY) || 'original');
+            setTheme(localStorage.getItem(THEME_KEY) || 'science');
 
             window.setTheme = setTheme;
             window.getCurrentTheme = () => localStorage.getItem(THEME_KEY) || 'original';
