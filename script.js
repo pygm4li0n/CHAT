@@ -2147,7 +2147,7 @@ function showSuccess(msg) {
         updateReactionUI(w, isPrivate, isWhale);
     });
 }
-            function sfunction subscribeReactions() {
+            function subscribeReactions() {
     if (reactionsChannel) supabase.removeChannel(reactionsChannel);
     reactionsChannel = supabase.channel('pub-react')
         .on('postgres_changes', { event:'*', schema:'public', table:'message_reactions' },
