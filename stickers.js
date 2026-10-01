@@ -628,7 +628,7 @@ if (isWhale) {
     setTimeout(injectButtonAndPicker, 800);
     setTimeout(injectButtonAndPicker, 2000);
 
-    window.MSNStickers = {
+        window.MSNStickers = {
         send: sendSticker,
         stickers: STICKERS,
         open: openPicker,
@@ -637,7 +637,11 @@ if (isWhale) {
         refresh: function () {
             scanContainer(document.getElementById('publicMessagesContainer'));
             scanContainer(document.getElementById('privateMessagesContainer'));
-        }
+            scanContainer(document.getElementById('whaleMessagesContainer'));
+        },
+        // Exposed so script.js can transform stickers synchronously
+        // inside buildMessageNode — no flicker before the observer fires.
+        transformMessage: transformMessage
     };
 
     console.log('[stickers] v11 loaded — ' + STICKERS.length + ' sticker(s), bare render + contrast');
