@@ -2211,6 +2211,7 @@ function showSuccess(msg) {
     // Message IDs are UUIDs — no collision risk.
     const table = isPrivate ? 'private_message_reactions' : 'message_reactions';
     const store = isWhale
+    console.log('[reaction-debug] click', { messageId, emoji, isPrivate, isWhale, table });    
         ? whaleMessageReactions
         : (isPrivate ? privateMessageReactions : messageReactions);
 
@@ -2242,20 +2243,22 @@ function showSuccess(msg) {
            Toggle-ON uses insert; a duplicate/unique error means
            the row is already there — that's success, not failure.
            Toggle-OFF deletes; 0-row match is fine. */
-        try {
+                try {
             if (wasActive) {
                 const { error } = await supabase.from(table)
                     .delete()
                     .match({ message_id: messageId, username, emoji });
                 if (error) throw error;
+                console.log('[reaction-debug] delete ok', { messageId, emoji });
             } else {
                 const { error } = await supabase.from(table)
                     .insert({ message_id: messageId, username, emoji });
                 if (error && !/duplicate|unique/i.test(error.message || '')) throw error;
+                console.log('[reaction-debug] insert ok', { messageId, emoji, error });
             }
         } catch (err) {
             /* ── 5. Roll back ── */
-            console.warn('[reaction] save failed — rolling back:', err);
+            console.warn('[reaction-debug] SAVE FAILED:', err);
             if (wasActive) {
                 bucket.users.add(username);
                 bucket.count += 1;
