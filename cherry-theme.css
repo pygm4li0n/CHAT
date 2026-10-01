@@ -360,7 +360,7 @@ body {
     50% { box-shadow: 0 0 22px rgba(255,45,85,.95), 0 0 40px rgba(255,45,85,.4); }
 }
 
-.sidebar-user-item.you-tag .user-name::after { content: ' (you) 🍒'; color: var(--accent-cherry-light); font-weight: 700; font-size: .7rem; }
+.sidebar-user-item.you-tag .user-name::after { content: ' (you)'; color: var(--accent-cherry-light); font-weight: 700; font-size: .7rem; }
 .no-users-sidebar { text-align: center; color: var(--text-muted); font-style: italic; font-size: .8rem; padding: 20px 10px; font-family: var(--font-mono); }
 .no-users-sidebar::before { content: '🍒'; display: block; font-size: 1.6rem; margin-bottom: 6px; opacity: .6; }
 
@@ -1166,20 +1166,18 @@ button.send-btn-main:disabled::before { filter: grayscale(1); opacity: .5; }
    v2.1 – OTHERS vs OWN MESSAGES, SQUIRCLE BUTTONS, CLEANUP
 ===================================================== */
 
-/* ---- remove the dot on active users ---- */
-.sidebar-user-item .online-indicator { display: none !important; }
-
-/* ---- shared sheen sweep on bubbles ---- */
-.msg-bubble::after {
-    content: '';
-    position: absolute; top: 0; left: -70%;
-    width: 45%; height: 100%;
-    background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,.14) 50%, transparent 100%);
-    transform: skewX(-18deg);
-    transition: left .9s ease;
-    pointer-events: none;
+/* ---- active users: NO dots, just the cherry ---- */
+.sidebar-user-item .online-indicator,
+.sidebar-user-item [class*="dot"],
+.sidebar-user-item [class*="indicator"],
+.sidebar-user-item [class*="presence"],
+.sidebar-user-item .user-avatar::before { display: none !important; }
+.sidebar-user-item .user-name::before {
+    content: '🍒';
+    margin-right: 6px;
+    font-size: .8rem;
+    filter: drop-shadow(0 0 6px rgba(255,45,85,.95));
 }
-.msg-bubble:hover::after { left: 130%; }
 
 /* ---- OTHER USERS: smoked rose-glass, cool and clean ---- */
 .msg-wrapper:not(.own) .msg-bubble {
@@ -1294,3 +1292,53 @@ button.send-btn-main:disabled::before { filter: grayscale(1); opacity: .5; }
     0%   { outline: 0 solid rgba(255,45,85,.55); outline-offset: 0; }
     100% { outline: 7px solid rgba(255,45,85,0); outline-offset: 5px; }
 }
+
+
+/* =====================================================
+   v2.2 – CLEAN HIGH-CONTRAST MESSAGES (no sweep effects)
+===================================================== */
+.msg-bubble::after { content: none !important; }
+.msg-bubble, .msg-bubble:hover { transform: none; }
+
+/* OTHERS: near-black glass, bright rose edge */
+.msg-wrapper:not(.own) .msg-bubble {
+    background: linear-gradient(160deg, #2d1b24 0%, #0e070a 100%);
+    border: 1px solid rgba(255,205,218,.6);
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,.65),
+        0 0 22px rgba(255,179,193,.24),
+        0 8px 18px rgba(0,0,0,.65),
+        inset 0 1px 0 rgba(255,255,255,.22);
+}
+.msg-wrapper:not(.own) .msg-bubble:hover {
+    border-color: rgba(255,225,233,.85);
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,.65),
+        0 0 30px rgba(255,179,193,.38),
+        0 8px 18px rgba(0,0,0,.65),
+        inset 0 1px 0 rgba(255,255,255,.28);
+}
+.msg-wrapper:not(.own) .msg-text { color: #ffffff; }
+
+/* OWN: saturated candy cherry */
+.msg-wrapper.own .msg-bubble {
+    background: linear-gradient(170deg, #d4144a 0%, #8a0f2e 50%, #4a0a1c 100%);
+    border: 1px solid rgba(255,150,172,.95);
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,.55),
+        0 0 26px rgba(255,45,85,.7),
+        0 0 54px rgba(255,45,85,.3),
+        0 8px 18px rgba(0,0,0,.6),
+        inset 0 1px 0 rgba(255,255,255,.45);
+}
+.msg-wrapper.own .msg-bubble:hover {
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,.55),
+        0 0 34px rgba(255,45,85,.9),
+        0 0 66px rgba(255,45,85,.4),
+        0 8px 18px rgba(0,0,0,.6),
+        inset 0 1px 0 rgba(255,255,255,.5);
+}
+.msg-wrapper.own .msg-text { color: #ffffff; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.msg-wrapper.own .msg-username { color: #ffe3ea; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.msg-wrapper.own .msg-time { color: #ffc2cf; }
