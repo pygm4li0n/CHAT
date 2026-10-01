@@ -3404,6 +3404,24 @@ html body .msg-wrapper.sticker-msg .reaction-btn .reaction-count {
         font-size: 0.6rem;
     }
 }
+
+/* ═════════════════════════════════════════════════════
+   ⚑ GOLD RUSH — username in black (no green halo)
+   Overrides the global #45FF6E rule above.
+   ═════════════════════════════════════════════════════ */
+body.gold-theme .msg-username,
+html[data-theme="gold"] .msg-username {
+    color: #000000 !important;
+    text-shadow: none !important;
+}
+
+body.gold-theme .msg-username .msg-time,
+html[data-theme="gold"] .msg-username .msg-time,
+body.gold-theme .msg-time,
+html[data-theme="gold"] .msg-time {
+    color: #1a1a1a !important;
+    text-shadow: none !important;
+}
 /* ═══════════════════════════════════════════════════════════════════
    ███  END OF FILE  ███
    ═══════════════════════════════════════════════════════════════════ */
