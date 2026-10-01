@@ -3826,7 +3826,7 @@ switchTab('public');
             {
                 el:   document.getElementById('modSettingsBtn'),
                 into: actionsWrap,
-                logo: 'https://i.postimg.cc/90GTkrdk/images-(33).png'
+                logo: 'https://i.postimg.cc/90PKM8dY/image-2026-10-01T145005-076.png'
             },
         ];
 
