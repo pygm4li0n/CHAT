@@ -2326,10 +2326,21 @@ function showSuccess(msg) {
                 catch (e) { /* ignore */ }
             }
         }
-
         // Legacy username fallback — only for messages with no wallet
         if (!msgWallet && !getAvatarURL(user)) {
             await fetchAvatars([user]);
+        }
+
+                // ⚑ Ensure the sender's token_balance is cached so the badge shows.
+        //   Realtime inserts skip loadMessages' prewarm, so on the first
+        //   message from a user we need to fetch their profile here.
+        //   Guard prevents parallel duplicate fetches during message bursts.
+        window.__msnBalanceFetch = window.__msnBalanceFetch || {};
+        if (user && !(user in userBalances) && !window.__msnBalanceFetch[user]) {
+            window.__msnBalanceFetch[user] = true;
+            try { await fetchAvatars([user]); } catch (e) { /* ignore */ }
+            if (!(user in userBalances)) userBalances[user] = null;
+            delete window.__msnBalanceFetch[user];
         }
 
         const isOwn      = user === username;
