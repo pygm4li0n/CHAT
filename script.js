@@ -1625,10 +1625,12 @@ let whaleMessageReactions = {};   // whale chat reuses the message_reactions tab
         const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
         scrollBottomBtn.classList.toggle('visible', !isNearBottom);
     }
-    [publicContainer, privateContainer].forEach(container => {
+        [publicContainer, privateContainer, whaleContainer].forEach(container => {
+        if (!container) return;
         container.addEventListener('scroll', () => {
             if (container === publicContainer && currentTab === 'public') updateScrollButtonVisibility(container);
             else if (container === privateContainer && currentTab === 'private') updateScrollButtonVisibility(container);
+            else if (container === whaleContainer && currentTab === 'whale') updateScrollButtonVisibility(container);
         });
     });
 
@@ -1719,8 +1721,12 @@ let whaleMessageReactions = {};   // whale chat reuses the message_reactions tab
         }
     }, { passive: true });
 
-    scrollBottomBtn.addEventListener('click', () => {
-        const container = currentTab === 'public' ? publicContainer : privateContainer;
+      scrollBottomBtn.addEventListener('click', () => {
+        let container;
+        if (currentTab === 'whale')        container = whaleContainer;
+        else if (currentTab === 'private') container = privateContainer;
+        else                               container = publicContainer;
+        if (!container) return;
         autoScroll = true;
         container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
         setTimeout(() => updateScrollButtonVisibility(container), 300);
@@ -2796,10 +2802,13 @@ function showSuccess(msg) {
             // ⚑ Pinned belongs to public — hide on whale tab
             if (modMessageBox) modMessageBox.classList.add('hidden');
 
-            loadWhaleMessages();
+                        loadWhaleMessages();
             updateChatAccessibility();
             autoScroll = true;
-            setTimeout(() => { scrollContainerToBottom(whaleContainer); }, 150);
+            setTimeout(() => {
+                scrollContainerToBottom(whaleContainer);
+                updateScrollButtonVisibility(whaleContainer);
+            }, 150);
         } else {
             publicContainer.classList.add('hidden');
             whaleContainer.classList.add('hidden');
@@ -4530,7 +4539,7 @@ subscribeToPrivateRequests();
     return Math.max(1, Math.floor((1 + Math.sqrt(1 + (xp * 4 / 25))) / 2));
   }
 
-  function updateLevelBadge(level, xp, inLevel, needed) {
+    function updateLevelBadge(level, xp, inLevel, needed, xpToday) {
     const el = document.getElementById('sidebarBigLevel');
     if (!el) return;
     if (!level || level < 1) { el.textContent = ''; el.classList.add('hidden'); return; }
@@ -4538,27 +4547,37 @@ subscribeToPrivateRequests();
       const a = xpForLevel(level), b = xpForLevel(level + 1);
       inLevel = (xp || 0) - a; needed = b - a;
     }
-    el.textContent = `⭐ Lv.${level}  (${inLevel}/${needed})`;
+    const today = Number(xpToday) || 0;
+    el.textContent = today > 0
+      ? `⭐ Lv.${level}  (${inLevel}/${needed})  ·  +${today} today`
+      : `⭐ Lv.${level}  (${inLevel}/${needed})`;
     el.classList.remove('hidden');
   }
 
-  let lastWallet = null;
+    let lastWallet = null;
   async function loadXp(wallet) {
     if (!wallet) { updateLevelBadge(null, 0); return; }
     try {
       const { data, error } = await supabase.rpc('get_xp_by_wallet', { p_wallet: wallet });
       if (!error && data && data.length) {
         const row = Array.isArray(data) ? data[0] : data;
-        updateLevelBadge(row.level || levelFromXp(row.xp || 0), row.xp, row.in_level, row.needed);
+        updateLevelBadge(
+          row.level || levelFromXp(row.xp || 0),
+          row.xp,
+          row.in_level,
+          row.needed,
+          row.xp_today
+        );
         return;
       }
     } catch {}
     try {
-      const { data, error } = await supabase.from('profiles').select('xp')
+      const { data, error } = await supabase.from('profiles')
+        .select('xp, xp_today')
         .eq('wallet_address', wallet).limit(1).maybeSingle();
       if (error || !data) { updateLevelBadge(null, 0); return; }
       const xp = Number(data.xp || 0);
-      updateLevelBadge(levelFromXp(xp), xp);
+      updateLevelBadge(levelFromXp(xp), xp, null, null, data.xp_today);
     } catch (e) { console.warn('[xp] load error:', e); }
   }
 
@@ -4830,11 +4849,11 @@ let tier     = badgeFromBalance(balRaw);
     const w = getWalletAddress();
     if (!w) return null;
     try {
-      const { data, error } = await supabase.rpc('add_xp', { p_wallet: w, p_message_id: messageId });
+            const { data, error } = await supabase.rpc('add_xp', { p_wallet: w, p_message_id: messageId });
       if (error || !data || data.error) return null;
       if (data.granted > 0) {
         const lvl = data.level || levelFromXp(data.xp || 0);
-        updateLevelBadge(lvl, data.xp, data.in_level, data.needed);
+        updateLevelBadge(lvl, data.xp, data.in_level, data.needed, data.xp_today);
       }
       if (data.leveled_up) showSuccess(`🎉 Level ${data.level} reached!`);
       return data;
