@@ -519,9 +519,12 @@
             ═══════════════════════════════════════════════════════════ */
 
             #whaleMessagesContainer {
-                position: relative !important;
-                overflow: hidden !important;
-            }
+    position: relative !important;
+    /* keep it a scroll container — do NOT use overflow:hidden here.
+       bubbles/rays clip themselves inside .msn-whale-bubbles. */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
 
             /* Ocean depth gradient — always behind everything */
             #whaleMessagesContainer::before {
