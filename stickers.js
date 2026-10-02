@@ -595,7 +595,24 @@ if (isWhale) {
         else { payload.username = me; }
 
         try {
-            var res = await sb.from(table).insert([payload]).select().single();
+                        var res;
+            if (isPrivate) {
+                res = await sb.rpc('post_private_message', {
+                    p_wallet:    getWalletAddress(),
+                    p_username:  me,
+                    p_to_user:   partner,
+                    p_message:   '__sticker:' + key + '__',
+                    p_image_url: null
+                });
+            } else {
+                res = await sb.rpc('post_public_message', {
+                    p_wallet:    getWalletAddress(),
+                    p_username:  me,
+                    p_message:   '__sticker:' + key + '__',
+                    p_image_url: null
+                });
+            }
+            res.data = Array.isArray(res.data) ? res.data[0] : res.data;
             if (res.error) throw res.error;
 
             try {
