@@ -476,7 +476,7 @@
                 }
             }
 
-                      /* ═══════════════════════════════════════════════════════════
+         /* ═══════════════════════════════════════════════════════════
                ⚑ USERNAME READABILITY — text-only contrast (no container)
                  No pill, no background. Just an outline + halo so the
                  name stays readable on any background (stickers, images).
@@ -513,95 +513,202 @@
             }
 
                         /* ═══════════════════════════════════════════════════════════
-               ⚑ WHALE CHAT — locked view (non-whales)
+               ⚑            /* ═══════════════════════════════════════════════════════════
+               ⚑ WHALE CHAT — EPIC SEA EDITION
+               Locked = full ocean scene. Unlocked = subtle bubbles behind.
             ═══════════════════════════════════════════════════════════ */
-            #whaleMessagesContainer.whale-locked {
-                position: relative;
-                overflow: hidden;
-            }
-            .whale-blur-preview {
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-                padding: 4px;
-                filter: blur(8px) saturate(0.7);
-                opacity: 0.55;
-                pointer-events: none;
-                user-select: none;
-            }
-            .whale-fake-msg {
-                height: 58px;
-                border-radius: 10px;
-                width: 68%;
-                background: linear-gradient(90deg,
-                    var(--bg-elevated, rgba(255,255,255,0.06)) 0%,
-                    var(--bg-hover, rgba(255,255,255,0.11)) 55%,
-                    var(--bg-elevated, rgba(255,255,255,0.06)) 100%);
-                border: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
-            }
-            .whale-fake-msg.short {
-                width: 52%;
-                align-self: flex-end;
+
+            #whaleMessagesContainer {
+                position: relative !important;
+                overflow: hidden !important;
             }
 
+            /* Ocean depth gradient — always behind everything */
+            #whaleMessagesContainer::before {
+                content: '' !important;
+                position: absolute !important;
+                inset: 0 !important;
+                pointer-events: none !important;
+                z-index: 0 !important;
+                background:
+                    radial-gradient(ellipse at 50% 0%,
+                        color-mix(in srgb, var(--accent-cyan, #01E1EA) 6%, transparent) 0%,
+                        transparent 55%),
+                    linear-gradient(180deg,
+                        color-mix(in srgb, var(--bg-deep, #050914) 60%, #001830 40%) 0%,
+                        var(--bg-deep, #050914) 100%) !important;
+            }
+
+            /* Stronger ocean tint when locked */
+            #whaleMessagesContainer.whale-locked::before {
+                background:
+                    radial-gradient(ellipse at 50% 0%,
+                        color-mix(in srgb, var(--accent-cyan, #01E1EA) 14%, transparent) 0%,
+                        transparent 60%),
+                    linear-gradient(180deg,
+                        color-mix(in srgb, var(--bg-deep, #050914) 50%, #002448 50%) 0%,
+                        color-mix(in srgb, var(--bg-deep, #050914) 85%, #000a18 15%) 100%) !important;
+            }
+
+            /* ── Bubble layer ── */
+            .msn-whale-bubbles {
+                position: absolute !important;
+                inset: 0 !important;
+                pointer-events: none !important;
+                overflow: hidden !important;
+                z-index: 1 !important;
+            }
+            .msn-whale-bubble {
+                position: absolute !important;
+                bottom: -60px !important;
+                border-radius: 50% !important;
+                background: radial-gradient(circle at 30% 30%,
+                    rgba(255, 255, 255, 0.28) 0%,
+                    color-mix(in srgb, var(--accent-cyan, #01E1EA) 22%, transparent) 45%,
+                    transparent 78%) !important;
+                border: 1px solid color-mix(in srgb, var(--accent-cyan, #01E1EA) 30%, transparent) !important;
+                animation: whaleBubbleRise linear infinite !important;
+                opacity: 0 !important;
+                box-shadow:
+                    inset 0 0 8px color-mix(in srgb, var(--accent-cyan, #01E1EA) 25%, transparent),
+                    0 0 12px color-mix(in srgb, var(--accent-cyan, #01E1EA) 15%, transparent) !important;
+                will-change: transform, opacity !important;
+            }
+            @keyframes whaleBubbleRise {
+                0%   { transform: translateY(0)      translateX(0)    scale(0.55); opacity: 0; }
+                10%  { opacity: 0.9; }
+                50%  { transform: translateY(-50vh)  translateX(18px) scale(1);    opacity: 0.75; }
+                90%  { opacity: 0.35; }
+                100% { transform: translateY(-115vh) translateX(-10px) scale(0.85); opacity: 0; }
+            }
+
+            /* Light rays from surface — only when locked */
+            .msn-whale-rays {
+                position: absolute !important;
+                inset: 0 !important;
+                pointer-events: none !important;
+                z-index: 1 !important;
+                background:
+                    linear-gradient(180deg,
+                        color-mix(in srgb, var(--accent-cyan, #01E1EA) 12%, transparent) 0%,
+                        transparent 32%) !important;
+                mix-blend-mode: screen !important;
+                opacity: 0.55 !important;
+                animation: whaleRaysDrift 9s ease-in-out infinite !important;
+            }
+            @keyframes whaleRaysDrift {
+                0%, 100% { opacity: 0.35; }
+                50%      { opacity: 0.7; }
+            }
+
+            /* Unlocked = bubbles very subtle, no rays */
+            #whaleMessagesContainer:not(.whale-locked) .msn-whale-bubbles {
+                opacity: 0.32 !important;
+            }
+            #whaleMessagesContainer:not(.whale-locked) .msn-whale-rays {
+                display: none !important;
+            }
+            #whaleMessagesContainer.whale-locked .msn-whale-bubbles {
+                opacity: 1 !important;
+            }
+
+            /* ── Locked: blurred preview behind the overlay ── */
+            .whale-blur-preview {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 12px !important;
+                padding: 4px !important;
+                filter: blur(8px) saturate(0.6) !important;
+                opacity: 0.42 !important;
+                pointer-events: none !important;
+                user-select: none !important;
+                position: relative !important;
+                z-index: 2 !important;
+            }
+            .whale-fake-msg {
+                height: 58px !important;
+                border-radius: 10px !important;
+                width: 68% !important;
+                background: linear-gradient(90deg,
+                    color-mix(in srgb, var(--accent-cyan, #01E1EA) 6%,  transparent) 0%,
+                    color-mix(in srgb, var(--accent-cyan, #01E1EA) 13%, transparent) 55%,
+                    color-mix(in srgb, var(--accent-cyan, #01E1EA) 6%,  transparent) 100%) !important;
+                border: 1px solid color-mix(in srgb, var(--accent-cyan, #01E1EA) 20%, transparent) !important;
+            }
+            .whale-fake-msg.short {
+                width: 52% !important;
+                align-self: flex-end !important;
+            }
+
+            /* ── Locked overlay — the epic centrepiece ── */
             .whale-lock-overlay {
-                position: absolute;
-                inset: 0;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                gap: 10px;
-                text-align: center;
-                padding: 24px;
-                pointer-events: none;
-                z-index: 2;
+                position: absolute !important;
+                inset: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 14px !important;
+                text-align: center !important;
+                padding: 24px !important;
+                pointer-events: none !important;
+                z-index: 3 !important;
                 background: radial-gradient(circle at 50% 45%,
                     transparent 0%,
-                    color-mix(in srgb, var(--bg-panel, #01091A) 55%, transparent) 38%,
-                    color-mix(in srgb, var(--bg-panel, #01091A) 92%, transparent) 78%);
+                    color-mix(in srgb, var(--bg-panel, #01091A) 60%, transparent) 40%,
+                    color-mix(in srgb, var(--bg-panel, #01091A) 94%, transparent) 80%) !important;
             }
             .whale-lock-emoji {
-                font-size: 3.4rem;
-                line-height: 1;
-                filter: drop-shadow(0 4px 12px rgba(0,0,0,0.6));
-                animation: whaleLockBob 2.6s ease-in-out infinite;
+                font-size: 4.4rem !important;
+                line-height: 1 !important;
+                filter:
+                    drop-shadow(0 8px 20px rgba(0, 0, 0, 0.75))
+                    drop-shadow(0 0 26px color-mix(in srgb, var(--accent-cyan, #01E1EA) 60%, transparent)) !important;
+                animation: whaleLockBob 3.4s ease-in-out infinite !important;
             }
             .whale-lock-title {
-                font-family: var(--font-mono, monospace);
-                font-size: 1rem;
-                font-weight: 900;
-                letter-spacing: 0.32em;
-                text-indent: 0.32em;
-                text-transform: uppercase;
-                color: var(--accent-cyan, #01E1EA);
-                text-shadow: 0 0 16px var(--border-glow, rgba(1,225,234,0.75));
+                font-family: var(--font-mono, monospace) !important;
+                font-size: 1.2rem !important;
+                font-weight: 900 !important;
+                letter-spacing: 0.4em !important;
+                text-indent: 0.4em !important;
+                text-transform: uppercase !important;
+                color: var(--accent-cyan, #01E1EA) !important;
+                text-shadow:
+                    0 0 12px color-mix(in srgb, var(--accent-cyan, #01E1EA) 70%, transparent),
+                    0 0 34px color-mix(in srgb, var(--accent-cyan, #01E1EA) 40%, transparent) !important;
             }
             .whale-lock-sub {
-                font-family: var(--font-mono, monospace);
-                font-size: 0.74rem;
-                letter-spacing: 0.08em;
-                color: var(--text-primary, #fff);
-                opacity: 0.9;
-                font-style: italic;
+                font-family: var(--font-mono, monospace) !important;
+                font-size: 0.82rem !important;
+                letter-spacing: 0.1em !important;
+                color: var(--text-primary, #fff) !important;
+                opacity: 0.92 !important;
+                font-style: italic !important;
+                max-width: 340px !important;
+                line-height: 1.65 !important;
             }
             .whale-lock-tag {
-                margin-top: 4px;
-                padding: 4px 12px;
-                border-radius: 999px;
-                border: 1px dashed var(--accent-cyan, #01E1EA);
-                font-family: var(--font-mono, monospace);
-                font-size: 0.6rem;
-                font-weight: 800;
-                letter-spacing: 0.2em;
-                text-indent: 0.2em;
-                text-transform: uppercase;
-                color: var(--accent-cyan, #01E1EA);
-                opacity: 0.85;
+                margin-top: 10px !important;
+                padding: 7px 18px !important;
+                border-radius: 999px !important;
+                border: 1px dashed color-mix(in srgb, var(--accent-cyan, #01E1EA) 72%, transparent) !important;
+                background: color-mix(in srgb, var(--accent-cyan, #01E1EA) 8%, transparent) !important;
+                font-family: var(--font-mono, monospace) !important;
+                font-size: 0.64rem !important;
+                font-weight: 800 !important;
+                letter-spacing: 0.24em !important;
+                text-indent: 0.24em !important;
+                text-transform: uppercase !important;
+                color: var(--accent-cyan, #01E1EA) !important;
+                opacity: 0.95 !important;
+                box-shadow:
+                    0 0 16px color-mix(in srgb, var(--accent-cyan, #01E1EA) 28%, transparent),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
             }
             @keyframes whaleLockBob {
-                0%, 100% { transform: translateY(0)    scale(1); }
-                50%      { transform: translateY(-6px) scale(1.06); }
+                0%, 100% { transform: translateY(0)     scale(1)    rotate(-3deg); }
+                50%      { transform: translateY(-10px) scale(1.08) rotate( 3deg); }
             }
         `;
         const tag = document.createElement('style');
@@ -3190,6 +3297,40 @@ function showSuccess(msg) {
            ⚑ WHALE CHAT — gated read/write via RPC
            ═══════════════════════════════════════════════════════════ */
 
+        /* ═══════════════════════════════════════════════════════
+       ⚑ Whale bubbles — spawns a fresh bubble field.
+       Idempotent: safe to call repeatedly; skips if already present.
+       ═══════════════════════════════════════════════════════ */
+    function ensureWhaleBubbles() {
+        if (!whaleContainer) return;
+        if (whaleContainer.querySelector('.msn-whale-bubbles')) return;
+
+        /* Rays layer (only visible when locked) */
+        var rays = document.createElement('div');
+        rays.className = 'msn-whale-rays';
+
+        /* Bubbles layer */
+        var layer = document.createElement('div');
+        layer.className = 'msn-whale-bubbles';
+
+        var COUNT = 16;
+        for (var i = 0; i < COUNT; i++) {
+            var b = document.createElement('span');
+            b.className = 'msn-whale-bubble';
+            var size = 6 + Math.random() * 24;              /* 6–30px */
+            b.style.width  = size + 'px';
+            b.style.height = size + 'px';
+            b.style.left   = (Math.random() * 100) + '%';
+            b.style.animationDuration = (7 + Math.random() * 9) + 's';
+            b.style.animationDelay    = (Math.random() * 9) + 's';
+            layer.appendChild(b);
+        }
+
+        /* Insert as first children — behind all content */
+        whaleContainer.insertBefore(rays,  whaleContainer.firstChild);
+        whaleContainer.insertBefore(layer, whaleContainer.firstChild);
+    }
+    
                async function loadWhaleMessages() {
             if (!whaleContainer) return;
 
@@ -3212,6 +3353,7 @@ function showSuccess(msg) {
                         '<div class="whale-lock-sub">Only whales swim here, little shrimp.</div>' +
                         '<div class="whale-lock-tag">1,000,000+ TOKENS TO ENTER</div>' +
                     '</div>';
+                                ensureWhaleBubbles();
                 return;
             }
 
@@ -3275,8 +3417,11 @@ function showSuccess(msg) {
                 whaleContainer.scrollTop = whaleContainer.scrollHeight;
                 requestAnimationFrame(() => { whaleContainer.scrollTop = whaleContainer.scrollHeight; });
 
-                // ⚑ Load reactions for whale messages too (reuses message_reactions).
+                 // ⚑ Load reactions for whale messages too (reuses message_reactions).
                 loadReactions('whale_message_reactions', false, true);
+
+                /* ⚑ Inject the ocean bubble field */
+                ensureWhaleBubbles();
 
                 whaleLoadedOnce = true;
             } catch (err) {
