@@ -51,7 +51,14 @@
         { key: 'CRAB', url: 'https://i.postimg.cc/MZ911fLC/crab.png' },
         { key: 'DOLPHIN', url: 'https://i.postimg.cc/XNs99BPt/Chat-GPT-Image-22-sept-2026-07-24-56-p-m-(1)-(1)-(3).png' },
         { key: 'WHALE', url: 'https://i.postimg.cc/v8055xKN/whale.png' },
-        { key: 'PHIL', url: 'https://i.postimg.cc/xd70BVr2/Pegatina-neon-de-Phil-con-pulgar-arriba-(1).png' }
+        { key: 'PHIL', url: 'https://i.postimg.cc/xd70BVr2/Pegatina-neon-de-Phil-con-pulgar-arriba-(1).png' },
+        { key: 'PEPE', url: 'https://i.postimg.cc/cHLdK1Q4/Pegatinas-Pepe-PEPE-HODL-y-SOL-(1).png' },
+        { key: 'HODL', url: 'https://i.postimg.cc/3Rx3yrgr/Pegatinas-Pepe-PEPE-HODL-y-SOL-(2).png' },
+        { key: 'TROLL', url: 'https://i.postimg.cc/L6CQR9sv/TROLL.png' },
+        { key: 'GG', url: 'https://i.postimg.cc/tCSvyqgz/GG.png' },
+        { key: 'DOGE', url: 'https://i.postimg.cc/VLGZ1fNR/DOGE.png' },
+        { key: 'CHILL', url: 'https://i.postimg.cc/c49kZxJh/CHILL.png' },
+        { key: 'ANSEM', url: 'https://i.postimg.cc/fyTLcjmF/Pegatinas-de-mascotas-con-coronas-(1).png' },
     ];
 
     var GRID_SLOTS = 16;   // base 4 × 4
