@@ -7,8 +7,11 @@
     // ═══════════════════════════════════════════════════════════
     //  ⚑ PHANTOM / MOBILE VISUAL FIXES + RIGHT SIDEBAR — injected once
     // ═══════════════════════════════════════════════════════════
-    (function injectPhantomFixes() {
-        if (document.querySelector('style[data-msn-phantom-fixes]')) return;
+      (function injectPhantomFixes() {
+        const VERSION = '2026-10-03-whale-1';
+        const existing = document.querySelector('style[data-msn-phantom-fixes]');
+        if (existing && existing.dataset.version === VERSION) return;
+        if (existing) existing.remove();
         const css = `
             /* ── Phantom connect button ── */
             .btn-icon.phantom-btn,
@@ -514,20 +517,39 @@
 
                         /* ═══════════════════════════════════════════════════════════
                ⚑            /* ═══════════════════════════════════════════════════════════
+                          /* ═══════════════════════════════════════════════════════════
                ⚑ WHALE CHAT — EPIC SEA EDITION
-               Locked = full ocean scene. Unlocked = subtle bubbles behind.
+               Ocean backdrop + bubbles live on the wrapper, NOT the
+               scroll container — so they stay pinned to the viewport.
             ═══════════════════════════════════════════════════════════ */
 
-            #whaleMessagesContainer {
-    position: relative !important;
-    /* keep it a scroll container — do NOT use overflow:hidden here.
-       bubbles/rays clip themselves inside .msn-whale-bubbles. */
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-}
+            .msn-whale-wrapper {
+                position: relative !important;
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+                isolation: isolate;
+            }
+            .msn-whale-wrapper:has(#whaleMessagesContainer.hidden) {
+                display: none !important;
+            }
 
-            /* Ocean depth gradient — always behind everything */
-            #whaleMessagesContainer::before {
+            #whaleMessagesContainer {
+                position: relative !important;
+                z-index: 1 !important;
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+                background: transparent !important;
+                overscroll-behavior: contain;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Ocean depth gradient — pinned to the wrapper, never scrolls */
+            .msn-whale-wrapper::before {
                 content: '' !important;
                 position: absolute !important;
                 inset: 0 !important;
@@ -541,9 +563,7 @@
                         color-mix(in srgb, var(--bg-deep, #050914) 60%, #001830 40%) 0%,
                         var(--bg-deep, #050914) 100%) !important;
             }
-
-            /* Stronger ocean tint when locked */
-            #whaleMessagesContainer.whale-locked::before {
+            .msn-whale-wrapper.whale-locked::before {
                 background:
                     radial-gradient(ellipse at 50% 0%,
                         color-mix(in srgb, var(--accent-cyan, #01E1EA) 14%, transparent) 0%,
@@ -553,13 +573,13 @@
                         color-mix(in srgb, var(--bg-deep, #050914) 85%, #000a18 15%) 100%) !important;
             }
 
-            /* ── Bubble layer ── */
+            /* ── Bubbles — pinned behind the scroll container ── */
             .msn-whale-bubbles {
                 position: absolute !important;
                 inset: 0 !important;
                 pointer-events: none !important;
                 overflow: hidden !important;
-                z-index: 1 !important;
+                z-index: 0 !important;
             }
             .msn-whale-bubble {
                 position: absolute !important;
@@ -571,7 +591,8 @@
                     transparent 78%) !important;
                 border: 1px solid color-mix(in srgb, var(--accent-cyan, #01E1EA) 30%, transparent) !important;
                 animation: whaleBubbleRise linear infinite !important;
-                opacity: 0 !important;
+                /* ⚑ NO !important here — keyframes must drive opacity */
+                opacity: 0;
                 box-shadow:
                     inset 0 0 8px color-mix(in srgb, var(--accent-cyan, #01E1EA) 25%, transparent),
                     0 0 12px color-mix(in srgb, var(--accent-cyan, #01E1EA) 15%, transparent) !important;
@@ -585,12 +606,11 @@
                 100% { transform: translateY(-115vh) translateX(-10px) scale(0.85); opacity: 0; }
             }
 
-            /* Light rays from surface — only when locked */
             .msn-whale-rays {
                 position: absolute !important;
                 inset: 0 !important;
                 pointer-events: none !important;
-                z-index: 1 !important;
+                z-index: 0 !important;
                 background:
                     linear-gradient(180deg,
                         color-mix(in srgb, var(--accent-cyan, #01E1EA) 12%, transparent) 0%,
@@ -604,18 +624,11 @@
                 50%      { opacity: 0.7; }
             }
 
-            /* Unlocked = bubbles very subtle, no rays */
-            #whaleMessagesContainer:not(.whale-locked) .msn-whale-bubbles {
-                opacity: 0.32 !important;
-            }
-            #whaleMessagesContainer:not(.whale-locked) .msn-whale-rays {
-                display: none !important;
-            }
-            #whaleMessagesContainer.whale-locked .msn-whale-bubbles {
-                opacity: 1 !important;
-            }
+            .msn-whale-wrapper:not(.whale-locked) .msn-whale-bubbles { opacity: 0.32 !important; }
+            .msn-whale-wrapper:not(.whale-locked) .msn-whale-rays    { display: none !important; }
+            .msn-whale-wrapper.whale-locked       .msn-whale-bubbles { opacity: 1 !important; }
 
-            /* ── Locked: blurred preview behind the overlay ── */
+            /* ── Locked: blurred preview + overlay ── */
             .whale-blur-preview {
                 display: flex !important;
                 flex-direction: column !important;
@@ -643,7 +656,6 @@
                 align-self: flex-end !important;
             }
 
-            /* ── Locked overlay — the epic centrepiece ── */
             .whale-lock-overlay {
                 position: absolute !important;
                 inset: 0 !important;
@@ -714,8 +726,9 @@
                 50%      { transform: translateY(-10px) scale(1.08) rotate( 3deg); }
             }
         `;
-        const tag = document.createElement('style');
+               const tag = document.createElement('style');
         tag.setAttribute('data-msn-phantom-fixes', '1');
+        tag.dataset.version = VERSION;
         tag.textContent = css;
         document.head.appendChild(tag);
     })();
@@ -3304,23 +3317,31 @@ function showSuccess(msg) {
        ⚑ Whale bubbles — spawns a fresh bubble field.
        Idempotent: safe to call repeatedly; skips if already present.
        ═══════════════════════════════════════════════════════ */
-    function ensureWhaleBubbles() {
+     function ensureWhaleBubbles() {
         if (!whaleContainer) return;
-        if (whaleContainer.querySelector('.msn-whale-bubbles')) return;
 
-        /* Rays layer (only visible when locked) */
-        var rays = document.createElement('div');
+        /* ⚑ Wrap the scroll container once. Backdrop layers go on the
+           wrapper (pinned to viewport) instead of inside the scroller. */
+        let wrapper = whaleContainer.parentNode;
+        if (!wrapper || !wrapper.classList.contains('msn-whale-wrapper')) {
+            wrapper = document.createElement('div');
+            wrapper.className = 'msn-whale-wrapper';
+            whaleContainer.parentNode.insertBefore(wrapper, whaleContainer);
+            wrapper.appendChild(whaleContainer);
+        }
+
+        if (wrapper.querySelector('.msn-whale-bubbles')) return;
+
+        const rays = document.createElement('div');
         rays.className = 'msn-whale-rays';
 
-        /* Bubbles layer */
-        var layer = document.createElement('div');
+        const layer = document.createElement('div');
         layer.className = 'msn-whale-bubbles';
 
-        var COUNT = 16;
-        for (var i = 0; i < COUNT; i++) {
-            var b = document.createElement('span');
+        for (let i = 0; i < 16; i++) {
+            const b = document.createElement('span');
             b.className = 'msn-whale-bubble';
-            var size = 6 + Math.random() * 24;              /* 6–30px */
+            const size = 6 + Math.random() * 24;
             b.style.width  = size + 'px';
             b.style.height = size + 'px';
             b.style.left   = (Math.random() * 100) + '%';
@@ -3329,17 +3350,22 @@ function showSuccess(msg) {
             layer.appendChild(b);
         }
 
-        /* Insert as first children — behind all content */
-        whaleContainer.insertBefore(rays,  whaleContainer.firstChild);
-        whaleContainer.insertBefore(layer, whaleContainer.firstChild);
+        /* Insert BEFORE the scroll container — sits behind content. */
+        wrapper.insertBefore(rays,  whaleContainer);
+        wrapper.insertBefore(layer, whaleContainer);
     }
     
-               async function loadWhaleMessages() {
+                       async function loadWhaleMessages() {
             if (!whaleContainer) return;
 
-            // ⚑ Non-whale → blurred locked preview, no RPC call
+            ensureWhaleBubbles();
+            const wrapper = whaleContainer.parentNode;
+
+            /* ── Non-whale → locked view ── */
             if (!isWhale()) {
-                whaleContainer.classList.add('whale-locked');
+                wrapper.classList.add('whale-locked');
+                wrapper.querySelectorAll('.whale-lock-overlay').forEach(n => n.remove());
+
                 whaleContainer.innerHTML =
                     '<div class="whale-blur-preview" aria-hidden="true">' +
                         '<div class="whale-fake-msg"></div>' +
@@ -3349,18 +3375,23 @@ function showSuccess(msg) {
                         '<div class="whale-fake-msg"></div>' +
                         '<div class="whale-fake-msg short"></div>' +
                         '<div class="whale-fake-msg"></div>' +
-                    '</div>' +
-                    '<div class="whale-lock-overlay">' +
-                        '<div class="whale-lock-emoji">🐋</div>' +
-                        '<div class="whale-lock-title">SEA IS CLOSED</div>' +
-                        '<div class="whale-lock-sub">Only whales swim here, little shrimp.</div>' +
-                        '<div class="whale-lock-tag">1,000,000+ TOKENS TO ENTER</div>' +
                     '</div>';
-                                ensureWhaleBubbles();
+
+                const overlay = document.createElement('div');
+                overlay.className = 'whale-lock-overlay';
+                overlay.innerHTML =
+                    '<div class="whale-lock-emoji">🐋</div>' +
+                    '<div class="whale-lock-title">SEA IS CLOSED</div>' +
+                    '<div class="whale-lock-sub">Only whales swim here, little shrimp.</div>' +
+                    '<div class="whale-lock-tag">1,000,000+ TOKENS TO ENTER</div>';
+                wrapper.appendChild(overlay);
                 return;
             }
 
-            whaleContainer.classList.remove('whale-locked');
+            /* ── Whale view ── */
+            wrapper.classList.remove('whale-locked');
+            wrapper.querySelectorAll('.whale-lock-overlay').forEach(n => n.remove());
+
             whaleContainer.innerHTML = '';
             showMsgLoader(whaleContainer, 'Loading whale chat');
 
@@ -3406,7 +3437,7 @@ function showSuccess(msg) {
                 if (rows.length === 0) {
                     holder.innerHTML = '<div class="empty-chat-hint">🐋 No whale messages yet — you can start.</div>';
                 } else {
-                                        for (const msg of rows) {
+                    for (const msg of rows) {
                         const node = await buildMessageNode(msg, false, true);
                         knownWhaleIds.add(msg.id);
                         holder.appendChild(node);
@@ -3416,16 +3447,11 @@ function showSuccess(msg) {
                 whaleContainer.innerHTML = '';
                 while (holder.firstChild) whaleContainer.appendChild(holder.firstChild);
 
-                                autoScroll = true;
+                autoScroll = true;
                 whaleContainer.scrollTop = whaleContainer.scrollHeight;
                 requestAnimationFrame(() => { whaleContainer.scrollTop = whaleContainer.scrollHeight; });
 
-                 // ⚑ Load reactions for whale messages too (reuses message_reactions).
                 loadReactions('whale_message_reactions', false, true);
-
-                /* ⚑ Inject the ocean bubble field */
-                ensureWhaleBubbles();
-
                 whaleLoadedOnce = true;
             } catch (err) {
                 console.error('loadWhaleMessages failed:', err);
