@@ -1105,7 +1105,6 @@
             const payload = {};
             if (uname !== undefined) payload.username = uname;
             if (avatar_url !== undefined) payload.avatar_url = avatar_url;
-            if (token_balance !== undefined) payload.token_balance = token_balance;
 
             const { data: existing } = await supabase.from('profiles')
                 .select('wallet_address')
@@ -1164,10 +1163,6 @@
             }
             updateUserRank(targetBalance);
 
-            await upsertProfile({
-                username: username,
-                token_balance: targetBalance
-            });
             userBalances[username] = targetBalance;
 
             if (modTokenRequirement <= 0) {
@@ -2253,17 +2248,17 @@ function showSuccess(msg) {
            Toggle-ON uses insert; a duplicate/unique error means
            the row is already there — that's success, not failure.
            Toggle-OFF deletes; 0-row match is fine. */
-                try {
-            if (wasActive) {
-                const { error } = await supabase.from(table)
-                    .delete()
-                    .match({ message_id: messageId, username, emoji });
-                if (error) throw error;
-            } else {
-                const { error } = await supabase.from(table)
-                    .insert({ message_id: messageId, username, emoji });
-                if (error && !/duplicate|unique/i.test(error.message || '')) throw error;
-            }
+                                try {
+            const w = getWalletAddress();
+            if (!w) { showError('Connect wallet first'); return; }
+            const { error } = await supabase.rpc('toggle_reaction', {
+                p_table:      table,
+                p_wallet:     w,
+                p_username:   username,
+                p_message_id: messageId,
+                p_emoji:      emoji
+            });
+            if (error) throw error;
                 } catch (err) {
             /* ── 5. Roll back ── */
             console.warn('[reaction] save failed — rolling back:', err);
@@ -3548,8 +3543,28 @@ function showSuccess(msg) {
             payload.username = username;
             if (senderWallet) payload.wallet_address = senderWallet;
         }
-        try {
-            const { data: inserted, error } = await supabase.from(table).insert([payload]).select().single();
+               try {
+            let inserted, error;
+            if (isPrivate) {
+                const r = await supabase.rpc('post_private_message', {
+                    p_wallet:    senderWallet,
+                    p_username:  username,
+                    p_to_user:   activePrivateChat,
+                    p_message:   text || null,
+                    p_image_url: pendingImageUrl || null
+                });
+                inserted = Array.isArray(r.data) ? r.data[0] : r.data;
+                error = r.error;
+            } else {
+                const r = await supabase.rpc('post_public_message', {
+                    p_wallet:    senderWallet,
+                    p_username:  username,
+                    p_message:   text || null,
+                    p_image_url: pendingImageUrl || null
+                });
+                inserted = Array.isArray(r.data) ? r.data[0] : r.data;
+                error = r.error;
+            }
             if (error) throw error;
             messageInput.value = '';
             setReplyingTo(null);
