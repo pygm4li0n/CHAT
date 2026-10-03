@@ -1139,34 +1139,46 @@
     }
 
     function displayTokenBalances(tokenAccounts) {
-        const container = createTokenListContainer();
-        if (!container) return;
-        if (!tokenAccounts || tokenAccounts.length === 0) {
-            container.innerHTML = '<div style="opacity:0.6;">No SPL tokens found</div>';
-            return;
-        }
-        let html = '<div style="font-weight:bold; margin-bottom:4px;">Token Balances:</div>';
-        tokenAccounts.forEach(acc => {
-            const info = acc.account.data.parsed.info;
-            const mint = info.mint;
-            const amount = parseFloat(info.tokenAmount.uiAmountString);
-            const shortMint = mint.slice(0,4) + '...' + mint.slice(-4);
-            const isTarget = mint === TOKEN_MINT_ADDRESS;
-            let statusHtml = '';
-            if (isTarget) {
-                if (modTokenRequirement <= 0 || amount > modTokenRequirement) {
-                    statusHtml = ' <span style="color:#4ade80;">✅ Verified</span>';
-                } else {
-                    statusHtml = ' <span style="color:#ef4444;">❌ Not Verified</span>';
-                }
-            }
-            html += `<div class="token-row${isTarget ? ' target' : ''}" style="display:flex; justify-content:space-between; gap:4px; align-items:center;">
-                    <span title="${mint}">${shortMint}${statusHtml}</span>
-                    <span>${amount.toLocaleString()}</span>
-        </div>`;
-        });
-        container.innerHTML = html;
+    const container = createTokenListContainer();
+    if (!container) return;
+
+    // ⚑ Solo mostramos el token objetivo — nada de inventario completo
+    if (!TOKEN_MINT_ADDRESS) {
+        container.innerHTML = '<div style="opacity:0.6;">No CA configured</div>';
+        return;
     }
+
+    let targetAmount = null;
+    (tokenAccounts || []).forEach(acc => {
+        const info = acc.account.data.parsed.info;
+        if (info.mint === TOKEN_MINT_ADDRESS) {
+            targetAmount = parseFloat(info.tokenAmount.uiAmountString);
+        }
+    });
+
+    if (targetAmount === null) {
+        // No tiene el token
+        container.innerHTML =
+            '<div style="font-weight:bold;margin-bottom:6px;font-size:0.62rem;letter-spacing:0.14em;text-transform:uppercase;opacity:0.7;">YOUR BALANCE</div>' +
+            '<div style="display:flex;justify-content:space-between;gap:6px;color:#ef4444;font-weight:800;">' +
+                '<span>0</span>' +
+                '<span>❌ Not held</span>' +
+            '</div>';
+        return;
+    }
+
+    const verified = (modTokenRequirement <= 0 || targetAmount >= modTokenRequirement);
+    const statusHtml = verified
+        ? '<span style="color:#4ade80;font-weight:800;">✅ Verified</span>'
+        : '<span style="color:#ef4444;font-weight:800;">❌ ' + (modTokenRequirement - targetAmount).toLocaleString() + ' short</span>';
+
+    container.innerHTML =
+        '<div style="font-weight:bold;margin-bottom:6px;font-size:0.62rem;letter-spacing:0.14em;text-transform:uppercase;opacity:0.7;">YOUR BALANCE</div>' +
+        '<div style="display:flex;justify-content:space-between;gap:6px;color:#4ade80;font-weight:800;">' +
+            '<span>' + targetAmount.toLocaleString() + '</span>' +
+            statusHtml +
+        '</div>';
+}
 
        function parseBalanceValue(v) {
     if (v == null) return 0;
