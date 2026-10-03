@@ -590,7 +590,7 @@
                     color-mix(in srgb, var(--accent-cyan, #01E1EA) 22%, transparent) 45%,
                     transparent 78%) !important;
                 border: 1px solid color-mix(in srgb, var(--accent-cyan, #01E1EA) 30%, transparent) !important;
-                animation: whaleBubbleRise linear infinite !important;
+                animation: whaleBubbleRise linear infinite;
                 /* ⚑ NO !important here — keyframes must drive opacity */
                 opacity: 0;
                 box-shadow:
