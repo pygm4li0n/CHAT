@@ -674,13 +674,29 @@
                     color-mix(in srgb, var(--bg-panel, #01091A) 94%, transparent) 80%) !important;
             }
             .whale-lock-emoji {
-                font-size: 4.4rem !important;
-                line-height: 1 !important;
-                filter:
-                    drop-shadow(0 8px 20px rgba(0, 0, 0, 0.75))
-                    drop-shadow(0 0 26px color-mix(in srgb, var(--accent-cyan, #01E1EA) 60%, transparent)) !important;
-                animation: whaleLockBob 3.4s ease-in-out infinite !important;
-            }
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: clamp(96px, 22vw, 160px) !important;
+    height: clamp(96px, 22vw, 160px) !important;
+    line-height: 1 !important;
+    animation: whaleLockBob 3.4s ease-in-out infinite !important;
+    /* Warm amber halo to match the molten theme. Swap #ff9422 → #00e5ff
+       below if you want the cold cyan accent instead. */
+    filter:
+        drop-shadow(0 8px 20px rgba(0, 0, 0, 0.85))
+        drop-shadow(0 0 18px rgba(255, 148, 34, 0.75))
+        drop-shadow(0 0 44px rgba(255, 85, 0, 0.45)) !important;
+}
+.whale-lock-emoji img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    pointer-events: none !important;
+    user-select: none !important;
+    -webkit-user-drag: none !important;
+    image-rendering: -webkit-optimize-contrast;
+}
             .whale-lock-title {
                 font-family: var(--font-mono, monospace) !important;
                 font-size: 1.2rem !important;
@@ -3383,7 +3399,9 @@ function showSuccess(msg) {
                 const overlay = document.createElement('div');
                 overlay.className = 'whale-lock-overlay';
                 overlay.innerHTML =
-                    '<div class="whale-lock-emoji">🐋</div>' +
+                    '<div class="whale-lock-emoji">' +
+                        '<img src="https://i.postimg.cc/s2tMcFKZ/image-2026-10-02T220153-605.png" alt="" draggable="false">' +
+                    '</div>' +
                     '<div class="whale-lock-title">SEA IS CLOSED</div>' +
                     '<div class="whale-lock-sub">Only whales swim here, little shrimp.</div>' +
                     '<div class="whale-lock-tag">1,000,000+ TOKENS TO ENTER</div>';
