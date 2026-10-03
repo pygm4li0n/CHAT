@@ -1423,16 +1423,29 @@
                 3500
             ));
         }
+        // ⚑ Reactions are keyed by username. When the profile was opened by
+        //   wallet or X handle, `username` (the parameter) is not the DB
+        //   username column. Use the raw one.
+        // ⚑ Count from ALL three reaction tables: public, private, whale.
+        var rawUsername = (profile && profile.username) || username;
 
-        tasks.push(_timeout(
-            sb.from('message_reactions')
-                .select('*', { count: 'exact', head: true })
-                .eq('username', username)
-                .then(function (res) {
-                    if (res && typeof res.count === 'number') out.reactions_given = res.count;
-                }).catch(function () {}),
-            3500
-        ));
+        tasks.push(_timeout((async function () {
+            var tables = [
+                'message_reactions',
+                'private_message_reactions',
+                'whale_message_reactions'
+            ];
+            var total = 0;
+            for (var i = 0; i < tables.length; i++) {
+                try {
+                    var r = await sb.from(tables[i])
+                        .select('*', { count: 'exact', head: true })
+                        .eq('username', rawUsername);
+                    if (r && typeof r.count === 'number') total += r.count;
+                } catch (e) { /* table missing or RLS — skip */ }
+            }
+            out.reactions_given = total;
+        })(), 5000));
 
         await Promise.all(tasks);
 
