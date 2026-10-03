@@ -582,22 +582,25 @@
                 z-index: 0 !important;
             }
             .msn-whale-bubble {
-                position: absolute !important;
-                bottom: -60px !important;
-                border-radius: 50% !important;
-                background: radial-gradient(circle at 30% 30%,
-                    rgba(255, 255, 255, 0.28) 0%,
-                    color-mix(in srgb, var(--accent-cyan, #01E1EA) 22%, transparent) 45%,
-                    transparent 78%) !important;
-                border: 1px solid color-mix(in srgb, var(--accent-cyan, #01E1EA) 30%, transparent) !important;
-                animation: whaleBubbleRise linear infinite;
-                /* ⚑ NO !important here — keyframes must drive opacity */
-                opacity: 0;
-                box-shadow:
-                    inset 0 0 8px color-mix(in srgb, var(--accent-cyan, #01E1EA) 25%, transparent),
-                    0 0 12px color-mix(in srgb, var(--accent-cyan, #01E1EA) 15%, transparent) !important;
-                will-change: transform, opacity !important;
-            }
+    position: absolute !important;
+    bottom: -60px !important;
+    border-radius: 50% !important;
+    /* ⚑ Warm-amber orbs — reads as "molten bubbles" against the orange LCD
+       instead of disappearing into it. */
+    background: radial-gradient(circle at 32% 28%,
+        rgba(255, 236, 205, 0.55) 0%,
+        rgba(255, 148, 34, 0.42) 40%,
+        rgba(255, 85, 0, 0.14) 68%,
+        transparent 82%) !important;
+    border: 1px solid rgba(255, 179, 71, 0.55) !important;
+    animation: whaleBubbleRise linear infinite;
+    opacity: 0;
+    box-shadow:
+        inset 0 0 10px rgba(255, 194, 71, 0.45),
+        0 0 14px rgba(255, 122, 0, 0.55),
+        0 0 32px rgba(255, 51, 0, 0.25) !important;
+    will-change: transform, opacity !important;
+}
             @keyframes whaleBubbleRise {
                 0%   { transform: translateY(0)      translateX(0)    scale(0.55); opacity: 0; }
                 10%  { opacity: 0.9; }
@@ -624,7 +627,7 @@
                 50%      { opacity: 0.7; }
             }
 
-            .msn-whale-wrapper:not(.whale-locked) .msn-whale-bubbles { opacity: 0.32 !important; }
+            .msn-whale-wrapper:not(.whale-locked) .msn-whale-bubbles { opacity: 0.42 !important; }
             .msn-whale-wrapper:not(.whale-locked) .msn-whale-rays    { display: none !important; }
             .msn-whale-wrapper.whale-locked       .msn-whale-bubbles { opacity: 1 !important; }
 
