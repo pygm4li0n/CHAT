@@ -321,40 +321,33 @@
 
     <canvas id="particleCanvas"></canvas>
 
-       <div class="overlay-full hidden" id="nameOverlay">
-        <div class="overlay-card">
+    <div class="overlay-full hidden" id="nameOverlay">
+    <div class="overlay-card">
 
-            <!-- HERO -->
-            <div class="identity-hero">
-                <div class="identity-orb"></div>
-                <div class="identity-logo">
-                    <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="MSN">
-                </div>
-                <h3 class="identity-title">CREATE YOUR IDENTITY</h3>
-                <p class="identity-tagline">Your name. Your legend. Your key to the room.</p>
+        <!-- HERO -->
+        <div class="identity-hero">
+            <div class="identity-orb"></div>
+            <div class="identity-logo">
+                <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="MSN">
             </div>
+            <h3 class="identity-title">CREATE YOUR IDENTITY</h3>
+            <p class="identity-tagline">Your name. Your legend. Your key to the room.</p>
+        </div>
 
-            <!-- AVATAR -->
-            <div class="identity-avatar-row">
+        <!-- FORM -->
+        <div class="identity-form">
+
+            <div class="identity-row">
                 <div class="identity-avatar" id="profilePicPreview" title="Click to upload">
                     <span>📷</span>
                     <div class="identity-avatar-hint">UPLOAD</div>
                 </div>
                 <input type="file" id="profilePicInput" accept="image/*" style="display:none;">
-                <div class="identity-avatar-info">
-                    <div class="identity-avatar-label">PROFILE PICTURE</div>
-                    <div class="identity-avatar-sub">Optional — tap the circle to add one</div>
+                <div class="identity-row-name">
+                    <input type="text" id="nameInput" placeholder="Enter your name..." maxlength="30" autocomplete="off">
                 </div>
             </div>
 
-            <!-- NAME -->
-            <div class="identity-field">
-                <label for="nameInput" class="identity-field-label">YOUR SIGNATURE</label>
-                <input type="text" id="nameInput" placeholder="Enter your name..." maxlength="30" autocomplete="off">
-                <span class="identity-field-hint">This is how the community will see you.</span>
-            </div>
-
-            <!-- PHANTOM — big rounded pill -->
             <button class="phantom-connect-big" id="phantomConnectBtnOverlay" type="button">
                 <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="">
                 <span>Connect Phantom</span>
@@ -362,22 +355,17 @@
 
             <span class="wallet-address" id="walletAddressOverlay"></span>
 
-            <!-- ACTIONS -->
-            <div class="identity-actions">
-                <button id="nameSubmitBtn" class="identity-btn-primary" type="button">
-                    🚀 JOIN THE NETWORK
-                </button>
-                <button id="guestBtn" class="identity-btn-guest" type="button">
-                    Browse as guest — read only
-                </button>
-            </div>
-
-            <div class="identity-footer-hint">
-                🔒 Guests can read the room but can't send messages.
-            </div>
-
         </div>
+
+        <!-- ACTION -->
+        <div class="identity-actions">
+            <button id="nameSubmitBtn" class="identity-btn-primary" type="button">
+                🚀 JOIN THE NETWORK
+            </button>
+        </div>
+
     </div>
+</div>
 
     <div class="request-overlay hidden" id="requestOverlay">
         <div class="request-card">
