@@ -1333,15 +1333,15 @@
        function updateChatAccessibility() {
         // ⚑ Whale tab — gate solely on whale badge
         if (currentTab === 'whale') {
-            const ok = isWhale();
-            messageInput.disabled = !ok;
-            sendBtn.disabled      = !ok;
-            document.querySelectorAll('.private-btn').forEach(b => b.disabled = true);
-            messageInput.placeholder = ok
-                ? '🐋 Whale chat…'
-                : '🚫 Not whale enough';
-            return;
-        }
+    const canChat = !!username;
+    messageInput.disabled = !canChat;
+    sendBtn.disabled      = !canChat;
+    document.querySelectorAll('.private-btn').forEach(b => b.disabled = true);
+    messageInput.placeholder = canChat
+        ? '🐋 Whale chat…'
+        : 'Set your username first';
+    return;
+}
 
         let canChat = false;
         if (username) {
@@ -2398,12 +2398,12 @@ function showSuccess(msg) {
             const w = getWalletAddress();
             if (!w) { showError('Connect wallet first'); return; }
             const { error } = await supabase.rpc('toggle_reaction', {
-                p_table:      table,
-                p_wallet:     w,
-                p_username:   username,
-                p_message_id: messageId,
-                p_emoji:      emoji
-            });
+    p_table:      table,
+    p_wallet:     w,
+    p_username:   username,
+    p_message_id: String(messageId),
+    p_emoji:      emoji
+});
             if (error) throw error;
                 } catch (err) {
             /* ── 5. Roll back ── */
@@ -3382,43 +3382,14 @@ function showSuccess(msg) {
     }
     
                        async function loadWhaleMessages() {
-            if (!whaleContainer) return;
+    if (!whaleContainer) return;
 
-            ensureWhaleBubbles();
-            const wrapper = whaleContainer.parentNode;
+    ensureWhaleBubbles();
+    const wrapper = whaleContainer.parentNode;
 
-            /* ── Non-whale → locked view ── */
-            if (!isWhale()) {
-                wrapper.classList.add('whale-locked');
-                wrapper.querySelectorAll('.whale-lock-overlay').forEach(n => n.remove());
-
-                whaleContainer.innerHTML =
-                    '<div class="whale-blur-preview" aria-hidden="true">' +
-                        '<div class="whale-fake-msg"></div>' +
-                        '<div class="whale-fake-msg short"></div>' +
-                        '<div class="whale-fake-msg"></div>' +
-                        '<div class="whale-fake-msg short"></div>' +
-                        '<div class="whale-fake-msg"></div>' +
-                        '<div class="whale-fake-msg short"></div>' +
-                        '<div class="whale-fake-msg"></div>' +
-                    '</div>';
-
-                const overlay = document.createElement('div');
-                overlay.className = 'whale-lock-overlay';
-                overlay.innerHTML =
-                    '<div class="whale-lock-emoji">' +
-                        '<img src="https://i.postimg.cc/s2tMcFKZ/image-2026-10-02T220153-605.png" alt="" draggable="false">' +
-                    '</div>' +
-                    '<div class="whale-lock-title">SEA IS CLOSED</div>' +
-                    '<div class="whale-lock-sub">Only whales swim here, little shrimp.</div>' +
-                    '<div class="whale-lock-tag">1,000,000+ TOKENS TO ENTER</div>';
-                wrapper.appendChild(overlay);
-                return;
-            }
-
-            /* ── Whale view ── */
-            wrapper.classList.remove('whale-locked');
-            wrapper.querySelectorAll('.whale-lock-overlay').forEach(n => n.remove());
+    wrapper.classList.remove('whale-locked');
+    wrapper.querySelectorAll('.whale-lock-overlay').forEach(n => n.remove());
+    wrapper.querySelectorAll('.whale-blur-preview').forEach(n => n.remove());
 
             whaleContainer.innerHTML = '';
             showMsgLoader(whaleContainer, 'Loading whale chat');
@@ -3493,9 +3464,8 @@ function showSuccess(msg) {
         }
 
         async function sendWhaleMessage(text) {
-            const wallet = getWalletAddress();
-            if (!wallet) { showError('Connect wallet first'); return; }
-            if (!isWhale()) { showError('🐋 Whale chat is 1M+ holders only.'); return; }
+    const wallet = getWalletAddress();
+    if (!wallet) { showError('Connect wallet first'); return; }
 
             const params = {
                 p_wallet:    wallet,
@@ -3530,23 +3500,18 @@ function showSuccess(msg) {
                     autoScroll = true;
                     whaleContainer.scrollTop = whaleContainer.scrollHeight;
                 }
-            } catch (err) {
-                if (/not_a_whale/.test(err.message || '')) {
-                    showError('🐋 Whale chat is 1M+ holders only.');
-                } else {
-                    showError('Send failed: ' + err.message);
-                }
-            } finally {
+           } catch (err) {
+    showError('Send failed: ' + (err.message || err));
+} finally {
                 sendBtn.disabled = false;
                 messageInput.focus();
             }
         }
 
         async function loadOlderWhaleMessages() {
-            if (isLoadingOlderWhale) return;
-            if (!hasMoreOlderWhale)  return;
-            if (oldestWhaleSortOrder == null) return;
-            if (!isWhale()) return;
+    if (isLoadingOlderWhale) return;
+    if (!hasMoreOlderWhale)  return;
+    if (oldestWhaleSortOrder == null) return;
 
             isLoadingOlderWhale = true;
             const prevH = whaleContainer.scrollHeight;
@@ -3688,14 +3653,13 @@ function showSuccess(msg) {
        async function sendMessage() {
         // ⚑ Whale tab bypasses the generic token gate — has its own
         if (currentTab === 'whale') {
-            if (!isWhale()) { showError('🐋 Whale chat is 1M+ holders only.'); return; }
-            const wtext = messageInput.value.trim();
-            if (!wtext && !pendingImageUrl) return;
-            sendBtn.disabled = true;
-            await sendWhaleMessage(wtext);
-            sendBtn.disabled = false;
-            return;
-        }
+    const wtext = messageInput.value.trim();
+    if (!wtext && !pendingImageUrl) return;
+    sendBtn.disabled = true;
+    await sendWhaleMessage(wtext);
+    sendBtn.disabled = false;
+    return;
+}
 
         let canSend = false;
         if (username) {
