@@ -3338,15 +3338,18 @@ function showSuccess(msg) {
         const layer = document.createElement('div');
         layer.className = 'msn-whale-bubbles';
 
-        for (let i = 0; i < 16; i++) {
+              for (let i = 0; i < 24; i++) {
             const b = document.createElement('span');
             b.className = 'msn-whale-bubble';
-            const size = 6 + Math.random() * 24;
+            const size = 10 + Math.random() * 32;      // 10–42px (bigger)
+            const dur  = 6 + Math.random() * 8;        // 6–14s per rise
             b.style.width  = size + 'px';
             b.style.height = size + 'px';
             b.style.left   = (Math.random() * 100) + '%';
-            b.style.animationDuration = (7 + Math.random() * 9) + 's';
-            b.style.animationDelay    = (Math.random() * 9) + 's';
+            b.style.animationDuration = dur + 's';
+            /* ⚑ NEGATIVE delay = bubble starts mid-flight.
+               Frame 1: some are already halfway up. No idle wait. */
+            b.style.animationDelay    = -(Math.random() * dur) + 's';
             layer.appendChild(b);
         }
 
