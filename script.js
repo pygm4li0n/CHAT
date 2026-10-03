@@ -684,12 +684,12 @@
     height: clamp(96px, 22vw, 160px) !important;
     line-height: 1 !important;
     animation: whaleLockBob 3.4s ease-in-out infinite !important;
-    /* Warm amber halo to match the molten theme. Swap #ff9422 → #00e5ff
-       below if you want the cold cyan accent instead. */
+    /* ⚑ Theme-driven halo. --whale-halo + --whale-halo-soft cascade
+       from :root, so a theme swap recolors this automatically. */
     filter:
         drop-shadow(0 8px 20px rgba(0, 0, 0, 0.85))
-        drop-shadow(0 0 18px rgba(255, 148, 34, 0.75))
-        drop-shadow(0 0 44px rgba(255, 85, 0, 0.45)) !important;
+        drop-shadow(0 0 18px var(--whale-halo,      rgba(255, 148, 34, 0.75)))
+        drop-shadow(0 0 44px var(--whale-halo-soft, rgba(255, 85, 0, 0.45))) !important;
 }
 .whale-lock-emoji img {
     width: 100% !important;
