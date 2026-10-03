@@ -905,7 +905,7 @@
     let lastMessageTimestamp = 0;
     let cooldownInterval = null;
 
-    const TOKEN_MINT_ADDRESS = 'HJ5trLqpexXA4WoCHVeUGCpH9Je9x9Sfi2BEz4jHpump';
+    const TOKEN_MINT_ADDRESS = '';
     const SOLANA_RPC_ENDPOINT = 'https://mainnet.helius-rpc.com/?api-key=fa7e6515-19de-45de-a7d1-35a64a0d9a1a';
     const solanaConnection = new solanaWeb3.Connection(SOLANA_RPC_ENDPOINT);
     let tokenListContainer = null;
@@ -1614,7 +1614,7 @@ let whaleMessageReactions = {};   // whale chat reuses the message_reactions tab
         acceptedPrivateChats = new Set();
     }
 
-    const TOKEN_ADDRESS = 'HmJDgky11u77hpBss6D8sjNpYPD5B6fWgSVDj58jpump';
+    const TOKEN_ADDRESS = '';
     async function updateTokenInfo() {
         const trackers = document.querySelectorAll('.token-tracker');
         if (!trackers.length) return;
@@ -4581,7 +4581,7 @@ subscribeToPrivateRequests();
 (function () {
     'use strict';
 
-    const CA = '6imhRyMYu5xoGJ5W7yveymB5o5yfyAvXxveozWpbU5ix';
+    const CA = '';
     const SHORT = CA.slice(0, 4) + '…' + CA.slice(-4);
 
     function injectStyles() {
