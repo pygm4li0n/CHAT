@@ -1,132 +1,200 @@
 /* ═══════════════════════════════════════════════════════
-   EPIC IDENTITY STAGE — theme-aware, one file
+   IDENTITY STAGE + GUEST MODE — one file, theme-aware
    ═══════════════════════════════════════════════════════ */
 
-/* ── CARD ── */
-#nameOverlay { padding: 20px; }
+/* ══════ GUEST STATE — input becomes a CTA ══════ */
+body.msn-guest #messageInput {
+    cursor: pointer !important;
+    caret-color: transparent !important;
+    color: var(--accent-cyan) !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.12em !important;
+    text-align: center !important;
+    text-transform: uppercase !important;
+    font-family: var(--font-mono) !important;
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--accent-cyan) 14%, var(--bg-deep)) 0%,
+        var(--bg-deep) 100%) !important;
+    border-color: color-mix(in srgb, var(--accent-cyan) 55%, transparent) !important;
+    box-shadow:
+        inset 0 2px 8px rgba(0,0,0,0.85),
+        0 0 22px color-mix(in srgb, var(--accent-cyan) 35%, transparent) !important;
+    animation: guestPulse 2.6s ease-in-out infinite !important;
+}
+body.msn-guest #messageInput::placeholder {
+    color: var(--accent-cyan) !important;
+    opacity: 1 !important;
+    text-align: center;
+    font-weight: 800;
+}
+@keyframes guestPulse {
+    0%,100% { box-shadow: inset 0 2px 8px rgba(0,0,0,0.85), 0 0 22px color-mix(in srgb, var(--accent-cyan) 35%, transparent); }
+    50%     { box-shadow: inset 0 2px 8px rgba(0,0,0,0.85), 0 0 34px color-mix(in srgb, var(--accent-cyan) 65%, transparent); }
+}
+body.msn-guest .btn-upload-img,
+body.msn-guest .send-btn-main {
+    opacity: 0.35 !important;
+    pointer-events: none !important;
+    filter: grayscale(0.6);
+}
+body.msn-guest #stickerBtn { display: none !important; }
+
+/* ══════ IDENTITY OVERLAY ══════ */
+#nameOverlay { padding: 18px; }
 
 #nameOverlay .overlay-card {
-    max-width: 460px !important;
+    max-width: 420px !important;
     width: 100% !important;
     padding: 0 !important;
     overflow: hidden !important;
-    border-radius: 20px !important;
+    border-radius: 22px !important;
     background:
-        radial-gradient(ellipse 90% 50% at 50% 0%,
-            color-mix(in srgb, var(--accent-cyan) 18%, transparent) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 55% at 50% 0%,
+            color-mix(in srgb, var(--accent-cyan) 22%, transparent) 0%, transparent 62%),
         linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-deep) 100%) !important;
-    border: 1px solid color-mix(in srgb, var(--accent-cyan) 45%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 50%, transparent) !important;
     box-shadow:
-        0 0 0 1px rgba(0,0,0,0.6),
-        0 0 80px color-mix(in srgb, var(--accent-cyan) 22%, transparent),
-        0 30px 80px rgba(0,0,0,0.85) !important;
+        0 0 0 1px rgba(0,0,0,0.65),
+        0 0 90px color-mix(in srgb, var(--accent-cyan) 28%, transparent),
+        0 30px 80px rgba(0,0,0,0.9) !important;
     animation: identityPop 0.5s cubic-bezier(.16,1,.3,1);
 }
-
 @keyframes identityPop {
-    from { opacity: 0; transform: scale(0.92) translateY(24px); }
+    from { opacity: 0; transform: scale(0.9) translateY(26px); }
     to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* ── HERO ── */
+/* ══════ HERO ══════ */
 .identity-hero {
     position: relative;
-    padding: 30px 26px 20px;
+    padding: 34px 26px 22px;
     text-align: center;
     overflow: hidden;
     border-bottom: 1px solid color-mix(in srgb, var(--accent-cyan) 18%, transparent);
 }
 .identity-orb {
     position: absolute;
-    top: -70%; left: 50%;
+    top: -80%; left: 50%;
     transform: translateX(-50%);
-    width: 320px; height: 320px;
+    width: 340px; height: 340px;
     border-radius: 50%;
     background: radial-gradient(circle,
-        color-mix(in srgb, var(--accent-cyan) 40%, transparent) 0%,
+        color-mix(in srgb, var(--accent-cyan) 45%, transparent) 0%,
         transparent 65%);
-    filter: blur(50px);
-    animation: identityOrbPulse 5s ease-in-out infinite;
+    filter: blur(48px);
+    animation: orbPulse 5s ease-in-out infinite;
     pointer-events: none;
 }
-@keyframes identityOrbPulse {
-    0%,100% { opacity: 0.65; transform: translateX(-50%) scale(1); }
-    50%     { opacity: 1;    transform: translateX(-50%) scale(1.12); }
+@keyframes orbPulse {
+    0%,100% { opacity: 0.7; transform: translateX(-50%) scale(1); }
+    50%     { opacity: 1;   transform: translateX(-50%) scale(1.15); }
 }
+
+/* LOGO — bigger, epic, double-ring */
 .identity-logo {
     position: relative;
-    margin: 0 auto 12px;
-    width: 88px; height: 88px;
+    margin: 0 auto 16px;
+    width: 112px; height: 112px;
     display: flex; align-items: center; justify-content: center;
-    animation: identityLogoFloat 4s ease-in-out infinite;
+    animation: logoFloat 4.5s ease-in-out infinite;
+}
+.identity-logo::before,
+.identity-logo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid color-mix(in srgb, var(--accent-cyan) 55%, transparent);
+    pointer-events: none;
+}
+.identity-logo::before {
+    inset: -8px;
+    border-style: dashed;
+    animation: logoSpin 22s linear infinite;
+    opacity: 0.55;
+}
+.identity-logo::after {
+    inset: -18px;
+    border-color: color-mix(in srgb, var(--accent-cyan) 30%, transparent);
+    opacity: 0.35;
 }
 .identity-logo img {
     max-width: 100%; max-height: 100%;
     object-fit: contain;
     filter:
-        drop-shadow(0 4px 14px rgba(0,0,0,0.75))
-        drop-shadow(0 0 22px color-mix(in srgb, var(--accent-cyan) 65%, transparent));
+        drop-shadow(0 6px 18px rgba(0,0,0,0.85))
+        drop-shadow(0 0 28px color-mix(in srgb, var(--accent-cyan) 70%, transparent));
 }
-@keyframes identityLogoFloat {
+@keyframes logoFloat {
     0%,100% { transform: translateY(0)    scale(1); }
-    50%     { transform: translateY(-5px) scale(1.05); }
+    50%     { transform: translateY(-6px) scale(1.05); }
 }
+@keyframes logoSpin {
+    to { transform: rotate(360deg); }
+}
+
 .identity-title {
     position: relative;
-    margin: 0 0 6px !important;
+    margin: 0 0 8px !important;
     font-family: var(--font-mono) !important;
-    font-size: 1.1rem !important;
+    font-size: 1.05rem !important;
     font-weight: 900 !important;
-    letter-spacing: 0.26em !important;
-    text-indent: 0.26em;
+    letter-spacing: 0.32em !important;
+    text-indent: 0.32em;
     text-transform: uppercase !important;
     color: var(--accent-cyan) !important;
     text-shadow:
-        0 0 12px color-mix(in srgb, var(--accent-cyan) 70%, transparent),
-        0 0 30px color-mix(in srgb, var(--accent-cyan) 35%, transparent) !important;
+        0 0 14px color-mix(in srgb, var(--accent-cyan) 75%, transparent),
+        0 0 34px color-mix(in srgb, var(--accent-cyan) 40%, transparent) !important;
 }
 .identity-tagline {
     position: relative;
     margin: 0 !important;
     font-family: var(--font-mono);
-    font-size: 0.68rem;
-    letter-spacing: 0.14em;
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
     color: var(--text-secondary);
     font-style: italic;
+    opacity: 0.85;
 }
 
-/* ── AVATAR ── */
-.identity-avatar-row {
+/* ══════ AVATAR + NAME (single tight row) ══════ */
+.identity-form {
+    padding: 22px 26px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.identity-row {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 20px 26px 10px;
+    gap: 14px;
 }
 .identity-avatar {
     position: relative;
-    width: 74px; height: 74px;
+    width: 64px; height: 64px;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 25%,
-        color-mix(in srgb, var(--accent-cyan) 18%, var(--bg-elevated)) 0%,
+        color-mix(in srgb, var(--accent-cyan) 22%, var(--bg-elevated)) 0%,
         var(--bg-deep) 100%);
-    border: 2px solid color-mix(in srgb, var(--accent-cyan) 55%, transparent);
+    border: 2px solid color-mix(in srgb, var(--accent-cyan) 60%, transparent);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     flex-shrink: 0;
     overflow: hidden;
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     color: var(--accent-cyan);
     box-shadow:
-        inset 0 0 20px rgba(0,0,0,0.75),
-        0 0 20px color-mix(in srgb, var(--accent-cyan) 35%, transparent);
+        inset 0 0 18px rgba(0,0,0,0.8),
+        0 0 22px color-mix(in srgb, var(--accent-cyan) 40%, transparent);
     transition: transform 0.2s, box-shadow 0.25s, border-color 0.25s;
 }
 .identity-avatar:hover {
-    transform: scale(1.04);
+    transform: scale(1.05);
     border-color: var(--accent-cyan);
     box-shadow:
-        inset 0 0 20px rgba(0,0,0,0.75),
-        0 0 30px color-mix(in srgb, var(--accent-cyan) 70%, transparent);
+        inset 0 0 18px rgba(0,0,0,0.8),
+        0 0 34px color-mix(in srgb, var(--accent-cyan) 75%, transparent);
 }
 .identity-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .identity-avatar-hint {
@@ -135,9 +203,9 @@
     background: var(--accent-cyan);
     color: #0a0a0a;
     font-family: var(--font-mono);
-    font-size: 0.48rem;
+    font-size: 0.44rem;
     font-weight: 900;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     text-align: center;
     padding: 3px 0;
     text-transform: uppercase;
@@ -145,49 +213,21 @@
     transition: opacity 0.2s;
 }
 .identity-avatar:hover .identity-avatar-hint { opacity: 1; }
-.identity-avatar-info { flex: 1; min-width: 0; }
-.identity-avatar-label {
-    font-family: var(--font-mono);
-    font-size: 0.6rem;
-    font-weight: 900;
-    letter-spacing: 0.18em;
-    color: var(--text-primary);
-    text-transform: uppercase;
-    margin-bottom: 3px;
-}
-.identity-avatar-sub {
-    font-family: var(--font-mono);
-    font-size: 0.6rem;
-    color: var(--text-muted);
-    line-height: 1.4;
-}
 
-/* ── NAME FIELD ── */
-.identity-field {
-    padding: 6px 26px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-.identity-field-label {
-    font-family: var(--font-mono) !important;
-    font-size: 0.6rem !important;
-    font-weight: 900 !important;
-    letter-spacing: 0.18em !important;
-    color: var(--text-primary) !important;
-    text-transform: uppercase;
-    margin: 0 0 2px !important;
+.identity-row-name {
+    flex: 1;
+    min-width: 0;
 }
 #nameInput {
     width: 100% !important;
     padding: 14px 16px !important;
     font-family: var(--font-mono) !important;
-    font-size: 0.95rem !important;
+    font-size: 0.92rem !important;
     font-weight: 700 !important;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     background: var(--bg-deep) !important;
     color: var(--accent-cyan) !important;
-    border: 2px solid color-mix(in srgb, var(--accent-cyan) 30%, transparent) !important;
+    border: 2px solid color-mix(in srgb, var(--accent-cyan) 32%, transparent) !important;
     border-radius: 12px !important;
     outline: none !important;
     box-shadow: inset 0 3px 10px rgba(0,0,0,0.85) !important;
@@ -195,37 +235,32 @@
     margin: 0 !important;
     text-align: center;
 }
-#nameInput::placeholder { color: var(--text-muted) !important; opacity: 0.7; font-weight: 500; }
+#nameInput::placeholder {
+    color: var(--text-muted) !important;
+    opacity: 0.75;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+}
 #nameInput:focus {
     border-color: var(--accent-cyan) !important;
     box-shadow:
         inset 0 3px 10px rgba(0,0,0,0.85),
-        0 0 0 3px color-mix(in srgb, var(--accent-cyan) 20%, transparent),
-        0 0 24px color-mix(in srgb, var(--accent-cyan) 55%, transparent) !important;
-}
-.identity-field-hint {
-    font-family: var(--font-mono);
-    font-size: 0.58rem;
-    color: var(--text-muted);
-    letter-spacing: 0.08em;
-    text-align: center;
-    margin-top: 2px;
-    opacity: 0.7;
+        0 0 0 3px color-mix(in srgb, var(--accent-cyan) 22%, transparent),
+        0 0 28px color-mix(in srgb, var(--accent-cyan) 60%, transparent) !important;
 }
 
-/* ── PHANTOM BIG PILL ── */
+/* ══════ PHANTOM — big rounded pill ══════ */
 .phantom-connect-big {
     display: flex !important;
     align-items: center !important;
-    gap: 12px !important;
-    width: calc(100% - 52px) !important;
-    margin: 4px 26px 6px !important;
-    padding: 14px 22px !important;
+    gap: 14px !important;
+    width: 100% !important;
+    padding: 15px 22px !important;
     border-radius: 999px !important;
     background: linear-gradient(150deg,
-        color-mix(in srgb, #9945FF 14%, var(--bg-elevated)) 0%,
-        color-mix(in srgb, #14F195 6%, var(--bg-deep)) 100%) !important;
-    border: 2px solid color-mix(in srgb, #9945FF 55%, transparent) !important;
+        color-mix(in srgb, #9945FF 15%, var(--bg-elevated)) 0%,
+        color-mix(in srgb, #14F195 7%, var(--bg-deep)) 100%) !important;
+    border: 2px solid color-mix(in srgb, #9945FF 58%, transparent) !important;
     color: #fff !important;
     cursor: pointer !important;
     font-family: var(--font-mono) !important;
@@ -235,8 +270,9 @@
     transition: transform 0.18s, border-color 0.25s, box-shadow 0.3s !important;
     box-shadow:
         inset 0 1px 0 rgba(255,255,255,0.15),
-        0 4px 16px rgba(0,0,0,0.55),
-        0 0 28px color-mix(in srgb, #9945FF 35%, transparent) !important;
+        0 4px 18px rgba(0,0,0,0.6),
+        0 0 30px color-mix(in srgb, #9945FF 38%, transparent) !important;
+    margin: 0 !important;
 }
 .phantom-connect-big::before {
     content: '';
@@ -245,45 +281,44 @@
     border-radius: 999px;
     background: linear-gradient(120deg,
         transparent 0%,
-        color-mix(in srgb, #14F195 55%, transparent) 40%,
-        color-mix(in srgb, #9945FF 55%, transparent) 60%,
+        color-mix(in srgb, #14F195 60%, transparent) 40%,
+        color-mix(in srgb, #9945FF 60%, transparent) 60%,
         transparent 100%);
-    opacity: 0.6;
-    filter: blur(14px);
+    opacity: 0.65;
+    filter: blur(15px);
     z-index: 0;
     animation: phantomAura 4s linear infinite;
     pointer-events: none;
 }
 @keyframes phantomAura {
-    0%   { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    to { transform: rotate(360deg); }
 }
 .phantom-connect-big > * { position: relative; z-index: 1; }
+
 .phantom-connect-big img {
-    width: 34px !important;
-    height: 34px !important;
-    padding: 5px !important;
+    width: 38px !important;
+    height: 38px !important;
+    padding: 6px !important;
     border-radius: 50% !important;
     background: rgba(255,255,255,0.10);
-    border: 1px solid rgba(255,255,255,0.18);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.20);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
     object-fit: contain;
-    filter: drop-shadow(0 0 6px rgba(153,69,255,0.65));
+    filter: drop-shadow(0 0 7px rgba(153,69,255,0.7));
     flex-shrink: 0;
 }
 .phantom-connect-big span {
     flex: 1;
     font-size: 0.88rem !important;
     font-weight: 900 !important;
-    letter-spacing: 0.12em !important;
+    letter-spacing: 0.14em !important;
     text-transform: uppercase;
     color: #fff !important;
     line-height: 1;
 }
 .phantom-connect-big::after {
     content: '';
-    width: 12px;
-    height: 12px;
+    width: 13px; height: 13px;
     border-radius: 50%;
     background: #6b6b6b;
     border: 2px solid rgba(255,255,255,0.20);
@@ -296,41 +331,41 @@
     transform: translateY(-2px) scale(1.01) !important;
     border-color: #14F195 !important;
     box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.25),
-        0 6px 22px rgba(0,0,0,0.65),
-        0 0 40px color-mix(in srgb, #14F195 55%, transparent) !important;
+        inset 0 1px 0 rgba(255,255,255,0.28),
+        0 8px 24px rgba(0,0,0,0.7),
+        0 0 44px color-mix(in srgb, #14F195 60%, transparent) !important;
 }
 .phantom-connect-big:active { transform: translateY(0) scale(0.98) !important; }
 
 /* connected state */
 .phantom-connect-big.connected {
     background: linear-gradient(150deg,
-        color-mix(in srgb, #14F195 18%, var(--bg-elevated)) 0%,
-        color-mix(in srgb, #14F195 8%, var(--bg-deep)) 100%) !important;
+        color-mix(in srgb, #14F195 22%, var(--bg-elevated)) 0%,
+        color-mix(in srgb, #14F195 10%, var(--bg-deep)) 100%) !important;
     border-color: #14F195 !important;
     box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.20),
-        0 4px 16px rgba(0,0,0,0.55),
-        0 0 36px color-mix(in srgb, #14F195 60%, transparent) !important;
+        inset 0 1px 0 rgba(255,255,255,0.22),
+        0 4px 18px rgba(0,0,0,0.6),
+        0 0 40px color-mix(in srgb, #14F195 65%, transparent) !important;
 }
 .phantom-connect-big.connected img {
-    background: rgba(20,241,149,0.18);
-    border-color: rgba(20,241,149,0.45);
-    filter: drop-shadow(0 0 8px rgba(20,241,149,0.85));
+    background: rgba(20,241,149,0.20);
+    border-color: rgba(20,241,149,0.5);
+    filter: drop-shadow(0 0 10px rgba(20,241,149,0.9));
 }
 .phantom-connect-big.connected span { color: #14F195 !important; }
 .phantom-connect-big.connected::after {
     background: #14F195;
     border-color: #0a3d24;
-    box-shadow: 0 0 8px #14F195, 0 0 20px rgba(20,241,149,0.75);
-    animation: phantomDotPulse 1.8s ease-in-out infinite;
+    box-shadow: 0 0 10px #14F195, 0 0 24px rgba(20,241,149,0.8);
+    animation: phantomDot 1.8s ease-in-out infinite;
 }
-@keyframes phantomDotPulse {
+@keyframes phantomDot {
     0%,100% { transform: scale(1);    opacity: 1; }
-    50%     { transform: scale(1.25); opacity: 0.7; }
+    50%     { transform: scale(1.3);  opacity: 0.7; }
 }
 
-/* ── WALLET ADDRESS ── */
+/* wallet address line */
 #walletAddressOverlay {
     display: block !important;
     text-align: center !important;
@@ -339,18 +374,15 @@
     font-weight: 700 !important;
     letter-spacing: 0.1em !important;
     color: #14F195 !important;
-    text-shadow: 0 0 10px rgba(20,241,149,0.55);
-    margin: 4px 0 6px !important;
+    text-shadow: 0 0 10px rgba(20,241,149,0.6);
+    margin: 8px 0 0 !important;
     min-height: 1em;
 }
 #walletAddressOverlay:empty { display: none !important; }
 
-/* ── ACTIONS ── */
+/* ══════ PRIMARY CTA — the join button ══════ */
 .identity-actions {
-    padding: 6px 26px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    padding: 12px 26px 22px;
 }
 .identity-btn-primary {
     display: flex !important;
@@ -358,22 +390,22 @@
     justify-content: center !important;
     gap: 10px !important;
     width: 100% !important;
-    padding: 16px 20px !important;
+    padding: 17px 20px !important;
     border-radius: 999px !important;
     background: var(--accent-cyan) !important;
     color: var(--bg-deep) !important;
     font-family: var(--font-mono) !important;
-    font-size: 0.8rem !important;
+    font-size: 0.82rem !important;
     font-weight: 900 !important;
-    letter-spacing: 0.18em !important;
+    letter-spacing: 0.2em !important;
     text-transform: uppercase !important;
     border: 2px solid var(--accent-cyan) !important;
     cursor: pointer !important;
     box-shadow:
-        inset 0 2px 0 rgba(255,255,255,0.30),
-        inset 0 -2px 0 rgba(0,0,0,0.20),
-        0 6px 20px rgba(0,0,0,0.55),
-        0 0 30px color-mix(in srgb, var(--accent-cyan) 55%, transparent) !important;
+        inset 0 2px 0 rgba(255,255,255,0.32),
+        inset 0 -2px 0 rgba(0,0,0,0.22),
+        0 8px 22px rgba(0,0,0,0.6),
+        0 0 34px color-mix(in srgb, var(--accent-cyan) 60%, transparent) !important;
     transition: transform 0.15s, box-shadow 0.2s, filter 0.2s !important;
     position: relative !important;
     overflow: hidden !important;
@@ -384,7 +416,7 @@
     position: absolute;
     top: 0; left: -60%;
     width: 40%; height: 100%;
-    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.55), transparent);
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.6), transparent);
     transform: skewX(-20deg);
     animation: identityShine 3.6s ease-in-out infinite;
     pointer-events: none;
@@ -394,68 +426,30 @@
     35%           { left: 130%; }
 }
 .identity-btn-primary:hover {
-    filter: brightness(1.1) !important;
+    filter: brightness(1.12) !important;
     transform: translateY(-2px) !important;
     box-shadow:
-        inset 0 2px 0 rgba(255,255,255,0.40),
-        0 8px 26px rgba(0,0,0,0.60),
-        0 0 46px color-mix(in srgb, var(--accent-cyan) 85%, transparent) !important;
+        inset 0 2px 0 rgba(255,255,255,0.42),
+        0 10px 28px rgba(0,0,0,0.65),
+        0 0 50px color-mix(in srgb, var(--accent-cyan) 90%, transparent) !important;
 }
 .identity-btn-primary:active { transform: translateY(0) scale(0.97) !important; }
 
-.identity-btn-guest {
-    width: 100% !important;
-    padding: 12px 20px !important;
-    border-radius: 999px !important;
-    background: transparent !important;
-    color: var(--text-muted) !important;
-    font-family: var(--font-mono) !important;
-    font-size: 0.66rem !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.12em !important;
-    text-transform: uppercase !important;
-    border: 1px dashed color-mix(in srgb, var(--text-muted) 50%, transparent) !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-}
-.identity-btn-guest:hover {
-    color: var(--text-primary) !important;
-    border-color: color-mix(in srgb, var(--accent-cyan) 65%, transparent) !important;
-    border-style: solid !important;
-    background: color-mix(in srgb, var(--accent-cyan) 8%, transparent) !important;
-    box-shadow: 0 0 22px color-mix(in srgb, var(--accent-cyan) 30%, transparent) !important;
-}
-
-.identity-footer-hint {
-    padding: 10px 26px 20px;
-    text-align: center;
-    font-family: var(--font-mono);
-    font-size: 0.56rem;
-    letter-spacing: 0.14em;
-    color: var(--text-muted);
-    opacity: 0.7;
-    border-top: 1px solid color-mix(in srgb, var(--accent-cyan) 12%, transparent);
-}
-
-/* ── MOBILE ── */
+/* ══════ MOBILE ══════ */
 @media (max-width: 480px) {
-    .identity-hero { padding: 24px 20px 16px; }
-    .identity-logo { width: 74px; height: 74px; }
-    .identity-title { font-size: 0.98rem !important; letter-spacing: 0.2em !important; text-indent: 0.2em; }
-    .identity-avatar-row { padding: 16px 20px 8px; }
-    .identity-avatar { width: 62px; height: 62px; font-size: 1.3rem; }
-    .identity-field { padding: 4px 20px 12px; }
+    .identity-hero { padding: 26px 20px 18px; }
+    .identity-logo { width: 92px; height: 92px; }
+    .identity-logo::before { inset: -6px; }
+    .identity-logo::after  { inset: -14px; }
+    .identity-title { font-size: 0.92rem !important; letter-spacing: 0.24em !important; text-indent: 0.24em; }
+    .identity-form { padding: 18px 20px 8px; }
+    .identity-avatar { width: 56px; height: 56px; font-size: 1.2rem; }
     .phantom-connect-big {
-        width: calc(100% - 40px) !important;
-        margin: 4px 20px 6px !important;
-        padding: 12px 18px !important;
-        gap: 10px !important;
+        padding: 13px 18px !important;
+        gap: 12px !important;
     }
-    .phantom-connect-big img { width: 30px !important; height: 30px !important; }
+    .phantom-connect-big img { width: 34px !important; height: 34px !important; }
     .phantom-connect-big span { font-size: 0.78rem !important; }
-    .identity-actions { padding: 6px 20px 12px; }
-    .identity-btn-primary { padding: 14px 18px !important; font-size: 0.74rem !important; }
-    .identity-footer-hint { padding: 8px 20px 16px; }
+    .identity-actions { padding: 10px 20px 18px; }
+    .identity-btn-primary { padding: 15px 18px !important; font-size: 0.74rem !important; }
 }
