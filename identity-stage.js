@@ -1,97 +1,168 @@
 /* ═══════════════════════════════════════════════════════
-   IDENTITY STAGE — guest mode + join button polish
-   Self-contained. No edits to script.js required.
+   IDENTITY STAGE — guest flow + open-on-demand
+   App boots into the chat. Guest sees everything.
+   Input becomes a "Connect to chat" CTA.
    ═══════════════════════════════════════════════════════ */
 (function () {
     'use strict';
 
-    window.__msnIsGuest = false;
+    var OVERLAY = 'nameOverlay';
+    var prompted = false;   // guard so we don't re-open after close
 
-    function guestToast() {
-        var toast = document.getElementById('errorToast');
-        if (!toast) return;
-        toast.textContent = '👀 Guest mode — connect Phantom to chat';
-        toast.classList.add('visible');
-        clearTimeout(toast._guestTimeout);
-        toast._guestTimeout = setTimeout(function () {
-            toast.classList.remove('visible');
-        }, 4000);
+    function hasIdentity() {
+        try {
+            return !!localStorage.getItem('msn_chat_username');
+        } catch (e) { return false; }
+    }
+
+    function isGuest() {
+        return document.body.classList.contains('msn-guest');
     }
 
     function enterGuestMode() {
-        window.__msnIsGuest = true;
-        var overlay = document.getElementById('nameOverlay');
+        document.body.classList.add('msn-guest');
+
+        var inp = document.getElementById('messageInput');
+        if (inp) {
+            inp.value = '';
+            inp.readOnly = true;
+            inp.placeholder = '🔒 Click here to connect & chat';
+        }
+
+        var overlay = document.getElementById(OVERLAY);
         if (overlay) overlay.classList.add('hidden');
+
         var bar = document.getElementById('inputAreaBar');
         if (bar) bar.classList.remove('hidden');
-        guestToast();
     }
 
-    // ── Wire up the guest button ──
-    function wireGuestButton() {
-        var btn = document.getElementById('guestBtn');
-        if (!btn || btn.dataset.wired) return;
-        btn.dataset.wired = '1';
-        btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            enterGuestMode();
-        });
-    }
-
-    // ── Block send attempts while guest ──
-    document.addEventListener('click', function (e) {
-        if (!window.__msnIsGuest) return;
-        if (e.target && e.target.closest && e.target.closest('#sendBtn')) {
-            e.stopImmediatePropagation();
-            e.preventDefault();
-            guestToast();
+    function exitGuestMode() {
+        document.body.classList.remove('msn-guest');
+        var inp = document.getElementById('messageInput');
+        if (inp) {
+            inp.readOnly = false;
+            inp.placeholder = 'Type a message...';
         }
-    }, true);
-
-    document.addEventListener('keydown', function (e) {
-        if (!window.__msnIsGuest) return;
-        if (e.key !== 'Enter' && e.key !== 'NumpadEnter') return;
-        var inp = document.getElementById('messageInput');
-        if (document.activeElement !== inp) return;
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        guestToast();
-    }, true);
-
-    // ── Guest placeholder ──
-    function applyGuestPlaceholder() {
-        if (!window.__msnIsGuest) return;
-        var inp = document.getElementById('messageInput');
-        if (inp && !inp.disabled) inp.placeholder = '👀 Guest mode — connect Phantom to chat';
     }
-    setInterval(applyGuestPlaceholder, 1200);
 
-    // ── Clear guest flag after a successful join ──
-    document.addEventListener('click', function (e) {
-        if (!e.target || !e.target.closest) return;
-        if (!e.target.closest('#nameSubmitBtn')) return;
-        // script.js's handler runs on the same click; give it a beat
+    function openIdentityOverlay() {
+        var overlay = document.getElementById(OVERLAY);
+        if (!overlay) return;
+
+        // Reposition over everything
+        overlay.classList.remove('hidden');
+
+        // Focus the name input
         setTimeout(function () {
-            if (localStorage.getItem('msn_chat_username')) {
-                window.__msnIsGuest = false;
-            }
-        }, 600);
-    }, true);
-
-    // ── Boot ──
-    function boot() {
-        wireGuestButton();
+            var n = document.getElementById('nameInput');
+            if (n) n.focus();
+        }, 120);
     }
+
+    function wireGuestInput() {
+        var inp = document.getElementById('messageInput');
+        if (!inp || inp.dataset.guestWired) return;
+        inp.dataset.guestWired = '1';
+
+        // Block typing but allow click-through to open overlay
+        inp.addEventListener('beforeinput', function (e) {
+            if (!isGuest()) return;
+            e.preventDefault();
+            openIdentityOverlay();
+        }, true);
+
+        inp.addEventListener('keydown', function (e) {
+            if (!isGuest()) return;
+            if (e.key.length === 1 || e.key === 'Enter' || e.key === 'Backspace') {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                openIdentityOverlay();
+            }
+        }, true);
+
+        inp.addEventListener('click', function () {
+            if (isGuest()) openIdentityOverlay();
+        });
+
+        inp.addEventListener('focus', function () {
+            if (isGuest()) { inp.blur(); openIdentityOverlay(); }
+        });
+
+        // Block sends while guest
+        var sendBtn = document.getElementById('sendBtn');
+        if (sendBtn) {
+            sendBtn.addEventListener('click', function (e) {
+                if (isGuest()) {
+                    e.stopImmediatePropagation();
+                    e.preventDefault();
+                    openIdentityOverlay();
+                }
+            }, true);
+        }
+    }
+
+    // Watch for the overlay — script.js might show it on boot.
+    // We swallow that if the user hasn't tried to join yet.
+    function watchOverlay() {
+        var overlay = document.getElementById(OVERLAY);
+        if (!overlay) { setTimeout(watchOverlay, 300); return; }
+
+        var mo = new MutationObserver(function () {
+            var visible = !overlay.classList.contains('hidden');
+            if (!visible) return;
+
+            // If we're in guest mode and the user hasn't manually opened it, hide it
+            if (isGuest() && !prompted) {
+                overlay.classList.add('hidden');
+            }
+        });
+        mo.observe(overlay, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    // When user successfully joins, exit guest mode
+    function watchJoin() {
+        var btn = document.getElementById('nameSubmitBtn');
+        if (!btn || btn.dataset.joinWired) return;
+        btn.dataset.joinWired = '1';
+        btn.addEventListener('click', function () {
+            prompted = true;
+            setTimeout(function () {
+                if (hasIdentity()) exitGuestMode();
+            }, 800);
+        }, true);
+    }
+
+    function boot() {
+        watchOverlay();
+        watchJoin();
+
+        if (!hasIdentity()) {
+            // Guest flow
+            enterGuestMode();
+            wireGuestInput();
+
+            // Ensure input stays wired even if script.js rebuilds it
+            setInterval(function () {
+                if (!isGuest()) return;
+                var inp = document.getElementById('messageInput');
+                if (inp && inp.placeholder !== '🔒 Click here to connect & chat') {
+                    enterGuestMode();
+                }
+            }, 1500);
+        } else {
+            // Has identity — normal flow
+            exitGuestMode();
+        }
+
+        // Re-check on wallet connect (script.js sets the username)
+        setInterval(function () {
+            if (hasIdentity() && isGuest()) exitGuestMode();
+        }, 2000);
+    }
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', boot, { once: true });
     } else {
         boot();
-    }
-
-    // If script.js rebuilds the overlay at any point, re-wire
-    var overlay = document.getElementById('nameOverlay');
-    if (overlay) {
-        new MutationObserver(wireGuestButton).observe(overlay, { childList: true, subtree: true });
     }
 })();
