@@ -5040,16 +5040,21 @@ let tier     = badgeFromBalance(balRaw);
         const walletAttr = row.wallet_address
           ? ' data-wallet="' + esc(row.wallet_address) + '"'
           : '';
+
+        /* ⚑ Plain text next to the score — no badge, no pill */
+        const todayText = today > 0 ? '  ·  +' + today + ' today' : '';
+
         return '<div class="rank-row"' + walletAttr + '>' +
           avatarHTML(row) +
           '<div class="rank-info">' +
             '<div class="rank-name">' + esc(row.username || 'anon') + '</div>' +
             '<div class="rank-meta">' +
               '<span class="rank-level">LVL ' + level + '</span>' +
-              (today > 0 ? '<span class="rank-detail">+' + today + ' today</span>' : '') +
             '</div>' +
           '</div>' +
-          '<div class="rank-stats"><span class="rank-score">' + xp.toLocaleString() + ' XP</span></div>' +
+          '<div class="rank-stats">' +
+            '<span class="rank-score">' + xp.toLocaleString() + ' XP' + todayText + '</span>' +
+          '</div>' +
         '</div>';
       }).join('');
       fixBrokenAvatars(el);
