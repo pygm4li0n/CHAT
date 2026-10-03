@@ -8,7 +8,7 @@
     //  ⚑ PHANTOM / MOBILE VISUAL FIXES + RIGHT SIDEBAR — injected once
     // ═══════════════════════════════════════════════════════════
       (function injectPhantomFixes() {
-        const VERSION = '2026-10-03-whale-1';
+        const VERSION = '2026-10-03-whale-6';
         const existing = document.querySelector('style[data-msn-phantom-fixes]');
         if (existing && existing.dataset.version === VERSION) return;
         if (existing) existing.remove();
@@ -581,26 +581,27 @@
                 overflow: hidden !important;
                 z-index: 0 !important;
             }
-            .msn-whale-bubble {
-    position: absolute !important;
-    bottom: -60px !important;
-    border-radius: 50% !important;
-    /* ⚑ Warm-amber orbs — reads as "molten bubbles" against the orange LCD
-       instead of disappearing into it. */
-    background: radial-gradient(circle at 32% 28%,
-        rgba(255, 236, 205, 0.55) 0%,
-        rgba(255, 148, 34, 0.42) 40%,
-        rgba(255, 85, 0, 0.14) 68%,
-        transparent 82%) !important;
-    border: 1px solid rgba(255, 179, 71, 0.55) !important;
-    animation: whaleBubbleRise linear infinite;
-    opacity: 0;
-    box-shadow:
-        inset 0 0 10px rgba(255, 194, 71, 0.45),
-        0 0 14px rgba(255, 122, 0, 0.55),
-        0 0 32px rgba(255, 51, 0, 0.25) !important;
-    will-change: transform, opacity !important;
-}
+                       .msn-whale-bubble {
+                position: absolute !important;
+                bottom: -60px !important;
+                border-radius: 50% !important;
+                /* ⚑ Theme-driven orbs — pull hue from --border-glow
+                   (every theme defines it). Falls back through
+                   --accent-cyan → a neutral cyan if neither exists. */
+                background: radial-gradient(circle at 32% 28%,
+                    color-mix(in srgb, var(--border-glow, var(--accent-cyan, #00f0ff)) 8%, #fff) 0%,
+                    color-mix(in srgb, var(--border-glow, var(--accent-cyan, #00f0ff)) 55%, transparent) 40%,
+                    color-mix(in srgb, var(--border-glow, var(--accent-cyan, #00f0ff)) 18%, transparent) 68%,
+                    transparent 82%) !important;
+                border: 1px solid color-mix(in srgb, var(--border-glow, var(--accent-cyan, #00f0ff)) 70%, transparent) !important;
+                animation: whaleBubbleRise linear infinite;
+                opacity: 0;
+                box-shadow:
+                    inset 0 0 10px color-mix(in srgb, var(--border-glow, var(--accent-cyan, #00f0ff)) 55%, transparent),
+                    0 0 14px color-mix(in srgb, var(--border-glow, var(--accent-cyan, #00f0ff)) 70%, transparent),
+                    0 0 32px color-mix(in srgb, var(--border-glow, var(--accent-cyan, #00f0ff)) 30%, transparent) !important;
+                will-change: transform, opacity !important;
+            }
             @keyframes whaleBubbleRise {
                 0%   { transform: translateY(0)      translateX(0)    scale(0.55); opacity: 0; }
                 10%  { opacity: 0.9; }
@@ -676,21 +677,24 @@
                     color-mix(in srgb, var(--bg-panel, #01091A) 60%, transparent) 40%,
                     color-mix(in srgb, var(--bg-panel, #01091A) 94%, transparent) 80%) !important;
             }
-            .whale-lock-emoji {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: clamp(96px, 22vw, 160px) !important;
-    height: clamp(96px, 22vw, 160px) !important;
-    line-height: 1 !important;
-    animation: whaleLockBob 3.4s ease-in-out infinite !important;
-    /* ⚑ Theme-driven halo. --whale-halo + --whale-halo-soft cascade
-       from :root, so a theme swap recolors this automatically. */
-    filter:
-        drop-shadow(0 8px 20px rgba(0, 0, 0, 0.85))
-        drop-shadow(0 0 18px var(--whale-halo,      rgba(255, 148, 34, 0.75)))
-        drop-shadow(0 0 44px var(--whale-halo-soft, rgba(255, 85, 0, 0.45))) !important;
-}
+                       .whale-lock-emoji {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: clamp(96px, 22vw, 160px) !important;
+                height: clamp(96px, 22vw, 160px) !important;
+                line-height: 1 !important;
+                animation: whaleLockBob 3.4s ease-in-out infinite !important;
+                /* ⚑ Auto-derive from --border-glow. Every theme defines it,
+                   so the whale halo always matches the active palette.
+                   Override with --whale-halo if a theme wants an exception. */
+                filter:
+                    drop-shadow(0 8px 20px rgba(0, 0, 0, 0.85))
+                    drop-shadow(0 0 18px var(--whale-halo,
+                        color-mix(in srgb, var(--border-glow, var(--accent-cyan, #00f0ff)) 82%, transparent)))
+                    drop-shadow(0 0 44px var(--whale-halo-soft,
+                        color-mix(in srgb, var(--border-glow, var(--accent-cyan, #00f0ff)) 42%, transparent))) !important;
+            }
 .whale-lock-emoji img {
     width: 100% !important;
     height: 100% !important;
