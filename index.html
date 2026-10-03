@@ -238,6 +238,7 @@
     <link rel="stylesheet" href="mobile-sidebar.css?v=4">
     <link rel="stylesheet" href="rankings-epic.css">
     <link rel="stylesheet" href="mod-panel.css?v=1">
+    <link rel="stylesheet" href="identity-stage.css?v=1">
 
     <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
@@ -320,23 +321,61 @@
 
     <canvas id="particleCanvas"></canvas>
 
-    <div class="overlay-full hidden" id="nameOverlay">
+       <div class="overlay-full hidden" id="nameOverlay">
         <div class="overlay-card">
-            <div class="profile-pic-upload">
-                <div class="profile-pic-preview" id="profilePicPreview" title="Click to upload picture">
+
+            <!-- HERO -->
+            <div class="identity-hero">
+                <div class="identity-orb"></div>
+                <div class="identity-logo">
+                    <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="MSN">
+                </div>
+                <h3 class="identity-title">CREATE YOUR IDENTITY</h3>
+                <p class="identity-tagline">Your name. Your legend. Your key to the room.</p>
+            </div>
+
+            <!-- AVATAR -->
+            <div class="identity-avatar-row">
+                <div class="identity-avatar" id="profilePicPreview" title="Click to upload">
                     <span>📷</span>
+                    <div class="identity-avatar-hint">UPLOAD</div>
                 </div>
                 <input type="file" id="profilePicInput" accept="image/*" style="display:none;">
-                <span class="text-muted-small">Profile picture (optional)</span>
+                <div class="identity-avatar-info">
+                    <div class="identity-avatar-label">PROFILE PICTURE</div>
+                    <div class="identity-avatar-sub">Optional — tap the circle to add one</div>
+                </div>
             </div>
-            <h3>CREATE YOUR IDENTITY</h3>
-            <input type="text" id="nameInput" placeholder="Your signature..." maxlength="30" autocomplete="off">
-            <button class="btn-icon phantom-overlay-btn" id="phantomConnectBtnOverlay" title="Connect Phantom Wallet">
-                <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom">
+
+            <!-- NAME -->
+            <div class="identity-field">
+                <label for="nameInput" class="identity-field-label">YOUR SIGNATURE</label>
+                <input type="text" id="nameInput" placeholder="Enter your name..." maxlength="30" autocomplete="off">
+                <span class="identity-field-hint">This is how the community will see you.</span>
+            </div>
+
+            <!-- PHANTOM — big rounded pill -->
+            <button class="phantom-connect-big" id="phantomConnectBtnOverlay" type="button">
+                <img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="">
                 <span>Connect Phantom</span>
             </button>
+
             <span class="wallet-address" id="walletAddressOverlay"></span>
-            <button id="nameSubmitBtn">JOIN MEME SOCIAL NETWORK</button>
+
+            <!-- ACTIONS -->
+            <div class="identity-actions">
+                <button id="nameSubmitBtn" class="identity-btn-primary" type="button">
+                    🚀 JOIN THE NETWORK
+                </button>
+                <button id="guestBtn" class="identity-btn-guest" type="button">
+                    Browse as guest — read only
+                </button>
+            </div>
+
+            <div class="identity-footer-hint">
+                🔒 Guests can read the room but can't send messages.
+            </div>
+
         </div>
     </div>
 
@@ -564,6 +603,7 @@
     <script src="x-auth.js?v=9"></script>
     <script src="mod-panel.js?v=2"></script>
     <script src="link-guard.js?v=2"></script>
+    <script defer src="identity-stage.js?v=1"></script>
 
     <!-- ═══════════════════════════════════════════════════════
          ⚑ MOBILE SIDEBAR PROFILE — MOBILE ONLY
