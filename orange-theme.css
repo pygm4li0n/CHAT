@@ -799,18 +799,13 @@ body {
     inset: 0;
     pointer-events: none;
     z-index: 1;
+    /* ⚑ Scanlines + screen blend removed — they washed out the whale
+       backdrop and dimmed the bubbles. Kept only a soft inner vignette
+       for LCD depth. */
     background-image:
-        repeating-linear-gradient(
-            0deg,
-            rgba(255, 122, 0, 0.045) 0px,
-            rgba(255, 122, 0, 0.045) 1px,
-            transparent 1px,
-            transparent 3px
-        ),
-        radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0, 0, 0, 0.62) 100%),
-        radial-gradient(ellipse at 50% 0%, rgba(255, 122, 0, 0.080) 0%, transparent 60%);
-    mix-blend-mode: screen;
-    opacity: 0.9;
+        radial-gradient(ellipse at 50% 45%, transparent 52%, rgba(0, 0, 0, 0.55) 100%),
+        radial-gradient(ellipse at 50% 0%, rgba(255, 122, 0, 0.055) 0%, transparent 55%);
+    opacity: 0.85;
     animation: crtBreathe 6s ease-in-out infinite;
     will-change: opacity;
 }
@@ -1065,15 +1060,11 @@ body {
     gap: 12px;
     scroll-behavior: smooth;
     background: #050403;
-    background-image:
-        repeating-linear-gradient(0deg,
-            transparent 0px,
-            transparent 2px,
-            rgba(0, 0, 0, 0.42) 2px,
-            rgba(0, 0, 0, 0.42) 3px),
-        radial-gradient(ellipse at 50% 0%, rgba(255, 122, 0, 0.080) 0%, transparent 65%),
-        radial-gradient(ellipse at 50% 100%, rgba(255, 51, 0, 0.055) 0%, transparent 60%),
-        radial-gradient(ellipse at 0% 50%, rgba(255, 122, 0, 0.035) 0%, transparent 55%);
+        background-image:
+        radial-gradient(ellipse at 50% 0%, rgba(255, 122, 0, 0.11) 0%, transparent 65%),
+        radial-gradient(ellipse at 50% 100%, rgba(255, 51, 0, 0.09) 0%, transparent 60%),
+        radial-gradient(ellipse at 0% 50%, rgba(255, 122, 0, 0.055) 0%, transparent 55%),
+        radial-gradient(ellipse at 100% 50%, rgba(255, 85, 0, 0.045) 0%, transparent 55%);
     font-family: var(--font-mono);
     position: relative;
 }
