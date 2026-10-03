@@ -1123,8 +1123,9 @@
     }
 
     function createTokenListContainer() {
-        if (tokenListContainer) return tokenListContainer;
-        const sidebarFooter = document.querySelector('.sidebar-footer');
+    if (!TOKEN_MINT_ADDRESS) return null;   // ⚑ no CA = no token box
+    if (tokenListContainer) return tokenListContainer;
+    const sidebarFooter = document.querySelector('.sidebar-footer');
         if (!sidebarFooter) return null;
         tokenListContainer = document.createElement('div');
         tokenListContainer.id = 'walletTokenList';
@@ -1293,9 +1294,18 @@
     }
 
     async function fetchAndDisplayAllTokens() {
-        if (!phantomWalletPublicKey) return;
-        try {
-            const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(
+    if (!phantomWalletPublicKey) return;
+
+    // ⚑ No CA configured → no token to gate on. Grant access, skip everything.
+    if (!TOKEN_MINT_ADDRESS) {
+        hasTokenAccess = true;
+        updateUserRank(0);
+        updateChatAccessibility();
+        return;
+    }
+
+    try {
+        const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(
                 phantomWalletPublicKey,
                 { programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') }
             );
@@ -1343,9 +1353,10 @@
     return;
 }
 
-        let canChat = false;
+               let canChat = false;
         if (username) {
-            if (modTokenRequirement <= 0) canChat = true;
+            if (!TOKEN_MINT_ADDRESS) canChat = true;         // ⚑ no CA = no gate
+            else if (modTokenRequirement <= 0) canChat = true;
             else canChat = phantomConnected && hasTokenAccess;
         }
         messageInput.disabled = !canChat;
@@ -3661,9 +3672,10 @@ function showSuccess(msg) {
     return;
 }
 
-        let canSend = false;
+               let canSend = false;
         if (username) {
-            if (modTokenRequirement <= 0) canSend = true;
+            if (!TOKEN_MINT_ADDRESS) canSend = true;         // ⚑ no CA = no gate
+            else if (modTokenRequirement <= 0) canSend = true;
             else canSend = phantomConnected && hasTokenAccess;
         }
         if (!canSend) {
