@@ -2379,3 +2379,30 @@ img.sticker {
     .sticker-wrap img,
     .sticker-container img { max-width: 130px; max-height: 130px; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   FIX — sticker timestamp on gold theme
+   Beats theme-merged.css `html[data-theme="gold"] .msg-time`
+   via higher specificity (0,3,2). No :has() so it works everywhere.
+   ═══════════════════════════════════════════════════════ */
+
+html body[data-theme="gold"] .msg-wrapper .msg-username .msg-time,
+html body[data-theme="gold"] .msg-wrapper .msg-username .msg-edited,
+html body.gold-theme      .msg-wrapper .msg-username .msg-time,
+html body.gold-theme      .msg-wrapper .msg-username .msg-edited {
+    color: var(--gold-bright, #FAE9B0) !important;
+    opacity: 1 !important;
+    font-weight: 600 !important;
+    text-shadow:
+        0 1px 2px rgba(0,0,0,0.85),
+        0 0 10px rgba(212,169,58,0.70) !important;
+}
+
+/* Own stickers — brighter gold */
+html body[data-theme="gold"] .msg-wrapper.own .msg-username .msg-time,
+html body.gold-theme      .msg-wrapper.own .msg-username .msg-time {
+    color: var(--gold-spec, #FFF8DC) !important;
+    text-shadow:
+        0 1px 2px rgba(0,0,0,0.90),
+        0 0 14px rgba(255,215,0,0.90) !important;
+}
