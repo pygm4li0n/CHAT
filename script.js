@@ -1374,12 +1374,65 @@
         messageInput.disabled = !canChat;
         sendBtn.disabled = !canChat;
         document.querySelectorAll('.private-btn').forEach(btn => btn.disabled = !canChat);
-        if (canChat) {
+              if (canChat) {
             messageInput.placeholder = 'Type a message...';
         } else {
-            if (!username) messageInput.placeholder = 'Set your username first';
+            if (!username) messageInput.placeholder = '👤 Guest — Connect Phantom to chat';
             else if (modTokenRequirement > 0 && !phantomConnected) messageInput.placeholder = `Connect Phantom & hold ${modTokenRequirement} tokens to chat`;
             else if (modTokenRequirement > 0 && !hasTokenAccess) messageInput.placeholder = `Insufficient tokens – need ${modTokenRequirement}`;
+        }
+    }
+
+        async function afterWalletConnect(walletAddr) {
+        if (!walletAddr) return;
+        if (username) return;   // already a full user
+
+        try {
+            const { data: existing } = await supabase.from('profiles')
+                .select('*')
+                .eq('wallet_address', walletAddr)
+                .maybeSingle();
+
+            if (existing && existing.username) {
+                // ─── Returning user → silent hydrate ───
+                username = existing.username;
+                localStorage.setItem(STORAGE_KEY_NAME, username);
+                localStorage.setItem(LAST_USERNAME_KEY, username);
+                if (window.MSNIdentity && window.MSNIdentity.remember) {
+                    window.MSNIdentity.remember(existing);
+                }
+                avatarCache[username] = existing.avatar_url || null;
+                currentAvatarUrl = existing.avatar_url || null;
+                const meName   = displayNameForUser(username);
+                const meAvatar = getAvatarURL(username);
+                if (sidebarBigAvatar) {
+                    sidebarBigAvatar.innerHTML = meAvatar
+                        ? `<img src="${meAvatar}" style="width:100%;height:100%;object-fit:cover;">`
+                        : (meName[0] || '?').toUpperCase();
+                }
+                if (sidebarBigName) sidebarBigName.textContent = meName;
+                userBalances[username] = existing.token_balance || 0;
+                updateUserRank(userBalances[username]);
+                nameOverlay.classList.add('hidden');
+                hideOverlayMessage();
+
+                await loadAcceptedChatsFromDB();
+                await updateSidebarUI();
+                setupPresence();
+                setupTypingChannel();
+                subscribeToPrivateRequests();
+                loadPendingRequests();
+                loadReactions('private_message_reactions', true);
+                updateChatAccessibility();
+            } else {
+                // ─── New user → prompt for name + image ───
+                nameOverlay.classList.remove('hidden');
+                hideOverlayMessage();
+                nameInput.value = '';
+                nameInput.focus();
+            }
+        } catch (e) {
+            console.warn('[afterWalletConnect] failed:', e);
         }
     }
 
@@ -1408,6 +1461,7 @@
             fetchAndDisplayAllTokens();
             const addr = phantomWalletPublicKey.toBase58();
             showSuccess(`Phantom connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
+            await afterWalletConnect(addr);
             return true;
         } catch (silentErr) { /* fall through */ }
 
@@ -1419,6 +1473,7 @@
             const addr = phantomWalletPublicKey.toBase58();
             showSuccess(`Phantom connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
             await fetchAndDisplayAllTokens();
+            await afterWalletConnect(addr);
             return true;
         } catch (err) {
             console.error('Phantom connection error:', err);
@@ -1997,7 +2052,7 @@ function showSuccess(msg) {
     errorToast.textContent = '✅ ' + clean;
     errorToast.classList.add('visible');
     clearTimeout(errorToast._timeout);
-    errorToast._timeout = setTimeout(() => errorToast.classList.remove('visible'), 5000);
+    errorToast._timeout = setTimeout(() => errorToast.classList.remove('visible'), 6500);
     if (nameOverlay && !nameOverlay.classList.contains('hidden')) {
         showOverlayMessage(clean, 'success');
     }
@@ -4111,9 +4166,18 @@ switchTab('public');
         }
     });
 
-    sendBtn.addEventListener('click', sendMessage);
+        sendBtn.addEventListener('click', sendMessage);
     messageInput.addEventListener('keypress', (e) => { if(e.key==='Enter') sendMessage(); });
     cancelReplyBtn.addEventListener('click', () => setReplyingTo(null));
+
+    // ═══ Shared chat API for stickers.js (fixes reply + cooldown) ═══
+    window.MSNChat = window.MSNChat || {};
+    window.MSNChat.getReplyingTo    = function () { return replyingTo; };
+    window.MSNChat.clearReplyingTo  = function () { setReplyingTo(null); };
+    window.MSNChat.startCooldown    = function () {
+        if (modCooldownSeconds > 0) startCooldown(modCooldownSeconds);
+    };
+    window.MSNChat.isCooldownActive = function () { return !!(cooldownInterval); };
     refreshBtn.addEventListener('click', fullReconnect);
     uploadImgBtn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', async () => {
@@ -4410,10 +4474,10 @@ subscribeToPrivateRequests();
             profile = data;
         }
 
-                if (username && profile) {
+                                if (username && profile) {
+            // ═══ FULL USER MODE — unchanged ═══
             await loadAcceptedChatsFromDB();
 
-            // Feed the canonical identity cache so X-verified data wins
             if (window.MSNIdentity && window.MSNIdentity.remember && profile.wallet_address) {
                 window.MSNIdentity.remember(profile);
             }
@@ -4421,7 +4485,6 @@ subscribeToPrivateRequests();
             avatarCache[username] = profile.avatar_url || null;
             currentAvatarUrl = profile.avatar_url || null;
 
-            // Prefer canonical identity for the visible name + avatar
             var meName   = displayNameForUser(username);
             var meAvatar = getAvatarURL(username);
             if (sidebarBigAvatar) {
@@ -4464,7 +4527,53 @@ subscribeToPrivateRequests();
                 messageInput.placeholder = 'Type a message...';
             }
 
-            // ⚑ Boot sequence complete — release the loading screen
+            window.__msnAppReady = true;
+            try { document.dispatchEvent(new CustomEvent('msn:app-ready')); } catch (e) {}
+        } else if (connectedWallet) {
+            // ═══ WALLET CONNECTED BUT NO PROFILE ═══
+            // Trusted reconnect succeeded but this wallet has no username yet.
+            // Show the identity overlay so they can complete setup.
+            if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = '👤';
+            if (sidebarBigName) sidebarBigName.textContent = 'Guest';
+            if (sidebarBigRank) { sidebarBigRank.textContent = ''; sidebarBigRank.classList.add('hidden'); }
+            if (sidebarBigLevel) { sidebarBigLevel.textContent = ''; sidebarBigLevel.classList.add('hidden'); }
+
+            inputAreaBar.classList.remove('hidden');
+            nameOverlay.classList.add('hidden');
+            setReplyingTo(null);
+            switchTab('public');
+
+            await loadMessages();
+            subscribeToRealtime();
+            loadReactions('message_reactions', false);
+            subscribeReactions();
+            updateChatAccessibility();
+
+            nameOverlay.classList.remove('hidden');
+            hideOverlayMessage();
+            nameInput.value = '';
+            nameInput.focus();
+
+            window.__msnAppReady = true;
+            try { document.dispatchEvent(new CustomEvent('msn:app-ready')); } catch (e) {}
+        } else {
+            // ═══ GUEST MODE — no wallet, read-only public chat ═══
+            if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = '👤';
+            if (sidebarBigName) sidebarBigName.textContent = 'Guest';
+            if (sidebarBigRank) { sidebarBigRank.textContent = ''; sidebarBigRank.classList.add('hidden'); }
+            if (sidebarBigLevel) { sidebarBigLevel.textContent = ''; sidebarBigLevel.classList.add('hidden'); }
+
+            inputAreaBar.classList.remove('hidden');
+            nameOverlay.classList.add('hidden');   // ⚑ never show on guest load
+            setReplyingTo(null);
+            switchTab('public');
+
+            await loadMessages();
+            subscribeToRealtime();
+            loadReactions('message_reactions', false);
+            subscribeReactions();
+            updateChatAccessibility();   // disables input + sets guest placeholder
+
             window.__msnAppReady = true;
             try { document.dispatchEvent(new CustomEvent('msn:app-ready')); } catch (e) {}
         } else {
@@ -4868,21 +4977,23 @@ subscribeToPrivateRequests();
   }
 
 
-  async function loadHolders() {
+   async function loadHolders() {
     const el = document.getElementById('holdersLeaderboard');
     if (!el) return;
     try {
-      const { data, error } = await supabase.rpc('get_holders_leaderboard', { p_limit: 10 });
+      // Step 1 — fetch candidates from RPC (still useful for names / avatars)
+      const { data, error } = await supabase.rpc('get_holders_leaderboard', { p_limit: 50 });
       if (error) {
         console.error('[rankings] holders RPC error:', error);
         el.innerHTML = '<div class="rankings-empty">Error loading</div>';
         return;
       }
-     if (!data || !data.length) {
+      if (!data || !data.length) {
         el.innerHTML = '<div class="rankings-empty">No holders yet</div>';
         return;
       }
-      // ⚑ Ingest into identity cache, then enrich (X name + avatar).
+
+      // Step 2 — ingest into identity cache
       data.forEach(row => {
         if (window.MSNIdentity && window.MSNIdentity.remember) {
           window.MSNIdentity.remember({
@@ -4896,79 +5007,34 @@ subscribeToPrivateRequests();
           });
         }
       });
+
       const enriched = (window.MSNIdentity && window.MSNIdentity.enrichRows)
         ? window.MSNIdentity.enrichRows(data)
         : data;
-           // ⚑ Fetch any missing balances from the profiles table first
-      const missing = [];
-      enriched.forEach(r => {
-        const u = r.username;
-        if (!u) return;
-        const known = userBalances[u];
-        if (known == null || known === 0) missing.push(u);
-      });
-      if (missing.length) {
-        try { await fetchAvatars(missing); } catch (e) {}
-      }
 
-        
-      // ⚑ Last resort: for any holder still showing 0, pull the real
-      //   balance straight from Solana. Fixes stale profiles + RPC.
-      const stillZero = enriched.filter(r =>
-        r.username && r.wallet_address &&
-        (userBalances[r.username] == null || userBalances[r.username] === 0)
-      );
-      for (const r of stillZero) {
+      // Step 3 — verify on-chain balance for TOKEN_MINT_ADDRESS (parallel)
+      //          Non-holders of the CURRENT token are discarded.
+      const verified = await Promise.all(enriched.map(async (r) => {
+        if (!r.wallet_address) return null;
         const chainBal = await fetchBalanceFromChain(r.wallet_address);
-        if (chainBal != null && chainBal > 0) {
-          userBalances[r.username] = chainBal;
-        }
+        if (chainBal == null || chainBal <= 0) return null;   // ⚑ not a current-token holder
+        if (r.username) userBalances[r.username] = chainBal;
+        return Object.assign({}, r, { fresh_balance: chainBal });
+      }));
+
+      const filtered = verified.filter(Boolean);
+      filtered.sort((a, b) => b.fresh_balance - a.fresh_balance);
+      const top10 = filtered.slice(0, 10);
+
+      if (top10.length === 0) {
+        el.innerHTML = '<div class="rankings-empty">No current-token holders yet</div>';
+        return;
       }
 
-
-      el.innerHTML = enriched.map(row => {
-// ⚑ Priority: freshest chain value > any non-zero DB value > RPC field > 0
-const cachedBal = row.username != null ? userBalances[row.username] : null;
-
-// Log once per user so you can confirm which field the RPC uses.
-if (!window.__msnHolderLogged) window.__msnHolderLogged = new Set();
-if (row.username && !window.__msnHolderLogged.has(row.username)) {
-    window.__msnHolderLogged.add(row.username);
-    console.log('[rankings] RPC row for', row.username, row);
-}
-
-const rawBalance =
-  (cachedBal != null && cachedBal !== 0) ? cachedBal :
-  row.token_balance      ??
-  row.total_balance      ??      // ← common in holders RPCs
-  row.holder_balance     ??
-  row.balance_raw        ??
-  row.balance            ??
-  row.amount             ??
-  row.holding            ??
-  row.holdings           ??
-  row.tokens             ??
-  row.token_amount       ??
-  row.ui_amount          ??
-  row.ui_amount_string   ??
-  row.uiAmountString     ??
-  row.uiAmount           ??
-  cachedBal ??
-  0;
-
-const balRaw = parseBalanceValue(rawBalance);
-let tier     = badgeFromBalance(balRaw);
-
-        // ⚑ If our balance-derived tier is Shrimp (profiles row is stale/0),
-        //   fall back to the RPC's own holder_tier — it computes from
-        //   on-chain data, which is fresher than the profiles table.
-        if (tier.name === 'Shrimp' && row.holder_tier) {
-            const rpcTier = badgeFromName(row.holder_tier);
-            if (rpcTier.name !== 'Shrimp') {
-                tier = rpcTier;
-            }
-        }
-
+      // Step 4 — render top 10
+      el.innerHTML = top10.map(row => {
+        const balRaw = row.fresh_balance;
+        const tier   = badgeFromBalance(balRaw);
         const bal    = balRaw.toLocaleString();
         const walletAttr = row.wallet_address
           ? ' data-wallet="' + esc(row.wallet_address) + '"'
