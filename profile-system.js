@@ -1338,7 +1338,12 @@
             rememberIdentity(profile);
         }
 
-        if (out.token_balance == null && username) {
+               // ⚑ For SELF: prefer the live chain value (window.userBalances)
+        //   over the DB column. profiles.token_balance is only updated
+        //   when the wallet connects, so it can lag behind reality.
+        if (isSelf && window.userBalances && window.userBalances[username] != null) {
+            out.token_balance = window.userBalances[username];
+        } else if (out.token_balance == null && username) {
             try {
                 var cached = window.userBalances && window.userBalances[username];
                 if (cached != null) out.token_balance = cached;
