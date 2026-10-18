@@ -1305,10 +1305,9 @@
         })();
     }
 
-    async function fetchAndDisplayAllTokens() {
+        async function fetchAndDisplayAllTokens() {
     if (!phantomWalletPublicKey) return;
 
-    // ⚑ No CA configured → no token to gate on. Grant access, skip everything.
     if (!TOKEN_MINT_ADDRESS) {
         hasTokenAccess = true;
         updateUserRank(0);
@@ -1316,41 +1315,61 @@
         return;
     }
 
-    try {
-        const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(
-                phantomWalletPublicKey,
-                { programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') }
-            );
-            displayTokenBalances(tokenAccounts.value);
-            let targetBalance = 0;
-            for (const acc of tokenAccounts.value) {
-                const info = acc.account.data.parsed.info;
-                if (info.mint === TOKEN_MINT_ADDRESS) {
-                    targetBalance += parseFloat(info.tokenAmount.uiAmountString);
-                }
-            }
-            updateUserRank(targetBalance);
+    var TOKEN_PROGRAM = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+    var owner = phantomWalletPublicKey;
 
-            userBalances[username] = targetBalance;
-
-            if (modTokenRequirement <= 0) {
-                hasTokenAccess = true;
-            } else if (targetBalance > modTokenRequirement) {
-                hasTokenAccess = true;
-                showSuccess(`You hold ${targetBalance.toLocaleString()} tokens — access granted!`);
-            } else {
-                hasTokenAccess = false;
-                showError(`You need more than ${modTokenRequirement.toLocaleString()} tokens (you have ${targetBalance.toLocaleString()}).`);
-            }
-            updateChatAccessibility();
-        } catch (err) {
-            console.error('❌ Error fetching token balances:', err);
-            hasTokenAccess = false;
-            updateChatAccessibility();
-            const container = createTokenListContainer();
-            if (container) container.innerHTML = '<div style="color:#ff6b6b;">Failed to load tokens</div>';
-        }
+    async function _fetchAccounts() {
+        return solanaConnection.getParsedTokenAccountsByOwner(
+            owner,
+            { programId: TOKEN_PROGRAM },
+            'confirmed'
+        );
     }
+
+    try {
+        var tokenAccounts = await _fetchAccounts();
+
+        // ⚑ Retry once if the current mint has no account yet.
+        //   Helius can serve slightly stale data right after wallet connect.
+        var hasMatch = (tokenAccounts.value || []).some(function (acc) {
+            return acc.account.data.parsed.info.mint === TOKEN_MINT_ADDRESS;
+        });
+        if (!hasMatch) {
+            await new Promise(function (r) { setTimeout(r, 1500); });
+            try { tokenAccounts = await _fetchAccounts(); } catch (e) { /* keep first result */ }
+        }
+
+        displayTokenBalances(tokenAccounts.value);
+        let targetBalance = 0;
+        for (const acc of tokenAccounts.value) {
+            const info = acc.account.data.parsed.info;
+            if (info.mint === TOKEN_MINT_ADDRESS) {
+                targetBalance += parseFloat(info.tokenAmount.uiAmountString);
+            }
+        }
+        updateUserRank(targetBalance);
+
+        // ⚑ Only cache under a real username — never write userBalances['']
+        if (username) userBalances[username] = targetBalance;
+
+        if (modTokenRequirement <= 0) {
+            hasTokenAccess = true;
+        } else if (targetBalance > modTokenRequirement) {
+            hasTokenAccess = true;
+            showSuccess(`You hold ${targetBalance.toLocaleString()} tokens — access granted!`);
+        } else {
+            hasTokenAccess = false;
+            showError(`You need more than ${modTokenRequirement.toLocaleString()} tokens (you have ${targetBalance.toLocaleString()}).`);
+        }
+        updateChatAccessibility();
+    } catch (err) {
+        console.error('❌ Error fetching token balances:', err);
+        hasTokenAccess = false;
+        updateChatAccessibility();
+        const container = createTokenListContainer();
+        if (container) container.innerHTML = '<div style="color:#ff6b6b;">Failed to load tokens</div>';
+    }
+}
 
        function updateChatAccessibility() {
         // ⚑ Whale tab — gate solely on whale badge
@@ -1416,7 +1435,15 @@
                 nameOverlay.classList.add('hidden');
                 hideOverlayMessage();
 
-                await loadAcceptedChatsFromDB();
+                                await loadAcceptedChatsFromDB();
+                // ⚑ Reset presence so the new username is broadcast, not the
+                //   leftover guest presence entry from a guest → connect flow.
+                if (presenceChannel) {
+                    try { await presenceChannel.untrack(); } catch (e) {}
+                    supabase.removeChannel(presenceChannel);
+                    presenceChannel = null;
+                }
+                onlineUsers.clear();
                 await updateSidebarUI();
                 setupPresence();
                 setupTypingChannel();
@@ -1453,15 +1480,15 @@
         }
         showOverlayMessage('Waiting for Phantom approval…', 'info');
 
-        try {
+               try {
             const resp = await provider.connect({ onlyIfTrusted: true });
             phantomWalletPublicKey = resp.publicKey;
             phantomConnected = true;
             updatePhantomUI();
-            fetchAndDisplayAllTokens();
             const addr = phantomWalletPublicKey.toBase58();
             showSuccess(`Phantom connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
-            await afterWalletConnect(addr);
+            await afterWalletConnect(addr);       // ⚑ set username FIRST
+            await fetchAndDisplayAllTokens();     // ⚑ then fetch with correct username
             return true;
         } catch (silentErr) { /* fall through */ }
 
@@ -1472,8 +1499,8 @@
             updatePhantomUI();
             const addr = phantomWalletPublicKey.toBase58();
             showSuccess(`Phantom connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
-            await fetchAndDisplayAllTokens();
-            await afterWalletConnect(addr);
+            await afterWalletConnect(addr);       // ⚑ set username FIRST
+            await fetchAndDisplayAllTokens();     // ⚑ then fetch with correct username
             return true;
         } catch (err) {
             console.error('Phantom connection error:', err);
@@ -2895,10 +2922,13 @@ function showSuccess(msg) {
         typingChannel.subscribe();
     }
 
-    function setupPresence() {
+       function setupPresence() {
         if (presenceChannel) return;
-        if (!username) return;
-        const presenceKey = `${username}::${clientId}`;
+        // ⚑ FIX: guests join presence too — so guests see active users,
+        //   and registered users see the guest count. Guests use a
+        //   `guest::<clientId>` key so they never collide with real usernames.
+        const isGuest = !username;
+        const presenceKey = `${isGuest ? 'guest' : username}::${clientId}`;
         presenceChannel = supabase.channel('msn-chat-presence', { config:{ presence:{ key:presenceKey } } });
         presenceChannel
         .on('presence', { event:'sync' }, () => {
@@ -2909,9 +2939,12 @@ function showSuccess(msg) {
                     const presences = state[key];
                     if (!presences || presences.length === 0) return;
                     const p = presences[0];
+                    const rawKey = key.split('::')[0];
+                    const isGuestEntry = p.isGuest === true || rawKey === 'guest' || !p.username;
                     flat.push({
                         key: key,
-                        username: p.username || key.split('::')[0] || 'Unknown',
+                        username: isGuestEntry ? '' : (p.username || rawKey || 'Unknown'),
+                        isGuest: isGuestEntry,
                         client_id: p.client_id || '',
                         wallet: (p.wallet || '').trim(),
                         online_at: p.online_at || ''
@@ -2922,7 +2955,6 @@ function showSuccess(msg) {
                 const seenWallets = new Set();
                 const seenUsernames = new Set();
 
-                // Wallet'd entries win; among the same wallet, newest online_at wins
                 flat.sort((a, b) => {
                     const aw = a.wallet ? 1 : 0, bw = b.wallet ? 1 : 0;
                     if (aw !== bw) return bw - aw;
@@ -2930,18 +2962,14 @@ function showSuccess(msg) {
                 });
 
                 flat.forEach(u => {
+                    if (u.isGuest) { onlineUsers.set(u.key, u); return; }
                     if (u.wallet && seenWallets.has(u.wallet)) return;
                     if (!u.wallet && seenUsernames.has(u.username)) return;
 
                     if (u.wallet) seenWallets.add(u.wallet);
                     seenUsernames.add(u.username);
 
-                    onlineUsers.set(u.key, {
-                        username: u.username,
-                        client_id: u.client_id,
-                        wallet: u.wallet,
-                        online_at: u.online_at
-                    });
+                    onlineUsers.set(u.key, u);
                 });
 
                 updateSidebarUI();
@@ -2950,18 +2978,32 @@ function showSuccess(msg) {
             .on('presence', { event:'join' }, ({key, newPresences}) => {
                 if (!newPresences || newPresences.length === 0) return;
                 const p = newPresences[0];
-                const uname = p.username || key.split('::')[0] || 'Unknown';
+                const rawKey = key.split('::')[0];
+                const isGuestEntry = p.isGuest === true || rawKey === 'guest' || !p.username;
+                const uname = isGuestEntry ? '' : (p.username || rawKey || 'Unknown');
                 const wallet = (p.wallet || '').trim();
+
+                if (isGuestEntry) {
+                    onlineUsers.set(key, {
+                        username: '', isGuest: true,
+                        client_id: p.client_id || '',
+                        wallet: wallet,
+                        online_at: p.online_at || ''
+                    });
+                    updateSidebarUI();
+                    return;
+                }
 
                 let dup = false;
                 onlineUsers.forEach(u => {
+                    if (u.isGuest) return;
                     if (wallet && u.wallet && u.wallet === wallet) dup = true;
                     if (u.username === uname) dup = true;
                 });
                 if (dup) return;
 
                 onlineUsers.set(key, {
-                    username: uname,
+                    username: uname, isGuest: false,
                     client_id: p.client_id || '',
                     wallet: wallet,
                     online_at: p.online_at || ''
@@ -2970,9 +3012,10 @@ function showSuccess(msg) {
             })
             .on('presence', { event:'leave' }, ({key}) => { onlineUsers.delete(key); updateSidebarUI(); })
             .subscribe(async (status) => {
-                if(status==='SUBSCRIBED') {
+                if(status === 'SUBSCRIBED') {
                     await presenceChannel.track({
-                        username: username,
+                        username: isGuest ? null : username,
+                        isGuest: isGuest,
                         client_id: clientId,
                         wallet: getWalletAddress() || '',
                         online_at: new Date().toISOString()
@@ -3176,14 +3219,14 @@ function showSuccess(msg) {
         }
     }
 
-      async function updateSidebarUI() {
+            async function updateSidebarUI() {
         const usersToFetch  = new Set();
         const walletsToFetch = new Set();
 
                if (username) usersToFetch.add(username);
         onlineUsers.forEach(u => {
-            usersToFetch.add(u.username);
-            // ⚑ Always refresh — never trust persisted cache for the sidebar
+            if (u.isGuest) return;                       // ⚑ guests have no profile
+            if (u.username) usersToFetch.add(u.username);
             if (u.wallet) walletsToFetch.add(u.wallet);
         });
 
@@ -3208,7 +3251,8 @@ function showSuccess(msg) {
             html += buildSidebarItem(username, true, false, true);
             rendered.add(username);
         }
-        onlineUsers.forEach((user) => {
+               onlineUsers.forEach((user) => {
+            if (user.isGuest) return;                    // ⚑ guests counted separately, not listed
             if(!rendered.has(user.username) && user.username !== username) {
                 rendered.add(user.username);
                 let isPending = pendingPrivateRequests.has(user.username) &&
@@ -3219,12 +3263,36 @@ function showSuccess(msg) {
             }
         });
         sidebarUsers.innerHTML = html || '<div class="no-users-sidebar">No one else online</div>';
+                // ⚑ Split users vs guests so the count reflects both
         const uniqueForCount = new Set();
-        onlineUsers.forEach(u => uniqueForCount.add(u.username));
-        const onlineCount = uniqueForCount.size;
-        onlineCountNumber.textContent = onlineCount;
+        let guestCount = 0;
+        onlineUsers.forEach(u => {
+            if (u.isGuest) { guestCount++; return; }
+            if (u.username) uniqueForCount.add(u.username);
+        });
+        const userCount   = uniqueForCount.size;
+        const onlineCount = userCount + guestCount;
+
+        if (onlineCountNumber) onlineCountNumber.textContent = onlineCount;
         if (sidebarActiveUsersCount) sidebarActiveUsersCount.textContent = onlineCount;
 
+        // ⚑ Small "· N guests" suffix next to the count when guests are present
+        if (sidebarActiveUsersCount && sidebarActiveUsersCount.parentNode) {
+            let guestEl = document.getElementById('sidebarGuestCount');
+            if (!guestEl) {
+                guestEl = document.createElement('span');
+                guestEl.id = 'sidebarGuestCount';
+                guestEl.style.cssText = 'margin-left:6px;font-size:0.7rem;opacity:0.65;font-weight:700;';
+                sidebarActiveUsersCount.parentNode.appendChild(guestEl);
+            }
+            if (guestCount > 0) {
+                guestEl.textContent = '· ' + guestCount + ' guest' + (guestCount === 1 ? '' : 's');
+                guestEl.style.display = 'inline';
+            } else {
+                guestEl.textContent = '';
+                guestEl.style.display = 'none';
+            }
+        }
         sidebarUsers.querySelectorAll('.sidebar-user-item').forEach(item => {
             const userName = item.getAttribute('data-username');
             const privateBtn = item.querySelector('.private-btn');
@@ -4486,8 +4554,12 @@ subscribeToPrivateRequests();
             }
             if (sidebarBigName) sidebarBigName.textContent = meName;
 
-            if (profile.wallet_address) {
-                userBalances[username] = profile.token_balance || 0;
+                        if (profile.wallet_address) {
+                // ⚑ Don't overwrite the live on-chain value if one already exists.
+                //   DB token_balance can be stale; only use it as a placeholder.
+                if (!(username in userBalances) || userBalances[username] == null) {
+                    userBalances[username] = profile.token_balance || 0;
+                }
                 updateUserRank(userBalances[username]);
             } else {
                 userBalances[username] = null;
@@ -4565,10 +4637,11 @@ subscribeToPrivateRequests();
             setReplyingTo(null);
             switchTab('public');
 
-            await loadMessages();
+                        await loadMessages();
             subscribeToRealtime();
             loadReactions('message_reactions', false);
             subscribeReactions();
+            setupPresence();             // ⚑ FIX: guests join presence → see active users
             updateChatAccessibility();   // disables input + sets guest placeholder
 
                         window.__msnAppReady = true;
