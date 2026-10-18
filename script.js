@@ -4466,15 +4466,7 @@ subscribeToPrivateRequests();
             }
         }
 
-        if (!profile && !connectedWallet && username) {
-            const { data } = await supabase.from('profiles')
-                .select('*')
-                .eq('username', username)
-                .maybeSingle();
-            profile = data;
-        }
-
-                                if (username && profile) {
+               if (username && profile) {
             // ═══ FULL USER MODE — unchanged ═══
             await loadAcceptedChatsFromDB();
 
@@ -4556,8 +4548,13 @@ subscribeToPrivateRequests();
 
             window.__msnAppReady = true;
             try { document.dispatchEvent(new CustomEvent('msn:app-ready')); } catch (e) {}
-        } else {
+               } else {
             // ═══ GUEST MODE — no wallet, read-only public chat ═══
+            // Reset any stale username so afterWalletConnect() runs cleanly
+            if (username) {
+                username = '';
+                try { localStorage.removeItem(STORAGE_KEY_NAME); } catch (e) {}
+            }
             if (sidebarBigAvatar) sidebarBigAvatar.innerHTML = '👤';
             if (sidebarBigName) sidebarBigName.textContent = 'Guest';
             if (sidebarBigRank) { sidebarBigRank.textContent = ''; sidebarBigRank.classList.add('hidden'); }
@@ -4574,43 +4571,7 @@ subscribeToPrivateRequests();
             subscribeReactions();
             updateChatAccessibility();   // disables input + sets guest placeholder
 
-            window.__msnAppReady = true;
-            try { document.dispatchEvent(new CustomEvent('msn:app-ready')); } catch (e) {}
-        } else {
-        const lastUsername = localStorage.getItem(LAST_USERNAME_KEY);
-            const walletForLast = getWalletAddress();
-            let lastProfile = null;
-
-            if (walletForLast) {
-                lastProfile = await loadProfileByWallet(walletForLast);
-                if (lastProfile?.username) {
-                    nameInput.value = lastProfile.username;
-                } else if (lastUsername) {
-                    nameInput.value = lastUsername;
-                }
-            } else if (lastUsername) {
-                nameInput.value = lastUsername;
-                const { data } = await supabase.from('profiles')
-                    .select('avatar_url')
-                    .eq('username', lastUsername)
-                    .maybeSingle();
-                lastProfile = data;
-            }
-
-            if (lastProfile && lastProfile.avatar_url) {
-                currentAvatarUrl = lastProfile.avatar_url;
-                profilePicPreview.innerHTML = `<img src="${lastProfile.avatar_url}" alt="Profile">`;
-            } else {
-                currentAvatarUrl = null;
-                profilePicPreview.innerHTML = '<span>📷</span>';
-            }
-            nameOverlay.classList.remove('hidden');
-            hideOverlayMessage();
-            nameInput.focus();
-            subscribeToRealtime();
-
-            // ⚑ Boot sequence complete — release the loading screen
-            window.__msnAppReady = true;
+                        window.__msnAppReady = true;
             try { document.dispatchEvent(new CustomEvent('msn:app-ready')); } catch (e) {}
         }
         document.addEventListener('visibilitychange', () => {
