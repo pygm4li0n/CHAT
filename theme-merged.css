@@ -3678,6 +3678,47 @@ html body .msn-right-sidebar .msn-rs-actions .msn-rs-card:hover .msn-rs-card-log
         0 1px 6px rgba(0,0,0,0.65),
         0 0 14px color-mix(in srgb, var(--accent-cyan) 60%, transparent) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ███  SECTION 6 — Z-INDEX RESOLUTION  ███
+   ───────────────────────────────────────────────────────────────────
+   Fixes:
+     1. Mobile overlays rendering BEHIND the sidebar (z-index 9000)
+        → mod panel, profile card, rankings, theme, name, request
+     2. Lightbox hidden behind modals + sidebar
+     3. Toasts hidden behind the sticker picker (z-index 999999)
+        → "Cooldown active" / "Sticker failed" were invisible
+
+   Targets are explicit — nothing relies on layer order anymore.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Overlays must beat the mobile sidebar (9000) ── */
+html body .overlay-full,
+html body .request-overlay,
+html body #modPanelV2,
+html body #msnProfileOverlay {
+    z-index: 9500 !important;
+}
+
+/* ── Lightbox above normal content, below modals/toasts ── */
+html body .lightbox-overlay {
+    z-index: 9000 !important;
+}
+
+/* ── Toasts must beat the sticker picker (999999) ── */
+html body .error-toast.visible,
+html body .streak-toast.visible {
+    z-index: 1000000 !important;
+}
+
+/* ── Toast interaction — make pointer-events explicit ──
+   (previously declared twice with conflicting values;
+    net result was `none`. Kept as `none` — toasts should
+    never block clicks. Now unambiguous.) */
+html body .error-toast.visible,
+html body .streak-toast.visible {
+    pointer-events: none !important;
+}
 /* ═══════════════════════════════════════════════════════════════════
    ███  END OF FILE  ███
    ═══════════════════════════════════════════════════════════════════ */
