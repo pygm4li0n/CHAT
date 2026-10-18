@@ -1454,9 +1454,14 @@
         if (!out.created_at && out.last_active_at) out.created_at = out.last_active_at;
         if (!out.created_at && profile && profile.updated_at) out.created_at = profile.updated_at;
 
-        if (!out.hasProfile && !out.created_at && !out.messages_count) {
+                if (!out.hasProfile && !out.created_at && !out.messages_count) {
             return { error: 'not-found' };
         }
+
+        // ⚑ FIX: when opened by wallet, resolve the canonical username so
+        //   Add Friend / Message target the username column, not the wallet.
+        //   Profile was already fetched above — just prefer its username.
+        if (profile && profile.username) out.username = profile.username;
 
         _profileCache.set(key, { t: Date.now(), data: out });
         return out;
@@ -1713,7 +1718,8 @@ toast('Friend request sent to ' + targetUser);
         // cache expires by TTL; cleared on msn:identity-changed
     }
 
-    document.addEventListener('msn:identity-changed', function (e) {
+        document.addEventListener('msn:identity-changed', function (e) {
+        _profileCache.clear();   // ⚑ FIX: invalidate cache on every identity change
         if (!overlay || !overlay.classList.contains('open')) return;
         if (!currentUsernameOpen) return;
         var changedWallet = e.detail && e.detail.wallet;
