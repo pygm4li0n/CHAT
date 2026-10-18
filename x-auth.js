@@ -345,18 +345,25 @@
                 updated_at:   new Date().toISOString()
             }).eq('wallet_address', wallet);
 
-            if (error) { console.warn('[x-auth] profile update failed:', error.message); return; }
+                        if (error) { console.warn('[x-auth] profile update failed:', error.message); return; }
 
             console.log('[x-auth] X identity applied to', wallet);
             try { localStorage.removeItem('msn_x_pending_wallet'); } catch (e) {}
+            try { localStorage.setItem('msn_x_verified_wallet', wallet); } catch (e) {}
 
             forceIdentityRefresh(wallet);
         } catch (e) { console.warn('[x-auth] failed:', e); }
     }
 
-    async function clearXFromProfile() {
+       async function clearXFromProfile() {
         var main = getMain();
         var wallet = getWallet();
+        // ⚑ Fallback to the wallet X was last verified against when Phantom
+        //   is disconnected — without this, signing out of X while Phantom
+        //   is disconnected silently no-ops, leaving x_verified=true in DB.
+        if (!wallet) {
+            try { wallet = localStorage.getItem('msn_x_verified_wallet'); } catch (e) {}
+        }
         if (!main || !wallet) return;
         try {
             await main.from('profiles').update({
@@ -367,10 +374,10 @@
                 updated_at:   new Date().toISOString()
             }).eq('wallet_address', wallet);
             console.log('[x-auth] X identity cleared for', wallet);
+            try { localStorage.removeItem('msn_x_verified_wallet'); } catch (e) {}
             forceIdentityRefresh(wallet);
         } catch (e) { console.warn('[x-auth] clear failed:', e); }
     }
-
     function markButton(btn, signedIn) {
         if (!btn) return;
         btn.classList.toggle('x-signed-in', !!signedIn);
