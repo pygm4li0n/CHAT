@@ -641,9 +641,13 @@
 
         if (updateErr) return { error: updateErr.message };
 
-        if (!updated) {
+                if (!updated) {
             var { data: inserted, error: insertErr } = await sb.from('profiles')
-                .insert({ wallet_address: wallet, username: newName })
+                .insert({
+                    wallet_address: wallet,
+                    username: newName,
+                    updated_at: new Date().toISOString()
+                })
                 .select()
                 .single();
             if (insertErr) return { error: insertErr.message };
@@ -790,11 +794,14 @@ function scheduleOwnClass(root) {
         var { data } = await sb.from('profiles')
             .select(PROFILE_COLS)
             .in('username', Array.from(names));
-        (data || []).forEach(function (p) {
+                (data || []).forEach(function (p) {
             rememberProfile(p);
             document.querySelectorAll('.msg-wrapper, .sidebar-user-item').forEach(function (el) {
-                var txt = (el.textContent || '').trim();
-                if (txt.indexOf(p.username) === 0 && !el.dataset.wallet) {
+                if (el.dataset.wallet) return;
+                var nameEl = el.querySelector('.msg-username') || el.querySelector('.user-name');
+                if (!nameEl) return;
+                var visible = extractUsernameFromNode(nameEl);
+                if (visible && visible === p.username) {
                     el.dataset.wallet = p.wallet_address;
                 }
             });
@@ -852,12 +859,15 @@ function scheduleOwnClass(root) {
         setTimeout(seedFromDOM, 3000);
         setTimeout(seedFromDOM, 5500);
 
-        // Safety net — runs 30s after boot, then stops.
+              // Safety net — runs 30s after boot, then stops.
         var _safetyTicks = 0;
         var _safetyTimer = setInterval(function () {
             ensureOwnClass();
             ensureSingleSelf();
-            if (++_safetyTicks >= 15) clearInterval(_safetyTimer);
+            if (++_safetyTicks >= 15) {
+                clearInterval(_safetyTimer);
+                _safetyTimer = null;   // ⚑ FIX: reset so msn:app-ready can re-arm
+            }
         }, 2000);
 
         document.addEventListener('msn:app-ready', function () {
