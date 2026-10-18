@@ -1376,6 +1376,16 @@
 
         if (username) userBalances[username] = targetBalance;
 
+        // ⚑ FIX: mirror the fresh on-chain value into the DB so
+        //   get_holders_leaderboard sees you as a real holder
+        //   (many RPCs filter WHERE token_balance > 0).
+        try {
+            await supabase.rpc('update_wallet_balance', {
+                p_wallet:  getWalletAddress(),
+                p_balance: targetBalance
+            });
+        } catch (e) { /* non-fatal — Section 3 also writes it */ }
+
         if (modTokenRequirement <= 0) {
             hasTokenAccess = true;
         } else if (targetBalance > modTokenRequirement) {
@@ -5012,28 +5022,45 @@ subscribeToPrivateRequests();
     });
   }
 
-      async function fetchBalanceFromChain(wallet) {
+          async function fetchBalanceFromChain(wallet) {
     if (!wallet) return null;
     try {
-      const pk = new solanaWeb3.PublicKey(wallet);
-      const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(
-        pk,
-        { programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') }
-      );
-      let balance = 0;
-      for (const acc of tokenAccounts.value) {
-        const info = acc.account.data.parsed.info;
-        if (info.mint === TOKEN_MINT_ADDRESS) {
-          balance += parseFloat(info.tokenAmount.uiAmountString);
-        }
-      }
-      return balance;
-    } catch (e) {
-      console.warn('[chain-balance] failed for', wallet, e);
-      return null;
-    }
-  }
+        const pk = new solanaWeb3.PublicKey(wallet);
+        const SPL_TOKEN  = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+        const TOKEN_2022 = new solanaWeb3.PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
 
+        // ⚑ FIX: query BOTH programs (same as fetchAndDisplayAllTokens).
+        //   Token-2022 mints (pump.fun create_v2, newer SPL) live under
+        //   the Token-2022 program, not the legacy SPL Token program.
+        var results = await Promise.allSettled([
+            solanaConnection.getParsedTokenAccountsByOwner(
+                pk, { programId: SPL_TOKEN }, 'confirmed'
+            ),
+            solanaConnection.getParsedTokenAccountsByOwner(
+                pk, { programId: TOKEN_2022 }, 'confirmed'
+            )
+        ]);
+
+        var accounts = [];
+        results.forEach(function (r) {
+            if (r.status === 'fulfilled' && r.value && Array.isArray(r.value.value)) {
+                accounts = accounts.concat(r.value.value);
+            }
+        });
+
+        let balance = 0;
+        for (const acc of accounts) {
+            const info = acc.account.data.parsed.info;
+            if (info.mint === TOKEN_MINT_ADDRESS) {
+                balance += parseFloat(info.tokenAmount.uiAmountString);
+            }
+        }
+        return balance;
+    } catch (e) {
+        console.warn('[chain-balance] failed for', wallet, e);
+        return null;
+    }
+}
 
    async function loadHolders() {
     const el = document.getElementById('holdersLeaderboard');
@@ -5272,14 +5299,33 @@ subscribeToPrivateRequests();
         }
     }
 
-    async function fetchWalletBalance(wallet) {
+        async function fetchWalletBalance(wallet) {
         try {
             const pubkey = new solanaWeb3.PublicKey(wallet);
-            const tokenAccounts = await solanaConnection.getParsedTokenAccountsByOwner(pubkey, {
-                programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+            const SPL_TOKEN  = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+            const TOKEN_2022 = new solanaWeb3.PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
+
+            // ⚑ FIX: query BOTH programs so Token-2022 balances reach
+            //   update_wallet_balance → DB profiles.token_balance →
+            //   get_holders_leaderboard candidate list.
+            var results = await Promise.allSettled([
+                solanaConnection.getParsedTokenAccountsByOwner(
+                    pubkey, { programId: SPL_TOKEN }, 'confirmed'
+                ),
+                solanaConnection.getParsedTokenAccountsByOwner(
+                    pubkey, { programId: TOKEN_2022 }, 'confirmed'
+                )
+            ]);
+
+            var accounts = [];
+            results.forEach(function (r) {
+                if (r.status === 'fulfilled' && r.value && Array.isArray(r.value.value)) {
+                    accounts = accounts.concat(r.value.value);
+                }
             });
+
             let balance = 0;
-            for (const acc of tokenAccounts.value) {
+            for (const acc of accounts) {
                 const info = acc.account.data.parsed.info;
                 if (info.mint === TOKEN_MINT_ADDRESS) {
                     balance += parseFloat(info.tokenAmount.uiAmountString);
