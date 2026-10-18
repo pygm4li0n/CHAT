@@ -1956,12 +1956,15 @@ let whaleMessageReactions = {};   // whale chat reuses the message_reactions tab
             oldestPublicSortOrder = data[0].sort_order;
             if (data.length < PUBLIC_PAGE_SIZE) hasMoreOlderPublic = false;
 
-            var walletsToFetch = new Set();
+                        var walletsToFetch = new Set();
             data.forEach(msg => {
                 if (msg.wallet_address) walletsToFetch.add(msg.wallet_address);
                 if (msg.username && msg.wallet_address) {
-                    avatarCache[msg.username]  = msg.avatar_url || null;
-                    userBalances[msg.username] = msg.token_balance || null;
+                    avatarCache[msg.username] = msg.avatar_url || null;
+                    // ⚑ Do NOT seed userBalances from message snapshots — those
+                    //   are send-time values and can be weeks old. Authoritative
+                    //   sources are chain (fetchAndDisplayAllTokens) and DB
+                    //   (fetchAvatars → profiles.token_balance).
                 }
             });
             if (walletsToFetch.size && window.MSNIdentity && window.MSNIdentity.fetchProfilesFor) {
@@ -2194,11 +2197,19 @@ function showSuccess(msg) {
             return true;
         });
 
-        merged.forEach(p => {
+               merged.forEach(p => {
             if (!p.username) return;
-            // ⚑ ALWAYS overwrite — DB is source of truth
-            avatarCache[p.username]  = p.avatar_url || null;
-            userBalances[p.username] = p.wallet_address ? (p.token_balance || 0) : null;
+            avatarCache[p.username] = p.avatar_url || null;
+
+            // ⚑ For the connected user, preserve the chain-verified balance
+            //   (set by fetchAndDisplayAllTokens). For everyone else, use the
+            //   DB value — we can't afford a chain lookup per user per render.
+            if (p.username === username && userBalances[p.username] != null) {
+                // keep chain value — DB may lag behind update_wallet_balance
+            } else {
+                userBalances[p.username] = p.wallet_address ? (p.token_balance || 0) : null;
+            }
+
             if (p.wallet_address && window.MSNIdentity && window.MSNIdentity.remember) {
                 window.MSNIdentity.remember(p);
             }
@@ -3596,12 +3607,12 @@ function showSuccess(msg) {
                 if (rows.length < PUBLIC_PAGE_SIZE) hasMoreOlderWhale = false;
 
                 const walletsToFetch = new Set();
-                rows.forEach(msg => {
+                                rows.forEach(msg => {
                     if (msg.wallet_address) {
                         walletsToFetch.add(msg.wallet_address);
                         if (msg.username) {
-                            avatarCache[msg.username]  = msg.avatar_url || null;
-                            userBalances[msg.username] = msg.token_balance || null;
+                            avatarCache[msg.username] = msg.avatar_url || null;
+                            // ⚑ Do NOT seed userBalances from message snapshots (stale).
                         }
                     }
                 });
@@ -3770,20 +3781,23 @@ function showSuccess(msg) {
             // ⚑ Pre-warm identity by WALLET (not username).
             //   1. Remember profile fields the view already carries.
             //   2. Batch-fetch any wallets not yet in the cache.
-                        var walletsToFetch = new Set();
-                        data.forEach(msg => {
+                                    var walletsToFetch = new Set();
+            data.forEach(msg => {
                 if (msg.wallet_address) {
                     // ⚑ NEVER seed the identity cache from message-carried fields.
                     //   They are send-time snapshots — could be a create-stage name.
                     //   fetchProfilesFor() below is the sole authoritative writer.
                     walletsToFetch.add(msg.wallet_address);
                 }
-                               if (msg.username) {
+                if (msg.username) {
                     if (msg.wallet_address) {
-                        // Wallet-anchored → always overwrite
-                        avatarCache[msg.username]  = msg.avatar_url || null;
-                        userBalances[msg.username] = msg.token_balance || null;
+                        // ⚑ Wallet-anchored: set avatar (rarely changes) but
+                        //   NEVER userBalances from the message snapshot —
+                        //   that's the source of the "stale tier" bug.
+                        avatarCache[msg.username] = msg.avatar_url || null;
                     } else {
+                        // Legacy wallet-less messages: user can't be chain-verified,
+                        //   so message snapshot is the only available data.
                         if (!(msg.username in avatarCache))
                             avatarCache[msg.username] = msg.avatar_url || null;
                         if (!(msg.username in userBalances))
