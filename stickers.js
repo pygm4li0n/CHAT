@@ -202,8 +202,8 @@
         containers.forEach(scanContainer);
     }
 
-    function watchReplyPreview() {
-        var el = document.getElementById('replyPreviewDel');
+      function watchReplyPreview() {
+        var el = document.getElementById('replyPreviewDisp');
         if (!el) { setTimeout(watchReplyPreview, 500); return; }
         var fix = function () {
             var t = el.textContent || '';
@@ -476,7 +476,13 @@
         if (left < margin) left = margin;
         if (left + pickerWidth > vw - margin) left = vw - pickerWidth - margin;
 
-        if (top < margin) top = btnRect.bottom + 12;
+                if (top < margin) {
+            var belowTop = btnRect.bottom + 12;
+            if (belowTop + pickerHeight > window.innerHeight - margin) {
+                belowTop = Math.max(margin, window.innerHeight - pickerHeight - margin);
+            }
+            top = belowTop;
+        }
 
         pickerEl.style.left = left + 'px';
         pickerEl.style.top = top + 'px';
@@ -556,13 +562,23 @@ if (isWhale) {
     var wallet = getWalletAddress();
     if (!wallet) { toast('Connect wallet first'); return; }
 
-    try {
-        var wres = await sb.rpc('post_whale_message', {
+        try {
+        var reply = (window.MSNChat && window.MSNChat.getReplyingTo)
+            ? window.MSNChat.getReplyingTo()
+            : null;
+        var wparams = {
             p_wallet:    wallet,
             p_username:  me,
             p_message:   '__sticker:' + key + '__',
             p_image_url: null
-        });
+        };
+        if (reply && reply.id) {
+            wparams.p_reply_to_id         = reply.id;
+            wparams.p_reply_to_username   = reply.username;
+            wparams.p_reply_to_message    = reply.message || null;
+            wparams.p_reply_to_image_url  = reply.imageUrl || null;
+        }
+        var wres = await sb.rpc('post_whale_message', wparams);
         if (wres.error) throw wres.error;
         var inserted = wres.data;
 
@@ -575,6 +591,8 @@ if (isWhale) {
         if (window.addXP && inserted && inserted.id) {
             try { window.addXP(inserted.id); } catch (e) {}
         }
+        if (window.MSNChat && window.MSNChat.clearReplyingTo) window.MSNChat.clearReplyingTo();
+        if (window.MSNChat && window.MSNChat.startCooldown)   window.MSNChat.startCooldown();
         closePicker();
     } catch (err) {
         if (/not_a_whale/.test(err.message || '')) {
@@ -594,23 +612,28 @@ if (isWhale) {
         if (isPrivate) { payload.from_user = me; payload.to_user = partner; }
         else { payload.username = me; }
 
-        try {
-                        var res;
+                try {
+            var reply = (window.MSNChat && window.MSNChat.getReplyingTo)
+                ? window.MSNChat.getReplyingTo()
+                : null;
+            var params = {
+                p_wallet:    getWalletAddress(),
+                p_username:  me,
+                p_message:   '__sticker:' + key + '__',
+                p_image_url: null
+            };
+            if (reply && reply.id) {
+                params.p_reply_to_id         = reply.id;
+                params.p_reply_to_username   = reply.username;
+                params.p_reply_to_message    = reply.message || null;
+                params.p_reply_to_image_url  = reply.imageUrl || null;
+            }
+            var res;
             if (isPrivate) {
-                res = await sb.rpc('post_private_message', {
-                    p_wallet:    getWalletAddress(),
-                    p_username:  me,
-                    p_to_user:   partner,
-                    p_message:   '__sticker:' + key + '__',
-                    p_image_url: null
-                });
+                params.p_to_user = partner;
+                res = await sb.rpc('post_private_message', params);
             } else {
-                res = await sb.rpc('post_public_message', {
-                    p_wallet:    getWalletAddress(),
-                    p_username:  me,
-                    p_message:   '__sticker:' + key + '__',
-                    p_image_url: null
-                });
+                res = await sb.rpc('post_public_message', params);
             }
             res.data = Array.isArray(res.data) ? res.data[0] : res.data;
             if (res.error) throw res.error;
@@ -631,6 +654,8 @@ if (isWhale) {
                     catch (e) {}
                 }
             }
+            if (window.MSNChat && window.MSNChat.clearReplyingTo) window.MSNChat.clearReplyingTo();
+            if (window.MSNChat && window.MSNChat.startCooldown)   window.MSNChat.startCooldown();
             closePicker();
         } catch (err) {
             toast('Sticker failed: ' + (err.message || err));
