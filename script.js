@@ -1305,7 +1305,7 @@
         })();
     }
 
-        async function fetchAndDisplayAllTokens() {
+                async function fetchAndDisplayAllTokens() {
     if (!phantomWalletPublicKey) return;
 
     if (!TOKEN_MINT_ADDRESS) {
@@ -1315,33 +1315,58 @@
         return;
     }
 
-    var TOKEN_PROGRAM = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+    var SPL_TOKEN  = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+    var TOKEN_2022 = new solanaWeb3.PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
     var owner = phantomWalletPublicKey;
 
-    async function _fetchAccounts() {
-        return solanaConnection.getParsedTokenAccountsByOwner(
-            owner,
-            { programId: TOKEN_PROGRAM },
-            'confirmed'
-        );
+    // ⚑ FIX: query BOTH the legacy SPL Token program AND Token-2022.
+    //   Pump.fun tokens and other new mints can live under either program.
+    //   Missing one of the two was causing false "Not held" reports.
+    async function _fetchAllAccounts() {
+        var results = await Promise.allSettled([
+            solanaConnection.getParsedTokenAccountsByOwner(
+                owner, { programId: SPL_TOKEN }, 'confirmed'
+            ),
+            solanaConnection.getParsedTokenAccountsByOwner(
+                owner, { programId: TOKEN_2022 }, 'confirmed'
+            )
+        ]);
+        var merged = [];
+        var anyOk = false;
+        results.forEach(function (r) {
+            if (r.status === 'fulfilled' && r.value && Array.isArray(r.value.value)) {
+                anyOk = true;
+                merged = merged.concat(r.value.value);
+            } else if (r.status === 'rejected') {
+                console.warn('[tokens] program query failed:', r.reason);
+            }
+        });
+        if (!anyOk) throw new Error('All token RPC queries failed — check RPC key');
+        return merged;
     }
 
     try {
-        var tokenAccounts = await _fetchAccounts();
+        var accounts = await _fetchAllAccounts();
 
-        // ⚑ Retry once if the current mint has no account yet.
-        //   Helius can serve slightly stale data right after wallet connect.
-        var hasMatch = (tokenAccounts.value || []).some(function (acc) {
+        var hasMatch = accounts.some(function (acc) {
             return acc.account.data.parsed.info.mint === TOKEN_MINT_ADDRESS;
         });
         if (!hasMatch) {
             await new Promise(function (r) { setTimeout(r, 1500); });
-            try { tokenAccounts = await _fetchAccounts(); } catch (e) { /* keep first result */ }
+            try { accounts = await _fetchAllAccounts(); } catch (e) { /* keep first result */ }
         }
 
-        displayTokenBalances(tokenAccounts.value);
+        // ⚑ Diagnostic log — open DevTools Console to see exactly what
+        //   your wallet holds and whether the target mint is present.
+        console.log('[tokens] target mint:', TOKEN_MINT_ADDRESS);
+        console.log('[tokens] wallet holds:', accounts.map(function (acc) {
+            var i = acc.account.data.parsed.info;
+            return { mint: i.mint, amount: i.tokenAmount.uiAmountString };
+        }));
+
+        displayTokenBalances(accounts);
         let targetBalance = 0;
-        for (const acc of tokenAccounts.value) {
+        for (const acc of accounts) {
             const info = acc.account.data.parsed.info;
             if (info.mint === TOKEN_MINT_ADDRESS) {
                 targetBalance += parseFloat(info.tokenAmount.uiAmountString);
@@ -1349,7 +1374,6 @@
         }
         updateUserRank(targetBalance);
 
-        // ⚑ Only cache under a real username — never write userBalances['']
         if (username) userBalances[username] = targetBalance;
 
         if (modTokenRequirement <= 0) {
