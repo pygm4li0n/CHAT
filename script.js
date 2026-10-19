@@ -1237,22 +1237,25 @@
         sidebarBigRank.classList.remove('hidden');
     }
 
-    async function loadProfileByWallet(wallet) {
+        async function loadProfileByWallet(wallet) {
         if (!wallet) return null;
-        try {
-            const { data, error } = await supabase.from('profiles')
-                .select('*')
-                .eq('wallet_address', wallet)
-                .maybeSingle();
-            if (error) {
-                console.warn('[profile] wallet lookup error:', error.message);
-                return null;
+        const MAX_ATTEMPTS = 3;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                const { data, error } = await supabase.from('profiles')
+                    .select('*')
+                    .eq('wallet_address', wallet)
+                    .maybeSingle();
+                if (!error) return data || null;
+                console.warn('[profile] wallet lookup attempt ' + attempt + ' failed:', error.message);
+            } catch (e) {
+                console.warn('[profile] wallet lookup attempt ' + attempt + ' threw:', e);
             }
-            return data || null;
-        } catch (e) {
-            console.warn('[profile] wallet lookup failed:', e);
-            return null;
+            if (attempt < MAX_ATTEMPTS) {
+                await new Promise(function (r) { setTimeout(r, 400 * attempt); });
+            }
         }
+        return null;
     }
 
     async function upsertProfile({ username: uname, avatar_url, token_balance }) {
@@ -1497,61 +1500,98 @@
         }
     }
 
-    async function connectPhantom() {
-        if (isConnecting) return false;
+        async function connectPhantom() {
+        if (isConnecting) {
+            // ⚑ Don't silently no-op — tell the user the wallet is busy
+            showError('Wallet is connecting — please wait…');
+            return false;
+        }
         isConnecting = true;
-        try {
-        const provider = getPhantomProvider();
-        if (!provider) {
-            showError('Phantom wallet not installed. Please install it from phantom.app');
-            return false;
-        }
-
-        if (phantomConnectBtnOverlay) {
-            phantomConnectBtnOverlay.disabled = true;
-            phantomConnectBtnOverlay.innerHTML =
-                `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Connecting…</span>`;
-        }
-        showOverlayMessage('Waiting for Phantom approval…', 'info');
-
-               try {
-            const resp = await provider.connect({ onlyIfTrusted: true });
-            phantomWalletPublicKey = resp.publicKey;
-            phantomConnected = true;
-            updatePhantomUI();
-            const addr = phantomWalletPublicKey.toBase58();
-            showSuccess(`Phantom connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
-            await afterWalletConnect(addr);       // ⚑ set username FIRST
-            await fetchAndDisplayAllTokens();     // ⚑ then fetch with correct username
-            return true;
-        } catch (silentErr) { /* fall through */ }
 
         try {
-            const resp = await provider.connect({ onlyIfTrusted: false });
-            phantomWalletPublicKey = resp.publicKey;
-            phantomConnected = true;
-            updatePhantomUI();
-            const addr = phantomWalletPublicKey.toBase58();
-            showSuccess(`Phantom connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
-            await afterWalletConnect(addr);       // ⚑ set username FIRST
-            await fetchAndDisplayAllTokens();     // ⚑ then fetch with correct username
-            return true;
-        } catch (err) {
-            console.error('Phantom connection error:', err);
-            if (phantomConnectBtnOverlay) phantomConnectBtnOverlay.disabled = false;
-            updatePhantomUI();
-
-            const raw = String((err && err.message) || err || '').trim();
-            let friendly = raw;
-            if (/user rejected|rejected by user|cancell?ed|declined/i.test(raw)) {
-                friendly = 'Connection cancelled';
-            } else if (!raw) {
-                friendly = 'Could not connect Phantom';
+            const provider = getPhantomProvider();
+            if (!provider) {
+                showError('Phantom wallet not installed. Please install it from phantom.app');
+                return false;
             }
-        showError(friendly);
-            return false;
+
+            if (phantomConnectBtnOverlay) {
+                phantomConnectBtnOverlay.disabled = true;
+                phantomConnectBtnOverlay.innerHTML =
+                    `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Connecting…</span>`;
+            }
+            showOverlayMessage('Waiting for Phantom approval…', 'info');
+
+            // ⚑ Timeout wrapper — Phantom can hang. 8s for silent trusted,
+            //   60s for interactive (user has to click approve in popup).
+            function _withTimeout(p, ms, label) {
+                return Promise.race([
+                    p,
+                    new Promise(function (_, rej) {
+                        setTimeout(function () {
+                            rej(new Error((label || 'Request') + ' timed out'));
+                        }, ms);
+                    })
+                ]);
+            }
+
+            // ── Silent trusted reconnect ──
+            try {
+                const resp = await _withTimeout(
+                    provider.connect({ onlyIfTrusted: true }), 8000, 'Trusted connect'
+                );
+                if (!resp || !resp.publicKey) throw new Error('No public key');
+                phantomWalletPublicKey = resp.publicKey;
+                phantomConnected = true;
+                updatePhantomUI();
+                const addr = phantomWalletPublicKey.toBase58();
+                showSuccess(`Wallet connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
+                await afterWalletConnect(addr);
+                await fetchAndDisplayAllTokens();
+                return true;
+            } catch (silentErr) {
+                console.log('[wallet] trusted connect unavailable:', silentErr && silentErr.message);
+                // fall through to interactive
+            }
+
+            // ── Interactive connect ──
+            try {
+                const resp = await _withTimeout(
+                    provider.connect({ onlyIfTrusted: false }), 60000, 'Wallet connect'
+                );
+                if (!resp || !resp.publicKey) throw new Error('Wallet returned no public key');
+                phantomWalletPublicKey = resp.publicKey;
+                phantomConnected = true;
+                updatePhantomUI();
+                const addr = phantomWalletPublicKey.toBase58();
+                showSuccess(`Wallet connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
+                await afterWalletConnect(addr);
+                await fetchAndDisplayAllTokens();
+                return true;
+            } catch (err) {
+                console.error('[wallet] connection error:', err);
+                const raw = String((err && err.message) || err || '').trim();
+                let friendly = raw;
+                if (/user rejected|rejected by user|cancell?ed|declined|closed/i.test(raw)) {
+                    friendly = 'Connection cancelled';
+                } else if (/timed?\s*out/i.test(raw)) {
+                    friendly = 'Wallet didn\'t respond — please try again';
+                } else if (/not\s+ready|not\s+installed/i.test(raw)) {
+                    friendly = 'Wallet not ready — refresh and try again';
+                } else if (!raw) {
+                    friendly = 'Could not connect wallet';
+                }
+                showError(friendly);
+                return false;
+            }
+        } finally {
+            // ║ GUARANTEED CLEANUP — runs on success, failure, AND timeout
+            isConnecting = false;
+            if (phantomConnectBtnOverlay) {
+                phantomConnectBtnOverlay.disabled = false;
+            }
+            try { updatePhantomUI(); } catch (e) {}
         }
-        } finally { isConnecting = false; }
     }
     function disconnectPhantom() {
         const provider = getPhantomProvider();
@@ -4547,7 +4587,7 @@ subscribeToPrivateRequests();
                 //   provider 'connect' event listener doesn't double-run
                 //   handleWalletChange (which was causing the input bar
                 //   to flicker on page load).
-                isConnecting = true;
+                                isConnecting = true;
                 try {
                     const resp = await provider.connect({ onlyIfTrusted: true });
                     phantomWalletPublicKey = resp.publicKey;
@@ -4555,7 +4595,18 @@ subscribeToPrivateRequests();
                     updatePhantomUI();
                     fetchAndDisplayAllTokens();
                 } catch (e) {
-                    // Not trusted / Phantom locked → overlay path handles it
+                    // ⚑ Retry once after 600ms — Phantom sometimes isn't
+                    //   fully ready on first attempt right after page load.
+                    try {
+                        await new Promise(function (r) { setTimeout(r, 600); });
+                        const resp2 = await provider.connect({ onlyIfTrusted: true });
+                        phantomWalletPublicKey = resp2.publicKey;
+                        phantomConnected = true;
+                        updatePhantomUI();
+                        fetchAndDisplayAllTokens();
+                    } catch (e2) {
+                        // Not trusted / Phantom locked → overlay path handles it
+                    }
                 } finally {
                     isConnecting = false;
                 }
