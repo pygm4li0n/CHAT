@@ -246,29 +246,47 @@
         return btn;
     }
 
-    function handleClick() {
+      function handleClick() {
         var auth = getAuth();
         if (!auth) { console.warn('[x-auth] auth client unavailable'); return; }
 
         if (!_sessionKnown) {
-            auth.auth.getSession().then(function ({ data: { session } }) {
-                _sessionCache = session;
-                _sessionKnown = true;
-                _doClickAction(auth, session);
-            });
+            auth.auth.getSession()
+                .then(function (res) {
+                    var session = res && res.data && res.data.session;
+                    _sessionCache = session || null;
+                    _sessionKnown = true;
+                    refreshButtons();
+                    _doClickAction(auth, session);
+                })
+                .catch(function (err) {
+                    console.warn('[x-auth] getSession (click) failed:', err);
+                    _sessionCache = null;
+                    _sessionKnown = true;
+                    refreshButtons();
+                    _doClickAction(auth, null);
+                });
             return;
         }
         _doClickAction(auth, _sessionCache);
     }
 
     async function _doClickAction(auth, session) {
-        if (session) {
-            await auth.auth.signOut();
+               if (session) {
+            // ⚑ Order matters: update UI FIRST (epic instant feedback),
+            //   then attempt the DB clear. If either throws, the button
+            //   still reverts to VERIFY cleanly.
+            try { await auth.auth.signOut(); }
+            catch (e) { console.warn('[x-auth] signOut failed:', e); }
             try { history.replaceState(null, '', location.pathname); } catch (e) {}
+
             _sessionCache = null;
             _sessionKnown = true;
-            await clearXFromProfile();
-            refreshButtons();
+            refreshButtons();   // ⚑ instant visual revert — no waiting on DB
+
+            try { await clearXFromProfile(); }
+            catch (e) { console.warn('[x-auth] clearXFromProfile failed:', e); }
+
             return;
         }
 
@@ -456,20 +474,31 @@
         var auth = getAuth();
         if (!auth) { console.warn('[x-auth] supabase sdk missing'); return; }
 
-        auth.auth.getSession().then(function ({ data: { session } }) {
-            _sessionCache = session;
-            _sessionKnown = true;
-            refreshButtons();
+        auth.auth.getSession()
+            .then(function (res) {
+                var session = res && res.data && res.data.session;
+                _sessionCache = session || null;
+                _sessionKnown = true;
+                refreshButtons();
 
-            if (session) {
-                applyXToProfile(session);
-                if (returningFromOAuth) {
-                    setTimeout(clearOAuthPending, 1500);
+                if (session) {
+                    try { applyXToProfile(session); } catch (e) {
+                        console.warn('[x-auth] applyXToProfile failed:', e);
+                    }
+                    if (returningFromOAuth) {
+                        setTimeout(clearOAuthPending, 1500);
+                    }
+                } else {
+                    if (returningFromOAuth) clearOAuthPending();
                 }
-            } else {
+            })
+            .catch(function (err) {
+                console.warn('[x-auth] getSession failed:', err);
+                _sessionCache = null;
+                _sessionKnown = true;
+                refreshButtons();
                 if (returningFromOAuth) clearOAuthPending();
-            }
-        });
+            });
 
         auth.auth.onAuthStateChange(function (event, session) {
             _sessionCache = session;
