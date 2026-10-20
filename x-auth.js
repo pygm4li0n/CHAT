@@ -384,11 +384,10 @@
         }
         if (!main || !wallet) return;
         try {
-            await main.from('profiles').update({
+                       await main.from('profiles').update({
                 x_handle:     null,
                 x_verified:   false,
                 x_avatar_url: null,
-                display_name: null,
                 updated_at:   new Date().toISOString()
             }).eq('wallet_address', wallet);
             console.log('[x-auth] X identity cleared for', wallet);
