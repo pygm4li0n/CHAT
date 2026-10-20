@@ -3,11 +3,11 @@
    ────────────────────────────────────────────────────────────
    Drop-in. Load AFTER script.js + wallet-identity.js.
 
-     <script src="profile-system.js?v=16"></script>
+     <script src="profile-system.js?v=17"></script>
 
-   v16: theme-adaptive stats container + cells (no fixed dark),
-        epic hero, self-scoped theme tokens, aligned sections,
-        richer effects (top sheen, corner brackets, dot grid).
+   v17: fixes wallet-opened profiles showing 0 achievements /
+        0 messages / no joined date (username-keyed queries now
+        use rawUsername). Fixes username hover glow.
    ============================================================ */
 (function () {
     'use strict';
@@ -87,7 +87,6 @@
     function isWalletLike(s) {
         return typeof s === 'string' && s.length >= 32 && s.length <= 48 && !/\s/.test(s);
     }
-    /* Turn "streak_master_10" → "Streak Master 10" for friendlier hints */
     function prettyCode(code) {
         if (!code) return '';
         return String(code)
@@ -253,7 +252,6 @@
     text-align:left;
 }
 
-/* Top animated sheen */
 .msn-profile-card::before{
     content:"";
     position:absolute;
@@ -277,7 +275,6 @@
     100% {background-position:-200% 0;}
 }
 
-/* Static gradient edge */
 .msn-profile-card::after{
     content:"";
     position:absolute;
@@ -302,7 +299,6 @@
     opacity:1;
 }
 
-/* ── Card inner — corner brackets + dot grid ─────────────── */
 .msn-card-inner{
     position:relative;
     padding:0;
@@ -340,7 +336,6 @@
     z-index:0;
 }
 
-/* ── Close ────────────────────────────────────────────────── */
 .msn-profile-close{
     position:absolute;
     top:14px;
@@ -370,9 +365,6 @@
     transform:rotate(90deg) scale(1.08);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   HERO
-   ═══════════════════════════════════════════════════════════════ */
 .msn-hero{
     display:grid;
     grid-template-columns:120px 1fr;
@@ -382,7 +374,6 @@
     position:relative;
 }
 
-/* Avatar */
 .msn-avatar-wrap{
     position:relative;
     width:120px;
@@ -485,7 +476,6 @@
     100%{transform:scale(2.3); opacity:0;}
 }
 
-/* Identity column */
 .msn-hero-info{
     display:flex;
     flex-direction:column;
@@ -495,7 +485,6 @@
     width:100%;
 }
 
-/* Last active pill */
 .msn-hero-status{
     display:inline-flex;
     align-items:center;
@@ -543,7 +532,6 @@
     text-shadow:0 0 10px color-mix(in srgb, var(--p-accent-3) 55%, transparent);
 }
 
-/* Name row */
 .msn-hero-name-row{
     display:flex;
     align-items:center;
@@ -569,7 +557,6 @@
            drop-shadow(0 2px 8px rgba(0,0,0,.9));
 }
 
-/* Tier badge */
 .msn-tier-badge{
     display:inline-flex;
     align-items:center;
@@ -612,7 +599,6 @@
     box-shadow:0 0 22px color-mix(in srgb, var(--p-accent-warn) 60%, transparent);
 }
 
-/* X badge */
 .msn-x-badge{
     display:inline-flex;
     align-items:center;
@@ -648,7 +634,6 @@
     min-height:1em;
 }
 
-/* Pill row */
 .msn-hero-pills{
     display:flex;
     flex-wrap:wrap;
@@ -657,7 +642,6 @@
     margin-top:2px;
 }
 
-/* Wallet button */
 .msn-wallet-btn{
     display:inline-flex;
     align-items:center;
@@ -705,7 +689,6 @@
     box-shadow:0 0 26px color-mix(in srgb, var(--p-accent-3) 70%, transparent);
 }
 
-/* Joined pill */
 .msn-joined-pill{
     display:inline-flex;
     align-items:center;
@@ -726,9 +709,6 @@
     white-space:nowrap;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   STATS — theme-adaptive · 4 aligned cells
-   ═══════════════════════════════════════════════════════════════ */
 .msn-stats{
     display:grid;
     grid-template-columns:repeat(4,minmax(0,1fr));
@@ -756,7 +736,6 @@
     cursor:default;
     overflow:hidden;
 }
-/* top accent line */
 .msn-stat::before{
     content:"";
     position:absolute;
@@ -808,7 +787,6 @@
     text-shadow:none;
 }
 
-/* Fire / streak */
 .msn-stat.msn-stat-fire{
     background:linear-gradient(180deg,
         color-mix(in srgb, var(--p-accent-warn) 8%, var(--stats-cell)) 0%,
@@ -830,9 +808,6 @@
     50%    {transform:scale(1.15) translateY(-2px);}
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ACHIEVEMENTS
-   ═══════════════════════════════════════════════════════════════ */
 .msn-ach-header{
     display:flex;
     align-items:center;
@@ -934,9 +909,6 @@
     box-shadow:0 0 24px color-mix(in srgb, var(--p-accent) 60%, transparent);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ACTIONS
-   ═══════════════════════════════════════════════════════════════ */
 .msn-actions{
     display:flex;
     gap:10px;
@@ -992,9 +964,6 @@
         inset 0 -1px 0 rgba(0,0,0,.18);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   LOADER + EMPTY
-   ═══════════════════════════════════════════════════════════════ */
 .msn-profile-loader{
     display:flex;
     flex-direction:column;
@@ -1044,14 +1013,11 @@
     transition:color .2s ease, text-shadow .2s ease;
 }
 .msg-username:hover .msn-username-link{
-    color:var(--p-accent);
-    text-shadow:0 0 14px color-mix(in srgb, var(--p-accent) 90%, transparent);
+    color:var(--accent-cyan, #00f0ff);
+    text-shadow:0 0 14px color-mix(in srgb, var(--accent-cyan, #00f0ff) 90%, transparent);
 }
 .msg-username .msg-avatar{cursor:pointer;}
 
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════════ */
 @media (max-width:520px){
     .msn-profile-overlay{padding:12px;}
     .msn-profile-card{border-radius:20px;}
@@ -1136,12 +1102,11 @@
 `;
         var tag = document.createElement('style');
         tag.id = 'msn-profile-styles';
-        tag.setAttribute('data-version', '16');
+        tag.setAttribute('data-version', '17');
         tag.textContent = css;
         document.head.appendChild(tag);
     }
 
-    /* ── Overlay ─────────────────────────────────────────── */
     var overlay, bodyEl;
     function injectOverlay() {
         if (document.getElementById('msnProfileOverlay')) return;
@@ -1217,7 +1182,6 @@
         containers.forEach(function (c) { if (c) mo.observe(c, { childList: true, subtree: true }); });
     }
 
-    /* ── Wallet copy handler ── */
     function setupWalletCopy() {
         document.addEventListener('click', function (e) {
             var btn = e.target.closest && e.target.closest('.msn-wallet-btn');
@@ -1267,9 +1231,6 @@
         }, true);
     }
 
-    /* ═══════════════════════════════════════════════════════
-       Profile fetch — parallel + 30s cache
-       ═══════════════════════════════════════════════════════ */
     var _profileCache = new Map();
     var _PROFILE_CACHE_MS = 30000;
 
@@ -1338,9 +1299,6 @@
             rememberIdentity(profile);
         }
 
-               // ⚑ For SELF: prefer the live chain value (window.userBalances)
-        //   over the DB column. profiles.token_balance is only updated
-        //   when the wallet connects, so it can lag behind reality.
         if (isSelf && window.userBalances && window.userBalances[username] != null) {
             out.token_balance = window.userBalances[username];
         } else if (out.token_balance == null && username) {
@@ -1365,12 +1323,16 @@
             out.x_verified = !!profile.x_verified;
         }
 
+        // ⚑ FIX: username-keyed queries must use the profile's real username,
+        //   not the parameter (which may be a wallet or X handle).
+        var rawUsername = (profile && profile.username) || username;
+
         var tasks = [];
 
         tasks.push(_timeout(
             sb.from('user_achievements')
                 .select('achievement_code, unlocked_at')
-                .eq('username', username)
+                .eq('username', rawUsername)
                 .order('unlocked_at', { ascending: false })
                 .limit(6)
                 .then(function (res) {
@@ -1382,7 +1344,7 @@
         tasks.push(_timeout(
             sb.from('messages')
                 .select('created_at')
-                .eq('username', username)
+                .eq('username', rawUsername)
                 .order('created_at', { ascending: true })
                 .limit(1)
                 .then(function (res) {
@@ -1396,7 +1358,7 @@
         tasks.push(_timeout(
             sb.from('messages')
                 .select('created_at')
-                .eq('username', username)
+                .eq('username', rawUsername)
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .then(function (res) {
@@ -1411,7 +1373,7 @@
             tasks.push(_timeout(
                 sb.from('messages')
                     .select('*', { count: 'exact', head: true })
-                    .eq('username', username)
+                    .eq('username', rawUsername)
                     .then(function (res) {
                         if (res && typeof res.count === 'number') out.messages_count = res.count;
                     }).catch(function () {}),
@@ -1428,11 +1390,6 @@
                 3500
             ));
         }
-        // ⚑ Reactions are keyed by username. When the profile was opened by
-        //   wallet or X handle, `username` (the parameter) is not the DB
-        //   username column. Use the raw one.
-        // ⚑ Count from ALL three reaction tables: public, private, whale.
-        var rawUsername = (profile && profile.username) || username;
 
         tasks.push(_timeout((async function () {
             var tables = [
@@ -1459,13 +1416,10 @@
         if (!out.created_at && out.last_active_at) out.created_at = out.last_active_at;
         if (!out.created_at && profile && profile.updated_at) out.created_at = profile.updated_at;
 
-                if (!out.hasProfile && !out.created_at && !out.messages_count) {
+        if (!out.hasProfile && !out.created_at && !out.messages_count) {
             return { error: 'not-found' };
         }
 
-        // ⚑ FIX: when opened by wallet, resolve the canonical username so
-        //   Add Friend / Message target the username column, not the wallet.
-        //   Profile was already fetched above — just prefer its username.
         if (profile && profile.username) out.username = profile.username;
 
         _profileCache.set(key, { t: Date.now(), data: out });
@@ -1508,7 +1462,6 @@
         var online    = isSelf ? true : isUserOnline(data.username);
         var shownName = data.display_name || data.username || 'anon';
 
-        /* XP progress hint: XP toward next level */
         var nextLvlXp  = xpForLevel(level + 1);
         var thisLvlXp  = xpForLevel(level);
         var intoLevel  = Math.max(0, xp - thisLvlXp);
@@ -1541,7 +1494,6 @@
 
         var joinedPill = '<span class="msn-joined-pill" title="First activity — ' + esc(fmtDate(data.created_at)) + '">◉ Joined ' + esc(fmtDate(data.created_at)) + '</span>';
 
-        /* Achievements — friendlier tooltips */
         var achHTML = '';
         var unlocked = 0;
         var SLOTS = 6;
@@ -1579,8 +1531,6 @@
 
         bodyEl.innerHTML = ''
             + '<div class="msn-card-inner">'
-
-            /* ── Hero — avatar + identity ── */
             + '<div class="msn-hero">'
             +   '<div class="msn-avatar-wrap">'
             +     '<div class="msn-avatar-ring"></div>'
@@ -1602,8 +1552,6 @@
             +     '<div class="msn-hero-pills">' + walletBtn + joinedPill + '</div>'
             +   '</div>'
             + '</div>'
-
-            /* ── Stats — Level / Streak / Messages / Reactions ── */
             + '<div class="msn-stats">'
             +   '<div class="msn-stat" title="' + esc(levelHint) + '">'
             +     '<span class="msn-stat-lbl">Level</span>'
@@ -1622,17 +1570,12 @@
             +     '<span class="msn-stat-val">' + esc(fmtNum(reactions)) + '</span>'
             +   '</div>'
             + '</div>'
-
-            /* ── Achievements ── */
             + '<div class="msn-ach-header">'
             +   '<span class="msn-ach-header-label">Achievements</span>'
             +   '<span class="msn-ach-count">' + unlocked + ' / ' + SLOTS + '</span>'
             + '</div>'
             + '<div class="msn-achievements">' + achHTML + '</div>'
-
-            /* ── Actions ── */
             + '<div class="msn-actions">' + actionsHTML + '</div>'
-
             + '</div>';
 
         var actions = bodyEl.querySelector('.msn-actions');
@@ -1681,11 +1624,11 @@
         if (me === targetUser) { toast("That's you"); return; }
         try {
             var ins = await sb.from('friends').insert({ user_a: me, user_b: targetUser, status: 'pending' });
-if (ins.error) {
-    if (ins.error.code === '23505') { toast('Friend request already sent'); return; }
-    throw ins.error;
-}
-toast('Friend request sent to ' + targetUser);
+            if (ins.error) {
+                if (ins.error.code === '23505') { toast('Friend request already sent'); return; }
+                throw ins.error;
+            }
+            toast('Friend request sent to ' + targetUser);
         } catch (e) {
             console.warn('[profile] addFriend failed:', e);
             toast('Friend requests coming soon');
@@ -1720,11 +1663,10 @@ toast('Friend request sent to ' + targetUser);
         if (overlay) overlay.classList.remove('open');
         currentToken++;
         currentUsernameOpen = null;
-        // cache expires by TTL; cleared on msn:identity-changed
     }
 
-        document.addEventListener('msn:identity-changed', function (e) {
-        _profileCache.clear();   // ⚑ FIX: invalidate cache on every identity change
+    document.addEventListener('msn:identity-changed', function (e) {
+        _profileCache.clear();
         if (!overlay || !overlay.classList.contains('open')) return;
         if (!currentUsernameOpen) return;
         var changedWallet = e.detail && e.detail.wallet;
@@ -1804,5 +1746,5 @@ toast('Friend request sent to ' + targetUser);
         boot();
     }
 
-    console.log('[profile-system] loaded v16 — theme-adaptive stats, epic hero, cleaner alignment');
+    console.log('[profile-system] loaded v17 — wallet-opened profiles fixed, hover glow fixed');
 })();
