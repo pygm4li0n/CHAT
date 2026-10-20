@@ -535,7 +535,7 @@
 .msn-hero-name-row{
     display:flex;
     align-items:center;
-    flex-wrap:wrap;
+    flex-wrap:nowrap;
     gap:10px;
     min-width:0;
     width:100%;
@@ -553,11 +553,14 @@
     -webkit-background-clip:text;
             background-clip:text;
     color:transparent;
-    word-break:break-word;
     filter:drop-shadow(0 0 26px color-mix(in srgb, var(--p-accent) 45%, transparent))
            drop-shadow(0 2px 8px rgba(0,0,0,.9));
-    flex-shrink:0;
+    flex:0 1 auto;
+    min-width:0;
     max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
 }
 
 .msn-tier-badge{
@@ -1612,7 +1615,7 @@
             +       '<h2 class="msn-hero-name">' + esc(shownName) + '</h2>'
             +       tierBadge + xBadge
             +     '</div>'
-            +     '<p class="msn-hero-sig">' + (data.signature ? esc(data.signature) : '') + '</p>'
+            +     (data.signature ? '<p class="msn-hero-sig">' + esc(data.signature) + '</p>' : '')
             +     '<div class="msn-hero-pills">' + walletBtn + joinedPill + '</div>'
             +   '</div>'
             + '</div>'
