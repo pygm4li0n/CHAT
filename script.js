@@ -4211,12 +4211,20 @@ function showSuccess(msg) {
         }
         if (sidebarBigName) sidebarBigName.textContent = name;
 
-        inputAreaBar.classList.remove('hidden');
+                inputAreaBar.classList.remove('hidden');
         nameOverlay.classList.add('hidden');
         hideOverlayMessage();
 setReplyingTo(null);
 // Don't reset private chat — partner identity is wallet-anchored
 switchTab('public');
+
+        // ⚑ First-ever fetch with username set — chain balance now goes to
+        //   userBalances[username] instead of userBalances[''].
+        if (phantomConnected && phantomWalletPublicKey) {
+            try { await fetchAndDisplayAllTokens(); }
+            catch (e) { console.warn('[applyUsername] token fetch failed:', e); }
+        }
+
         await updateSidebarUI();
         setupTypingChannel();
         updateChatAccessibility();
@@ -4533,16 +4541,14 @@ subscribeToPrivateRequests();
                     updatePhantomUI();
 
                     // 6. If a new wallet is connected, load its profile
-                    if (phantomConnected && newAddr) {
-                        fetchAndDisplayAllTokens();
-                        
-                    try {
-                    const { data } = await supabase.from('profiles')
+                                   if (phantomConnected && newAddr) {
+                try {
+                const { data } = await supabase.from('profiles')
                                 .select('username, display_name, avatar_url, x_handle, x_verified, x_avatar_url, wallet_address, token_balance, updated_at')
                                 .eq('wallet_address', newAddr)
                                 .maybeSingle();
 
-                            if (data && data.username) {
+                                                        if (data && data.username) {
                                 username = data.username;
                                 localStorage.setItem(STORAGE_KEY_NAME, username);
                                 localStorage.setItem(LAST_USERNAME_KEY, username);
@@ -4564,6 +4570,12 @@ subscribeToPrivateRequests();
                                 }
                                 if (sidebarBigName) sidebarBigName.textContent = meName;
                                 userBalances[username] = data.token_balance || 0;
+
+                                // ⚑ Chain fetch NOW (username set) — placeholder
+                                //   above is overwritten with real balance before
+                                //   updateSidebarUI or messages render.
+                                try { await fetchAndDisplayAllTokens(); }
+                                catch (e) { console.warn('[wallet-change] token fetch:', e); }
                                 updateUserRank(userBalances[username]);
 
                                 inputAreaBar.classList.remove('hidden');
@@ -4575,6 +4587,8 @@ subscribeToPrivateRequests();
                                 setupPresence();
                                 setupTypingChannel();
                             } else {
+                                // No profile — still fetch tokens so balance UI populates
+                                try { await fetchAndDisplayAllTokens(); } catch (e) {}
                                 nameOverlay.classList.remove('hidden');
                                 hideOverlayMessage();
                                 nameInput.value = '';
@@ -4609,36 +4623,34 @@ subscribeToPrivateRequests();
                 });
             } catch (e) { /* ignore */ }
 
-            if (provider.isConnected && provider.publicKey) {
-                phantomWalletPublicKey = provider.publicKey;
-                phantomConnected = true;
-                updatePhantomUI();
-                fetchAndDisplayAllTokens();
-            } else {
+                   if (provider.isConnected && provider.publicKey) {
+            phantomWalletPublicKey = provider.publicKey;
+            phantomConnected = true;
+            updatePhantomUI();
+        } else {
                 // ⚑ AWAIT the trusted reconnect so the wallet-first lookup
                 //   below sees the real address. Set isConnecting so the
                 //   provider 'connect' event listener doesn't double-run
                 //   handleWalletChange (which was causing the input bar
                 //   to flicker on page load).
-                                isConnecting = true;
+                                               isConnecting = true;
                 try {
                     const resp = await provider.connect({ onlyIfTrusted: true });
+                    console.log('[wallet] trusted reconnect OK:', resp.publicKey.toBase58());
                     phantomWalletPublicKey = resp.publicKey;
                     phantomConnected = true;
                     updatePhantomUI();
-                    fetchAndDisplayAllTokens();
                 } catch (e) {
-                    // ⚑ Retry once after 600ms — Phantom sometimes isn't
-                    //   fully ready on first attempt right after page load.
+                    console.warn('[wallet] trusted reconnect failed:', e && e.message);
                     try {
                         await new Promise(function (r) { setTimeout(r, 600); });
                         const resp2 = await provider.connect({ onlyIfTrusted: true });
+                        console.log('[wallet] trusted reconnect retry OK:', resp2.publicKey.toBase58());
                         phantomWalletPublicKey = resp2.publicKey;
                         phantomConnected = true;
                         updatePhantomUI();
-                        fetchAndDisplayAllTokens();
                     } catch (e2) {
-                        // Not trusted / Phantom locked → overlay path handles it
+                        console.warn('[wallet] trusted reconnect retry failed:', e2 && e2.message);
                     }
                 } finally {
                     isConnecting = false;
@@ -4701,7 +4713,16 @@ subscribeToPrivateRequests();
             nameOverlay.classList.add('hidden');
             setReplyingTo(null);
 
-            switchTab('public');
+                       switchTab('public');
+
+            // ⚑ Fetch chain balance BEFORE first UI render so every badge
+            //   (sidebar, messages, rankings) reads the real on-chain tier,
+            //   not the stale DB placeholder.
+            if (phantomConnected && phantomWalletPublicKey) {
+                try { await fetchAndDisplayAllTokens(); }
+                catch (e) { console.warn('[init] token fetch failed:', e); }
+            }
+
             await updateSidebarUI();
 
             await loadMessages();
@@ -4734,12 +4755,18 @@ subscribeToPrivateRequests();
             if (sidebarBigRank) { sidebarBigRank.textContent = ''; sidebarBigRank.classList.add('hidden'); }
             if (sidebarBigLevel) { sidebarBigLevel.textContent = ''; sidebarBigLevel.classList.add('hidden'); }
 
-            inputAreaBar.classList.remove('hidden');
+                        inputAreaBar.classList.remove('hidden');
             nameOverlay.classList.add('hidden');
             setReplyingTo(null);
             switchTab('public');
 
-                        await loadMessages();
+            // ⚑ Fetch chain balance so the wallet token list populates
+            if (phantomConnected && phantomWalletPublicKey) {
+                try { await fetchAndDisplayAllTokens(); }
+                catch (e) { console.warn('[init] token fetch failed:', e); }
+            }
+
+            await loadMessages();
             subscribeToRealtime();
             loadReactions('message_reactions', false);
             subscribeReactions();
