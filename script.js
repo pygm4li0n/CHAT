@@ -906,25 +906,47 @@
     let cooldownInterval = null;
     let modWordFilter = [];
 
-    function containsFilteredWord(text) {
+        function containsFilteredWord(text) {
         if (!text || !modWordFilter.length) return null;
         var lower = String(text).toLowerCase();
         for (var i = 0; i < modWordFilter.length; i++) {
             var w = modWordFilter[i];
             if (!w) continue;
-            // Short words (1–3 chars) match as whole words only
-            // → "ass" blocks "you ass" but not "class"
             if (w.length < 4) {
                 var escaped = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 var re = new RegExp('(^|[^a-z0-9])' + escaped + '([^a-z0-9]|$)', 'i');
                 if (re.test(lower)) return w;
             } else {
-                // Longer words match anywhere
-                // → "badword" blocks "badword", "badwords", "badword123"
                 if (lower.indexOf(w) !== -1) return w;
             }
         }
         return null;
+    }
+
+    // Replace every character of a filtered word with *
+    // "you shit" → "you ****", "shitting" → "********"
+    function censorFilteredWords(text) {
+        if (!text || !modWordFilter.length) return text;
+        var out = String(text);
+        for (var i = 0; i < modWordFilter.length; i++) {
+            var w = modWordFilter[i];
+            if (!w) continue;
+            var escaped = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            if (w.length < 4) {
+                // Whole-word only (so "ass" doesn't censor "class")
+                var re = new RegExp('(^|[^a-z0-9])(' + escaped + ')(?=[^a-z0-9]|$)', 'gi');
+                out = out.replace(re, function (match, before, word) {
+                    return before + '*'.repeat(word.length);
+                });
+            } else {
+                // Substring anywhere (so "shit" censors "shitting", "shitpost")
+                var re2 = new RegExp(escaped, 'gi');
+                out = out.replace(re2, function (match) {
+                    return '*'.repeat(match.length);
+                });
+            }
+        }
+        return out;
     }
 
     const TOKEN_MINT_ADDRESS = 'EJjqCJRYs19QDtQRM7QD5vwbdf1XfEysyF5nL1kNpump';
@@ -2942,13 +2964,10 @@ function showSuccess(msg) {
         const input = bubble.querySelector('.edit-input');
         input.focus();
         cancelBtn.addEventListener('click', () => textDiv.innerHTML = escapeHtml(currentText));
-                saveBtn.addEventListener('click', async () => {
-            const newText = input.value.trim();
+                                saveBtn.addEventListener('click', async () => {
+            const newText = censorFilteredWords(input.value.trim());
             if (!newText) return;
-            if (containsFilteredWord(newText)) {
-                showError('Message blocked — contains a filtered word');
-                return;
-            }
+            input.value = newText;
             const table = isPrivate ? 'private_messages' : 'messages';
             const { error } = await supabase.from(table).update({ message: newText, edited_at: new Date().toISOString() }).eq('id', msg.id);
             if (error) { showError('Edit failed'); return; }
@@ -3736,17 +3755,11 @@ function showSuccess(msg) {
             }
         }
 
-                async function sendWhaleMessage(text) {
+                        async function sendWhaleMessage(text) {
     const wallet = getWalletAddress();
     if (!wallet) { showError('Connect wallet first'); return; }
 
-    if (text) {
-        var filteredWord = containsFilteredWord(text);
-        if (filteredWord) {
-            showError('Message blocked — contains a filtered word');
-            return;
-        }
-    }
+    text = censorFilteredWords(text);
 
             const params = {
                 p_wallet:    wallet,
@@ -3975,18 +3988,10 @@ function showSuccess(msg) {
                 return;
             }
         }
-                              const text = messageInput.value.trim();
+                                     const text = censorFilteredWords(messageInput.value.trim());
         if (!text && !pendingImageUrl) return;
 
-        if (text) {
-            var filteredWord = containsFilteredWord(text);
-            if (filteredWord) {
-                showError('Message blocked — contains a filtered word');
-                return;
-            }
-        }
-
-                sendBtn.disabled = true;
+        sendBtn.disabled = true;
 
         const isPrivate = (currentTab === 'private' && activePrivateChat);
         if (isPrivate && !activePrivateChat) {
