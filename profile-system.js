@@ -536,16 +536,17 @@
     display:flex;
     align-items:center;
     flex-wrap:wrap;
-    gap:9px;
+    gap:10px;
     min-width:0;
     width:100%;
+    line-height:1;
 }
 .msn-hero-name{
     margin:0;
     font-size:1.95rem;
     font-weight:900;
     letter-spacing:-.028em;
-    line-height:1.08;
+    line-height:1;
     background:linear-gradient(180deg,
         var(--p-text-1) 0%,
         color-mix(in srgb, var(--p-text-1) 78%, var(--p-accent) 22%) 100%);
@@ -555,19 +556,21 @@
     word-break:break-word;
     filter:drop-shadow(0 0 26px color-mix(in srgb, var(--p-accent) 45%, transparent))
            drop-shadow(0 2px 8px rgba(0,0,0,.9));
+    flex-shrink:0;
+    max-width:100%;
 }
 
 .msn-tier-badge{
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    min-width:1.9em;
-    height:1.9em;
+    min-width:2.15em;
+    height:2.15em;
     padding:0 .55em;
     border-radius:999px;
     background:rgba(255,255,255,.06);
     border:1.5px solid rgba(255,255,255,.22);
-    font-size:.72em;
+    font-size:.88em;
     line-height:1;
     font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
     box-shadow:
@@ -575,6 +578,7 @@
         0 0 12px rgba(0,0,0,.5);
     cursor:help;
     transition:transform .18s ease, box-shadow .18s ease;
+    flex-shrink:0;
 }
 .msn-tier-badge:hover{transform:translateY(-1px) scale(1.05);}
 .msn-tier-badge.msn-tier-whale{
@@ -603,12 +607,12 @@
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    width:1.9em;
-    height:1.9em;
+    width:2.15em;
+    height:2.15em;
     border-radius:50%;
     background:linear-gradient(135deg, #1d9bf0 0%, #0a4a9a 100%);
     color:#fff;
-    font-size:.72em;
+    font-size:.88em;
     font-weight:900;
     line-height:1;
     font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
@@ -853,19 +857,19 @@
 .msn-achievements{
     display:grid;
     grid-template-columns:repeat(6,minmax(0,1fr));
-    gap:7px;
+    gap:9px;
     margin:0 24px 20px;
     width:auto;
 }
 .msn-ach{
     aspect-ratio:1/1;
-    border-radius:9px;
+    border-radius:10px;
     background:color-mix(in srgb, var(--p-surface-1) 60%, transparent);
     border:1px solid color-mix(in srgb, var(--p-accent) 14%, transparent);
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:1.05rem;
+    font-size:1.35rem;
     line-height:1;
     transition:all .22s ease;
     min-width:0;
@@ -1049,8 +1053,8 @@
     .msn-stat-val{font-size:1.14rem;min-height:1.14rem;}
 
     .msn-ach-header{margin:0 18px 8px;}
-    .msn-achievements{gap:6px;margin:0 18px 16px;}
-    .msn-ach{font-size:.95rem;border-radius:8px;}
+    .msn-achievements{gap:7px;margin:0 18px 16px;}
+    .msn-ach{font-size:1.15rem;border-radius:9px;}
 
     .msn-actions{padding:0 18px 18px;gap:9px;}
     .msn-act-btn{padding:12px 12px;font-size:.68rem;letter-spacing:.07em;}
@@ -1076,8 +1080,8 @@
     .msn-stat-val{font-size:1rem;min-height:1rem;}
 
     .msn-ach-header{margin:0 14px 6px;}
-    .msn-achievements{gap:5px;margin:0 14px 14px;}
-    .msn-ach{font-size:.85rem;border-radius:7px;}
+    .msn-achievements{gap:6px;margin:0 14px 14px;}
+    .msn-ach{font-size:1rem;border-radius:8px;}
 
     .msn-actions{padding:0 14px 14px;gap:8px;}
     .msn-act-btn{padding:11px 8px;font-size:.62rem;letter-spacing:.04em;}
@@ -1299,13 +1303,13 @@
             rememberIdentity(profile);
         }
 
-        if (isSelf && window.userBalances && window.userBalances[username] != null) {
-            out.token_balance = window.userBalances[username];
-        } else if (out.token_balance == null && username) {
-            try {
-                var cached = window.userBalances && window.userBalances[username];
-                if (cached != null) out.token_balance = cached;
-            } catch (e) {}
+                // ⚑ Prefer live userBalances over the DB snapshot. DB token_balance
+        //   only updates on wallet connect, so it can lag behind reality.
+        //   Lookup by profile.username — the `username` param may be a
+        //   wallet address when the profile was opened from a chat avatar.
+        var balanceLookup = (profile && profile.username) || username;
+        if (balanceLookup && window.userBalances && window.userBalances[balanceLookup] != null) {
+            out.token_balance = window.userBalances[balanceLookup];
         }
 
         var resolved = resolveIdentity(out.wallet_address || username);
