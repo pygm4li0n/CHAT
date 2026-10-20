@@ -20,6 +20,7 @@
     var roomOnlineUsers     = new Map();
     var roomListChannel     = null;
     var _isBootingRooms     = false;
+    var pendingSharedRoomId = null;
 
     var solanaConnectionRooms = new solanaWeb3.Connection(RPC_ENDPOINT);
 
@@ -568,7 +569,7 @@
         if (overlay) overlay.classList.add('hidden');
     }
 
-    function renderRoomsList() {
+       function renderRoomsList() {
         var list = document.getElementById('roomsList');
         if (!list) return;
         if (!roomsCache.length) {
@@ -577,18 +578,30 @@
         }
         list.innerHTML = roomsCache.map(function (room) {
             return '<div class="rooms-list-item" data-room-id="' + esc(room.id) + '">'
-                + '<div class="rooms-list-item-name">🏛️ ' + esc(room.name) + '</div>'
-                + '<div class="rooms-list-item-mint">' + esc(room.token_mint.slice(0, 6)) + '…' + esc(room.token_mint.slice(-6)) + '</div>'
+                + '<div class="rooms-list-item-info">'
+                +   '<div class="rooms-list-item-name">🏛️ ' + esc(room.name) + '</div>'
+                +   '<div class="rooms-list-item-mint">' + esc(room.token_mint.slice(0, 6)) + '…' + esc(room.token_mint.slice(-6)) + '</div>'
+                + '</div>'
+                + '<button class="rooms-list-item-share" data-share-room="' + esc(room.id) + '" type="button" title="Copy share link">🔗</button>'
                 + '</div>';
         }).join('');
 
         list.querySelectorAll('.rooms-list-item').forEach(function (el) {
-            el.addEventListener('click', function () {
+            el.addEventListener('click', function (e) {
+                if (e.target.closest('.rooms-list-item-share')) return;
                 var id = el.getAttribute('data-room-id');
                 closeRoomsList();
                 if (window.MSNChat && window.MSNChat.switchTab) {
                     window.MSNChat.switchTab('room-' + id);
                 }
+            });
+        });
+
+        list.querySelectorAll('.rooms-list-item-share').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+                copyShareLink(this.getAttribute('data-share-room'));
             });
         });
     }
@@ -630,6 +643,108 @@
     // ═══════════════════════════════════════════════════════
     //  BOOT
     // ═══════════════════════════════════════════════════════
+        // ── SHARE LINK SYSTEM ─────────────────────────────────────
+    function getShareUrl(roomId) {
+        try {
+            var url = new URL(window.location.href);
+            url.searchParams.set('room', roomId);
+            url.hash = '';
+            return url.toString();
+        } catch (e) {
+            return window.location.origin + window.location.pathname + '?room=' + encodeURIComponent(roomId);
+        }
+    }
+
+    function copyShareLink(roomId) {
+        if (!roomId) return;
+        var url = getShareUrl(roomId);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function () {
+                showSuccess('🔗 Room link copied!');
+            }).catch(function () {
+                fallbackCopy(url);
+            });
+        } else {
+            fallbackCopy(url);
+        }
+    }
+
+    function fallbackCopy(text) {
+        try {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showSuccess('🔗 Room link copied!');
+        } catch (e) {
+            showError('Could not copy — copy manually: ' + text);
+        }
+    }
+
+    function checkSharedRoomLink() {
+        try {
+            var params = new URLSearchParams(window.location.search);
+            var roomId = params.get('room');
+            if (!roomId) return;
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roomId)) {
+                console.warn('[rooms] invalid room id in URL:', roomId);
+                return;
+            }
+            pendingSharedRoomId = roomId;
+            console.log('[rooms] shared room link detected:', roomId);
+
+            // Try at various moments — wallet might not be ready yet
+            setTimeout(tryActivatePendingRoom, 800);
+            setTimeout(tryActivatePendingRoom, 2000);
+            setTimeout(tryActivatePendingRoom, 4500);
+        } catch (e) {
+            console.warn('[rooms] link parse failed:', e);
+        }
+    }
+
+    async function tryActivatePendingRoom() {
+        if (!pendingSharedRoomId) return;
+
+        var wallet = getWallet();
+        if (!wallet) return;                    // wait for wallet
+
+        var rooms = await loadRooms();
+        renderRoomTabs();
+
+        var room = null;
+        for (var i = 0; i < rooms.length; i++) {
+            if (rooms[i].id === pendingSharedRoomId) { room = rooms[i]; break; }
+        }
+
+        if (!room) {
+            // Room doesn't exist (deleted or never created)
+            showError('This room no longer exists');
+            pendingSharedRoomId = null;
+            // Clean URL so a refresh doesn't retry
+            try {
+                var url = new URL(window.location.href);
+                url.searchParams.delete('room');
+                history.replaceState(null, '', url.toString());
+            } catch (e) {}
+            return;
+        }
+
+        // Room exists — switch to it. activateRoom runs the token check.
+        var roomId = pendingSharedRoomId;
+        pendingSharedRoomId = null;
+
+        var tabName = 'room-' + roomId;
+        var tab = document.querySelector('.chat-tab[data-tab="' + tabName + '"]');
+        if (tab) {
+            tab.click();
+        } else if (window.MSNChat && window.MSNChat.switchTab) {
+            window.MSNChat.switchTab(tabName);
+        }
+    }
+
     async function boot() {
         if (_isBootingRooms) return;
         _isBootingRooms = true;
@@ -670,6 +785,13 @@
             closeRoomsList();
             closeCreateRoom();
         });
+
+               // ⚑ Check for a shared room link (?room=<uuid>) in the URL
+        checkSharedRoomLink();
+
+        // ⚑ Retry pending activation when wallet becomes available
+        window.addEventListener('msn:wallet-connected', tryActivatePendingRoom);
+        document.addEventListener('msn:app-ready', tryActivatePendingRoom);
 
         _isBootingRooms = false;
     }
