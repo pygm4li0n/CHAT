@@ -1,4 +1,5 @@
-/* rankings-slots.js — pads every rankings list to 10 uniform slots */
+/* rankings-slots.js — v2 — pads rankings to 10 rows.
+   Disconnects observer before mutation to prevent self-triggering. */
 (function () {
     'use strict';
 
@@ -10,6 +11,10 @@
             '<div class="rank-meta"><span class="rank-detail">AWAITING DATA</span></div>' +
         '</div>' +
         '<div class="rank-stats"><span class="rank-score">—</span></div>';
+
+    var overlayEl = null;
+    var observer  = null;
+    var scheduled = null;
 
     function refreshList(list) {
         list.querySelectorAll('.rank-row.is-placeholder').forEach(function (n) { n.remove(); });
@@ -27,30 +32,42 @@
             list.appendChild(frag);
         }
 
-        list.classList.toggle(
-            'is-scrollable',
-            list.scrollHeight > list.clientHeight + 2
-        );
+        list.classList.toggle('is-scrollable', list.scrollHeight > list.clientHeight + 2);
     }
 
-    function refreshAll() {
-        document.querySelectorAll('#rankingsOverlay .rankings-list')
-            .forEach(refreshList);
+    function doRefresh() {
+        if (observer) observer.disconnect();   // ⚑ stop observing our own writes
+        try {
+            document.querySelectorAll('#rankingsOverlay .rankings-list')
+                .forEach(refreshList);
+        } finally {
+            if (observer && overlayEl) {
+                observer.observe(overlayEl, { childList: true, subtree: true });
+            }
+        }
+    }
+
+    function scheduleRefresh() {
+        if (scheduled) return;
+        scheduled = requestAnimationFrame(function () {
+            scheduled = null;
+            doRefresh();
+        });
+    }
+
+    overlayEl = document.getElementById('rankingsOverlay');
+
+    if (overlayEl) {
+        observer = new MutationObserver(scheduleRefresh);
+        observer.observe(overlayEl, { childList: true, subtree: true });
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', refreshAll);
+        document.addEventListener('DOMContentLoaded', doRefresh);
     } else {
-        refreshAll();
+        doRefresh();
     }
 
-    window.addEventListener('resize', refreshAll, { passive: true });
-
-    var overlay = document.getElementById('rankingsOverlay');
-    if (overlay) {
-        new MutationObserver(refreshAll)
-            .observe(overlay, { childList: true, subtree: true });
-    }
-
-    window.refreshRankingsSlots = refreshAll;
+    window.addEventListener('resize', scheduleRefresh, { passive: true });
+    window.refreshRankingsSlots = doRefresh;
 })();
