@@ -925,11 +925,13 @@
 
     // Replace every character of a filtered word with *
     // "you shit" → "you ****", "shitting" → "********"
-    function censorFilteredWords(text) {
+       function censorFilteredWords(text) {
         if (!text || !modWordFilter.length) return text;
         var out = String(text);
-        for (var i = 0; i < modWordFilter.length; i++) {
-            var w = modWordFilter[i];
+        // Process longest words first so "fucker" is matched before "fuck"
+        var sorted = modWordFilter.slice().sort(function (a, b) { return b.length - a.length; });
+        for (var i = 0; i < sorted.length; i++) {
+            var w = sorted[i];
             if (!w) continue;
             var escaped = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             if (w.length < 4) {
@@ -1731,8 +1733,9 @@
                 modTokenRequirement = data.token_requirement;
                 modCooldownSeconds = data.cooldown_seconds;
                 modAnnouncement = data.mod_announcement || '';
-                modWordFilter = Array.isArray(data.word_filter)
+                                modWordFilter = Array.isArray(data.word_filter)
                     ? data.word_filter.map(function (w) { return String(w).trim().toLowerCase(); }).filter(Boolean)
+                        .sort(function (a, b) { return b.length - a.length; })
                     : [];
                 updateModAnnouncementDisplay(modAnnouncement);
                 console.log('[mod] word filter loaded:', modWordFilter);
@@ -1750,8 +1753,9 @@
                     modTokenRequirement = newData.token_requirement;
                     modCooldownSeconds = newData.cooldown_seconds;
                     modAnnouncement = newData.mod_announcement || '';
-                    modWordFilter = Array.isArray(newData.word_filter)
+                                       modWordFilter = Array.isArray(newData.word_filter)
                         ? newData.word_filter.map(function (w) { return String(w).trim().toLowerCase(); }).filter(Boolean)
+                            .sort(function (a, b) { return b.length - a.length; })
                         : [];
                     updateModAnnouncementDisplay(modAnnouncement);
                     updateChatAccessibility();
