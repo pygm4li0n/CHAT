@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Meme Social Network // MSN</title>
 
-    <!-- ═══════════════════════════════════════════════════════
-         ⚑ BOOTING FAILSAFE — must run first
-    ═══════════════════════════════════════════════════════ -->
     <script>
         document.documentElement.classList.add('msn-booting');
         setTimeout(function () {
@@ -15,20 +12,12 @@
         }, 10000);
     </script>
 
-    <!-- ═══════════════════════════════════════════════════════
-         ⚑ X OAUTH RETURN — X VERIFIED loading screen
-         Holds a minimal X VERIFIED overlay until script.js
-         signals the app is fully built. Then fades cleanly
-         into the app. No flicker, no empty flashes.
-         Flag has 3-min TTL — cannot get stuck.
-    ═══════════════════════════════════════════════════════ -->
     <script>
     (function () {
         try {
             var raw = sessionStorage.getItem('msn_x_oauth_pending');
             if (!raw) return;
 
-            // Validate (legacy '1' or timestamped JSON)
             var valid = false;
             if (raw === '1') valid = true;
             else {
@@ -43,22 +32,17 @@
                 return;
             }
 
-            // Prevent loading-screen.js from injecting its own loader
             window.__msnSkipBootLoader = true;
 
-            // ── Styles ────────────────────────────────────
             var s = document.createElement('style');
             s.id = 'x-oauth-return-styles';
             s.textContent = [
-                /* Hide the default loader overlay entirely */
                 '#msnBootOverlay{',
                 '  display:none !important;',
                 '  opacity:0 !important;',
                 '  visibility:hidden !important;',
                 '  pointer-events:none !important;',
                 '}',
-
-                /* Keep the app hidden behind the boot gate */
                 'body > *:not(#xOAuthReturnOverlay):not(script):not(style):not(link):not(noscript){',
                 '  transition: opacity .55s cubic-bezier(.22,.61,.36,1) !important;',
                 '}',
@@ -70,8 +54,6 @@
                 '  overflow: hidden !important;' +
                 '  background: radial-gradient(circle at 50% 45%, #0a0d18 0%, #02040a 75%) !important;' +
                 '}',
-
-                /* X VERIFIED overlay */
                 '#xOAuthReturnOverlay {',
                 '  position: fixed; inset: 0; z-index: 999999;',
                 '  display: flex; flex-direction: column;',
@@ -89,8 +71,6 @@
                 '  opacity: 0.28; z-index: 1;',
                 '}',
                 '#xOAuthReturnOverlay.done { opacity: 0; visibility: hidden; pointer-events: none; }',
-
-                /* Logo — 10% smaller, single accent glow, gentle pulse */
                 '.xr-icon {',
                 '  position: relative; z-index: 2;',
                 '  display: flex; align-items: center; justify-content: center;',
@@ -109,15 +89,11 @@
                 '    drop-shadow(0 8px 24px rgba(0,0,0,.55))',
                 '    drop-shadow(0 0 36px rgba(29,155,240,.40));',
                 '}',
-
-                /* Status row — spinner + caption inline */
                 '.xr-status {',
                 '  position: relative; z-index: 2;',
                 '  display: inline-flex; align-items: center; gap: 10px;',
                 '  margin: 0;',
                 '}',
-
-                /* Spinner — 14px ring, GPU-only rotation */
                 '.xr-spinner {',
                 '  display: inline-block;',
                 '  width: 14px; height: 14px;',
@@ -128,8 +104,6 @@
                 '  will-change: transform;',
                 '  flex-shrink: 0;',
                 '}',
-
-                /* Caption — clean, static */
                 '.xr-text {',
                 '  font-family: var(--font-mono, ui-monospace, Menlo, monospace);',
                 '  font-size: 0.72rem; font-weight: 800;',
@@ -138,7 +112,6 @@
                 '  margin: 0;',
                 '  white-space: nowrap;',
                 '}',
-
                 '@keyframes xrPulse {',
                 '  0%, 100% { transform: scale(1); }',
                 '  50% { transform: scale(1.02); }',
@@ -149,7 +122,6 @@
             ].join('\n');
             (document.head || document.documentElement).appendChild(s);
 
-            // ── Overlay markup ────────────────────────────
             function buildOverlay() {
                 if (!document.body) return;
                 if (document.getElementById('xOAuthReturnOverlay')) return;
@@ -174,7 +146,6 @@
             if (document.body) buildOverlay();
             else document.addEventListener('DOMContentLoaded', buildOverlay, { once: true });
 
-            // ── Release when script.js signals ready ─────
             var released = false;
             function release() {
                 if (released) return;
@@ -197,7 +168,6 @@
                 requestAnimationFrame(release);
             }
 
-            // Safety net — never hold longer than 6s
             setTimeout(release, 6000);
         } catch (e) {}
     })();
@@ -212,7 +182,6 @@
     <link rel="dns-prefetch" href="https://platform.twitter.com">
     <link rel="dns-prefetch" href="https://cdn.syndication.twimg.com">
 
-    <!-- Dynamic theme stylesheet — must load FIRST so overrides can win -->
     <script>
         (function () {
             var THEME_KEY = 'msn_theme';
@@ -231,10 +200,8 @@
         })();
     </script>
 
-    <!-- Merged override stack -->
     <link rel="stylesheet" href="theme-merged.css">
 
-    <!-- Other app stylesheets -->
     <link rel="stylesheet" href="mobile-sidebar.css?v=4">
     <link rel="stylesheet" href="rankings-epic.css?v=7">
     <link rel="stylesheet" href="mod-panel.css?v=1">
@@ -250,6 +217,66 @@
     </script>
 
     <style>
+        /* ═══ HEADER SOCIAL LINKS — desktop only ═══ */
+        .header-social-links {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+        .header-social-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            background: var(--bg-elevated, rgba(255, 255, 255, 0.04));
+            border: 1px solid var(--border-default, rgba(255, 255, 255, 0.10));
+            text-decoration: none;
+            overflow: hidden;
+            flex-shrink: 0;
+            transition:
+                border-color 0.2s ease,
+                box-shadow 0.22s ease,
+                background 0.2s ease,
+                transform 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .header-social-link img {
+            width: 22px;
+            height: 22px;
+            object-fit: contain;
+            display: block;
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-drag: none;
+            transition: transform 0.2s ease;
+        }
+        .header-social-link:hover {
+            border-color: var(--accent-cyan, #00f0ff);
+            background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+            box-shadow:
+                0 0 12px var(--border-glow, rgba(0, 240, 255, 0.45)),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            transform: translateY(-1px);
+        }
+        .header-social-link:hover img {
+            transform: scale(1.08);
+        }
+        .header-social-link:active {
+            transform: translateY(0) scale(0.94);
+        }
+        .header-social-link:focus-visible {
+            outline: 2px solid var(--accent-cyan, #00f0ff);
+            outline-offset: 2px;
+        }
+        @media (max-width: 768px) {
+            .header-social-links { display: none !important; }
+        }
+        /* ═══ END HEADER SOCIAL LINKS ═══ */
+
         .header-theme-btn,
         .sidebar-theme-btn {
             width: 34px;
@@ -313,9 +340,6 @@
     </style>
 </head>
 <body>
-    <!-- ═══════════════════════════════════════════════════════
-         ⚑ BOOT SEQUENCE — must be first in <body>
-    ═══════════════════════════════════════════════════════ -->
     <script src="loading-screen.js?v=6"></script>
 
     <canvas id="particleCanvas"></canvas>
@@ -416,6 +440,24 @@
                 <div class="header-left">
                     <button class="sidebar-toggle hidden" id="sidebarToggle" title="Users">☰</button>
                     <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="Logo" class="header-logo">
+
+                    <div class="header-social-links" aria-label="Official links">
+                        <a href="https://pump.fun/coin/EJjqCJRYs19QDtQRM7QD5vwbdf1XfEysyF5nL1kNpump?highlight_callout=f6b4318d-064b-4087-b4d4-62a9729bd06f"
+                           target="_blank" rel="noopener noreferrer"
+                           class="header-social-link" title="Pump.fun">
+                            <img src="https://i.postimg.cc/ry9HG152/pumplogo.png" alt="Pump.fun">
+                        </a>
+                        <a href="https://x.com/MemeSocialNet"
+                           target="_blank" rel="noopener noreferrer"
+                           class="header-social-link" title="X (Twitter)">
+                            <img src="https://i.postimg.cc/66hPVrCN/Xlogo.png" alt="X">
+                        </a>
+                        <a href="https://dexscreener.com/solana/9tzfbtlnsguvwrgymdqcf92stde5fdjna6w15l8plriy"
+                           target="_blank" rel="noopener noreferrer"
+                           class="header-social-link" title="DexScreener">
+                            <img src="https://i.postimg.cc/T2csjVn6/Dex-Logo.png" alt="DexScreener">
+                        </a>
+                    </div>
                 </div>
                 <div class="header-center">
                     <div class="token-tracker" id="tokenTracker">
@@ -497,6 +539,10 @@
         <div class="overlay-card theme-overlay-card">
             <h3>Select Theme</h3>
             <div class="theme-options">
+                <button class="theme-option" data-theme="original">
+                    <span class="emoji">🌐</span>
+                    <span class="theme-name">Original</span>
+                </button>
                 <button class="theme-option" data-theme="orange">
                     <span class="emoji">🟠</span>
                     <span class="theme-name">Orange</span>
@@ -565,9 +611,6 @@
     <script src="mod-panel.js?v=3"></script>
     <script src="link-guard.js?v=3"></script>
 
-    <!-- ═══════════════════════════════════════════════════════
-         ⚑ MOBILE SIDEBAR PROFILE — MOBILE ONLY
-    ═══════════════════════════════════════════════════════ -->
     <script>
     (function wireMobileProfile() {
         'use strict';
