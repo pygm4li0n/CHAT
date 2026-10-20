@@ -343,9 +343,67 @@
 
         .sidebar-theme-btn { display: none; }
 
-        @media (max-width: 768px) {
+                @media (max-width: 768px) {
             .header-theme-btn { display: none; }
             .sidebar-theme-btn { display: flex; }
+        }
+
+        /* ═══ CHAT TABS — horizontal scroll for room tabs ═══ */
+        .chat-tabs {
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .chat-tabs::-webkit-scrollbar { display: none; }
+        .chat-tab.room-tab {
+            flex: 0 0 auto;
+            min-width: 100px;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* ═══ ROOMS LIST ═══ */
+        .rooms-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 14px;
+        }
+        .rooms-list-empty {
+            padding: 24px 12px;
+            text-align: center;
+            font-size: 0.8rem;
+            opacity: 0.6;
+            font-style: italic;
+        }
+        .rooms-list-item {
+            padding: 12px 14px;
+            background: var(--bg-input, #111827);
+            border: 1px solid var(--border-default, #454B4B);
+            border-radius: var(--radius-md, 10px);
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s, transform 0.15s;
+        }
+        .rooms-list-item:hover {
+            border-color: var(--accent-cyan, #00f0ff);
+            background: var(--bg-hover, #1d2b4d);
+            transform: translateY(-1px);
+        }
+        .rooms-list-item-name {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--text-primary, #fff);
+            margin-bottom: 4px;
+        }
+        .rooms-list-item-mint {
+            font-family: var(--font-mono, monospace);
+            font-size: 0.7rem;
+            color: var(--text-muted, #64748b);
+            letter-spacing: 0.06em;
         }
     </style>
 </head>
