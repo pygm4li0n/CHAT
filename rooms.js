@@ -256,12 +256,18 @@
     // ═══════════════════════════════════════════════════════
     //  SENDING
     // ═══════════════════════════════════════════════════════
-    async function sendMessage() {
+        async function sendMessage() {
         if (!activeRoomId) return;
         var wallet = getWallet();
         var username = getUsername();
         if (!wallet) { showError('Connect Phantom first'); return; }
         if (!username) { showError('Set your username first'); return; }
+
+        // ⚑ Enforce shared cooldown — same timer as public/whale chat
+        if (window.MSNChat && window.MSNChat.isCooldownActive && window.MSNChat.isCooldownActive()) {
+            showError('Cooldown active — wait a moment');
+            return;
+        }
 
         var room = findRoomById(activeRoomId);
         if (!room) return;
@@ -416,9 +422,17 @@
         var count = 0;
 
         // Self first (if online)
-        roomOnlineUsers.forEach(function (u) {
+                roomOnlineUsers.forEach(function (u) {
             count++;
-            var avatarURL = window.MSNIdentity ? window.MSNIdentity.avatarFor({ username: u.username }) : null;
+            // ⚑ Look up the full profile by wallet so avatarFor() gets the
+            //   fields it expects (avatar_url, x_avatar_url, x_verified)
+            var _profile = null;
+            if (window.MSNIdentity && window.MSNIdentity.byWallet && u.wallet) {
+                _profile = window.MSNIdentity.byWallet()[u.wallet];
+            }
+            var avatarURL = (_profile && window.MSNIdentity && window.MSNIdentity.avatarFor)
+                ? window.MSNIdentity.avatarFor(_profile)
+                : null;
             var displayName = window.MSNIdentity && window.MSNIdentity.labelForUsername
                 ? window.MSNIdentity.labelForUsername(u.username)
                 : u.username;
