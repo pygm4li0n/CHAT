@@ -4381,10 +4381,15 @@ switchTab('public');
                 into: actionsWrap,
                 logo: 'https://i.postimg.cc/hhFsM2PG/leaderboards.png'
             },
-            {
+                        {
                 el:   document.getElementById('modSettingsBtn'),
                 into: actionsWrap,
                 logo: 'https://i.postimg.cc/90PKM8dY/image-2026-10-01T145005-076.png'
+            },
+            {
+                el:   document.getElementById('roomsBtn'),
+                into: actionsWrap,
+                logo: 'https://i.postimg.cc/ry9HG152/pumplogo.png'
             },
         ];
 
