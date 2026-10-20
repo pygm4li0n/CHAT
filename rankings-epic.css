@@ -52,31 +52,7 @@
     --rk-col2: var(--accent-orange, #f68c16);
 }
 
-/* ── LIGHT THEME (system preference) ─────────────────────── */
-@media (prefers-color-scheme: light) {
-    #rankingsOverlay:not([data-theme="dark"]):not(.dark):not(.is-dark):not(.theme-dark) {
-        color-scheme: light;
-
-        --rk-panel-bg: var(--bg-panel, #ffffff);
-
-        --rk-surface-1: rgba(16, 26, 40, .030);
-        --rk-surface-2: rgba(16, 26, 40, .052);
-        --rk-inset:     rgba(255, 255, 255, .85);
-        --rk-shade:     rgba(16, 26, 40, .04);
-        --rk-scroll:    rgba(16, 26, 40, .18);
-
-        --rk-shadow:     0 24px 60px rgba(16, 26, 40, .16);
-        --rk-row-shadow: 0 3px 12px rgba(16, 26, 40, .10);
-
-        --rk-col-bg:
-            linear-gradient(180deg, rgba(255, 255, 255, .92), rgba(255, 255, 255, .55)),
-            linear-gradient(160deg, rgba(16, 26, 40, .05), rgba(16, 26, 40, .01));
-        --rk-mobile-col-bg: rgba(16, 26, 40, .030);
-
-        --rk-hover-a: rgba(0, 140, 160, .085);
-        --rk-hover-b: rgba(0, 140, 160, .025);
-    }
-}
+/* Light-mode OS preference branch removed — app is dark-only */
 
 /* explicit light flags (app-controlled theme) */
 #rankingsOverlay[data-theme="light"],
