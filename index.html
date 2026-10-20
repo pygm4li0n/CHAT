@@ -399,11 +399,60 @@
             color: var(--text-primary, #fff);
             margin-bottom: 4px;
         }
-        .rooms-list-item-mint {
+                .rooms-list-item-mint {
             font-family: var(--font-mono, monospace);
             font-size: 0.7rem;
             color: var(--text-muted, #64748b);
             letter-spacing: 0.06em;
+        }
+
+        /* ═══ ROOMS — share link layout ═══ */
+        .rooms-list-item {
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+        }
+        .rooms-list-item-info {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        .rooms-list-item-share {
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+            border-radius: 8px;
+            border: 1px solid var(--border-default, #454B4B);
+            background: var(--bg-input, #111827);
+            color: var(--text-primary, #fff);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        .rooms-list-item-share:hover {
+            border-color: var(--accent-cyan, #00f0ff);
+            background: var(--bg-hover, #1d2b4d);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+            transform: translateY(-1px);
+        }
+        .rooms-list-item-share:active {
+            transform: translateY(0) scale(0.94);
+        }
+        .rooms-list-item-share:focus-visible {
+            outline: 2px solid var(--accent-cyan, #00f0ff);
+            outline-offset: 2px;
+        }
+
+        @media (max-width: 520px) {
+            .rooms-list-item-share {
+                width: 30px;
+                height: 30px;
+                min-width: 30px;
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
