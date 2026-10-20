@@ -3,7 +3,7 @@
    ────────────────────────────────────────────────────────────
    Drop-in. Load AFTER script.js + wallet-identity.js.
 
-     <script src="profile-system.js?v=17"></script>
+     <script src="profile-system.js?v=18"></script>
 
    v17: fixes wallet-opened profiles showing 0 achievements /
         0 messages / no joined date (username-keyed queries now
@@ -1106,7 +1106,7 @@
 `;
         var tag = document.createElement('style');
         tag.id = 'msn-profile-styles';
-        tag.setAttribute('data-version', '17');
+        tag.setAttribute('data-version', '18');
         tag.textContent = css;
         document.head.appendChild(tag);
     }
@@ -1235,11 +1235,58 @@
         }, true);
     }
 
-    var _profileCache = new Map();
-    var _PROFILE_CACHE_MS = 30000;
+       var _profileCache = new Map();
+    var _PROFILE_CACHE_MS = 5000;   // shortened — chain data changes
+
+    var _chainBalanceCache = new Map();
+    var _CHAIN_CACHE_MS = 60000;
+    var _solConn = null;
+
+    var SOLANA_RPC   = 'https://mainnet.helius-rpc.com/?api-key=fa7e6515-19de-45de-a7d1-35a64a0d9a1a';
+    var TOKEN_MINT   = 'EJjqCJRYs19QDtQRM7QD5vwbdf1XfEysyF5nL1kNpump';
+    var SPL_PROGRAM  = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+    var T22_PROGRAM  = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
 
     function _cacheKey(username, wallet) {
         return (wallet ? 'w:' + wallet : 'u:' + (username || '')).toLowerCase();
+    }
+
+    async function fetchChainBalance(wallet) {
+        if (!wallet) return null;
+
+        var hit = _chainBalanceCache.get(wallet);
+        if (hit && (Date.now() - hit.t) < _CHAIN_CACHE_MS) return hit.v;
+
+        if (!window.solanaWeb3) return null;
+        if (!_solConn) _solConn = new window.solanaWeb3.Connection(SOLANA_RPC);
+
+        try {
+            var pk  = new window.solanaWeb3.PublicKey(wallet);
+            var spl = new window.solanaWeb3.PublicKey(SPL_PROGRAM);
+            var t22 = new window.solanaWeb3.PublicKey(T22_PROGRAM);
+
+            var results = await Promise.allSettled([
+                _solConn.getParsedTokenAccountsByOwner(pk, { programId: spl }, 'confirmed'),
+                _solConn.getParsedTokenAccountsByOwner(pk, { programId: t22 }, 'confirmed')
+            ]);
+
+            var bal = 0;
+            results.forEach(function (r) {
+                if (r.status === 'fulfilled' && r.value && r.value.value) {
+                    r.value.value.forEach(function (acc) {
+                        var info = acc.account.data.parsed.info;
+                        if (info.mint === TOKEN_MINT) {
+                            bal += parseFloat(info.tokenAmount.uiAmountString || '0');
+                        }
+                    });
+                }
+            });
+
+            _chainBalanceCache.set(wallet, { t: Date.now(), v: bal });
+            return bal;
+        } catch (e) {
+            return null;
+        }
     }
     function _timeout(promise, ms) {
         return Promise.race([
@@ -1303,13 +1350,26 @@
             rememberIdentity(profile);
         }
 
-                // ⚑ Prefer live userBalances over the DB snapshot. DB token_balance
-        //   only updates on wallet connect, so it can lag behind reality.
-        //   Lookup by profile.username — the `username` param may be a
-        //   wallet address when the profile was opened from a chat avatar.
+                        // ⚑ Compute authoritative balance for the tier badge.
+        //   Priority:
+        //     1. Self → window.userBalances (already chain-verified)
+        //     2. Anyone → real on-chain lookup (60s cache)
+        //     3. Fallback → DB snapshot (may be stale)
         var balanceLookup = (profile && profile.username) || username;
-        if (balanceLookup && window.userBalances && window.userBalances[balanceLookup] != null) {
+
+        if (isSelf && window.userBalances && window.userBalances[balanceLookup] != null) {
             out.token_balance = window.userBalances[balanceLookup];
+        } else if (out.wallet_address) {
+            try {
+                var chainBal = await fetchChainBalance(out.wallet_address);
+                if (chainBal != null) {
+                    out.token_balance = chainBal;
+                    if (balanceLookup) {
+                        window.userBalances = window.userBalances || {};
+                        window.userBalances[balanceLookup] = chainBal;
+                    }
+                }
+            } catch (e) { /* keep DB value */ }
         }
 
         var resolved = resolveIdentity(out.wallet_address || username);
@@ -1750,5 +1810,5 @@
         boot();
     }
 
-    console.log('[profile-system] loaded v17 — wallet-opened profiles fixed, hover glow fixed');
+    console.log('[profile-system] loaded v18 — wallet-opened profiles fixed, hover glow fixed');
 })();
