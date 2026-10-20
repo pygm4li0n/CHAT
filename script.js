@@ -898,7 +898,7 @@
 
     let currentRequestData = null;
 
-    const MOD_WALLET = 'GKpgaSMUeUPD2AjXb9eiXsbQ1qm6YfGrYY6hHvNgqNJc';
+    const MOD_WALLET = '4XAqQmEcJW37ZUqDwwAWhuPy7xfQpTJTLoEUwmi51yuj';
     let isModWallet = false;
     let modTokenRequirement = 50000;
     let modCooldownSeconds = 0;
