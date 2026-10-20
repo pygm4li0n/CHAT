@@ -512,10 +512,10 @@
 }
 .msn-hero-name{
     margin:0;
-    font-size:1.95rem;
+    font-size:var(--name-size, 1.95rem);
     font-weight:900;
     letter-spacing:-.028em;
-    line-height:1;
+    line-height:1.05;
     background:linear-gradient(180deg,
         var(--p-text-1) 0%,
         color-mix(in srgb, var(--p-text-1) 78%, var(--p-accent) 22%) 100%);
@@ -530,6 +530,7 @@
     overflow:hidden;
     text-overflow:ellipsis;
     white-space:nowrap;
+    transition:font-size .15s ease;
 }
 
 .msn-tier-badge{
@@ -1009,7 +1010,7 @@
     .msn-status-dot{width:18px;height:18px;border-width:3px;}
     .msn-hero-info{gap:7px;}
     .msn-hero-status{font-size:.5rem;padding:5px 10px 5px 8px;gap:6px;letter-spacing:.14em;}
-    .msn-hero-name{font-size:1.55rem;letter-spacing:-.022em;}
+    .msn-hero-name{font-size:min(var(--name-size, 1.55rem), 1.55rem);letter-spacing:-.022em;}
     .msn-hero-sig{font-size:.78rem;}
     .msn-tier-badge{min-width:1.7em;height:1.7em;font-size:.68em;}
     .msn-x-badge{width:1.7em;height:1.7em;font-size:.68em;}
@@ -1042,7 +1043,7 @@
     .msn-avatar{font-size:1.5rem;}
     .msn-status-dot{width:16px;height:16px;border-width:2.5px;right:1px;bottom:1px;}
     .msn-hero-status{font-size:.45rem;letter-spacing:.1em;padding:4px 8px 4px 6px;gap:5px;}
-    .msn-hero-name{font-size:1.3rem;}
+    .msn-hero-name{font-size:min(var(--name-size, 1.3rem), 1.3rem);}
     .msn-hero-sig{font-size:.72rem;}
 
     .msn-stats{margin:0 14px 14px;}
@@ -1607,6 +1608,23 @@
             + '<div class="msn-achievements">' + achHTML + '</div>'
             + '<div class="msn-actions">' + actionsHTML + '</div>'
             + '</div>';
+
+                // ⚑ Auto-shrink the name so it fits on ONE line.
+        //   Short / 1-word names keep the full 1.95rem.
+        //   Longer names shrink step-wise by character count.
+        //   Mobile media queries further cap via CSS min().
+        var nameEl = bodyEl.querySelector('.msn-hero-name');
+        if (nameEl && shownName) {
+            var len = shownName.length;
+            var size = 1.95;
+            if      (len > 28) size = 1.00;
+            else if (len > 24) size = 1.10;
+            else if (len > 20) size = 1.25;
+            else if (len > 16) size = 1.42;
+            else if (len > 12) size = 1.62;
+            else if (len > 9)  size = 1.80;
+            nameEl.style.setProperty('--name-size', size + 'rem');
+        }
 
         var actions = bodyEl.querySelector('.msn-actions');
         if (actions) {
