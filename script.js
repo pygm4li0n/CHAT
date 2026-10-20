@@ -1454,7 +1454,18 @@
     }
 }
 
-       function updateChatAccessibility() {
+         function updateChatAccessibility() {
+        // ⚑ Room tabs — gate on wallet connected + username
+        if (currentTab && currentTab.indexOf('room-') === 0) {
+            var canRoomChat = !!username && phantomConnected;
+            messageInput.disabled = !canRoomChat;
+            sendBtn.disabled = !canRoomChat;
+            messageInput.placeholder = canRoomChat
+                ? 'Message this room…'
+                : 'Connect wallet to chat';
+            document.querySelectorAll('.private-btn').forEach(function (b) { b.disabled = true; });
+            return;
+        }
         // ⚑ Whale tab — gate solely on whale badge
         if (currentTab === 'whale') {
     const canChat = !!username;
@@ -2108,10 +2119,11 @@ let whaleMessageReactions = {};   // whale chat reuses the message_reactions tab
         }
     }, { passive: true });
 
-      scrollBottomBtn.addEventListener('click', () => {
+         scrollBottomBtn.addEventListener('click', () => {
         let container;
         if (currentTab === 'whale')        container = whaleContainer;
         else if (currentTab === 'private') container = privateContainer;
+        else if (currentTab.indexOf('room-') === 0) container = document.getElementById('roomMessagesContainer');
         else                               container = publicContainer;
         if (!container) return;
         autoScroll = true;
@@ -3221,6 +3233,23 @@ function showSuccess(msg) {
                 scrollContainerToBottom(whaleContainer);
                 updateScrollButtonVisibility(whaleContainer);
             }, 150);
+                } else if (tabName.indexOf('room-') === 0) {
+            publicContainer.classList.add('hidden');
+            privateContainer.classList.add('hidden');
+            whaleContainer.classList.add('hidden');
+            var roomContainer = document.getElementById('roomMessagesContainer');
+            if (roomContainer) roomContainer.classList.remove('hidden');
+            if (modMessageBox) modMessageBox.classList.add('hidden');
+            if (window.MSNRooms && window.MSNRooms.onActivate) {
+                window.MSNRooms.onActivate(tabName.substring(5));
+            }
+            autoScroll = true;
+            setTimeout(function () {
+                if (roomContainer) {
+                    roomContainer.scrollTop = roomContainer.scrollHeight;
+                    updateScrollButtonVisibility(roomContainer);
+                }
+            }, 150);
         } else {
             publicContainer.classList.add('hidden');
             whaleContainer.classList.add('hidden');
@@ -3369,7 +3398,11 @@ function showSuccess(msg) {
         }
     }
 
-            async function updateSidebarUI() {
+                async function updateSidebarUI() {
+        if (currentTab && currentTab.indexOf('room-') === 0
+            && window.MSNRooms && window.MSNRooms.renderSidebar) {
+            return window.MSNRooms.renderSidebar();
+        }
         const usersToFetch  = new Set();
         const walletsToFetch = new Set();
 
@@ -3951,9 +3984,15 @@ function showSuccess(msg) {
         }
     }
 
-       async function sendMessage() {
+          async function sendMessage() {
+        if (currentTab.indexOf('room-') === 0) {
+            if (window.MSNRooms && window.MSNRooms.sendMessage) {
+                return window.MSNRooms.sendMessage();
+            }
+            return;
+        }
         // ⚑ Whale tab bypasses the generic token gate — has its own
-               if (currentTab === 'whale') {
+        if (currentTab === 'whale') {
     const wtext = messageInput.value.trim();
     if (!wtext && !pendingImageUrl) return;
 
@@ -4422,7 +4461,15 @@ switchTab('public');
 
     // ═══ Shared chat API for stickers.js (fixes reply + cooldown) ═══
     window.MSNChat = window.MSNChat || {};
-        window.MSNChat.getReplyingTo    = function () { return replyingTo; };
+    window.MSNChat.getReplyingTo    = function () { return replyingTo; };
+    window.MSNChat.buildMessageNode = buildMessageNode;
+    window.MSNChat.showMsgLoader    = showMsgLoader;
+    window.MSNChat.hideMsgLoader    = hideMsgLoader;
+    window.MSNChat.switchTab        = switchTab;
+    window.MSNChat.getSelfUsername  = function () { return username; };
+    window.MSNChat.getWalletAddress = getWalletAddress;
+    window.MSNChat.showError        = showError;
+    window.MSNChat.showSuccess      = showSuccess;
     window.MSNChat.canSend = function () {
         if (!username) return false;
         if (!TOKEN_MINT_ADDRESS) return true;
