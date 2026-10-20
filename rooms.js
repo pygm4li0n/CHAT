@@ -758,6 +758,8 @@
         }
     }
 
+        var _hasBoundListeners = false;
+
     async function boot() {
         if (_isBootingRooms) return;
         _isBootingRooms = true;
@@ -765,6 +767,10 @@
         await loadRooms();
         renderRoomTabs();
         subscribeToRoomList();
+
+        // ⚑ Bind every listener ONLY ONCE across repeated boot() calls
+        if (!_hasBoundListeners) {
+            _hasBoundListeners = true;
 
         // Bind "Communities" button (desktop right sidebar)
         var roomBtn = document.getElementById('roomsBtn');
@@ -799,23 +805,44 @@
             closeCreateRoom();
         });
 
-               // ⚑ Check for a shared room link (?room=<uuid>) in the URL
+                             // ⚑ Check for a shared room link (?room=<uuid>) in the URL
         checkSharedRoomLink();
 
         // ⚑ Retry pending activation when wallet becomes available
         window.addEventListener('msn:wallet-connected', tryActivatePendingRoom);
         document.addEventListener('msn:app-ready', tryActivatePendingRoom);
 
+        } // end _hasBoundListeners block
+
         _isBootingRooms = false;
+    }
+       // ═══════════════════════════════════════════════════════
+    //  DEACTIVATE — call when leaving a room tab
+    // ═══════════════════════════════════════════════════════
+    function deactivateRoom() {
+        var sb = getSB();
+
+        if (roomPresenceChannel) {
+            try { roomPresenceChannel.untrack(); } catch (e) {}
+            if (sb) sb.removeChannel(roomPresenceChannel);
+            roomPresenceChannel = null;
+        }
+        if (roomMsgChannel) {
+            if (sb) sb.removeChannel(roomMsgChannel);
+            roomMsgChannel = null;
+        }
+        roomOnlineUsers.clear();
+        activeRoomId = null;
     }
 
     // ═══════════════════════════════════════════════════════
     //  PUBLIC API
     // ═══════════════════════════════════════════════════════
-    window.MSNRooms = {
+       window.MSNRooms = {
         load: loadRooms,
         renderTabs: renderRoomTabs,
         onActivate: activateRoom,
+        onDeactivate: deactivateRoom,
         sendMessage: sendMessage,
         renderSidebar: renderRoomSidebar,
         getActiveRoom: function () { return activeRoomId; },
