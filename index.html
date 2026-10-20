@@ -606,6 +606,30 @@
         </div>
     </div>
 
+        <div class="overlay-full hidden" id="roomsListOverlay">
+        <div class="overlay-card">
+            <h3>🏛️ COMMUNITIES</h3>
+            <div id="roomsList" class="rooms-list"></div>
+            <button id="roomCreateNewBtn">+ Create New Room</button>
+            <button id="roomsListCloseBtn">Close</button>
+        </div>
+    </div>
+
+    <div class="overlay-full hidden" id="roomCreateOverlay">
+        <div class="overlay-card">
+            <h3>CREATE ROOM</h3>
+            <label for="roomTokenInput">Token mint address</label>
+            <input type="text" id="roomTokenInput" placeholder="Paste token CA…" maxlength="60" autocomplete="off">
+            <label for="roomNameInput">Room name</label>
+            <input type="text" id="roomNameInput" placeholder="Community name (optional)" maxlength="40" autocomplete="off">
+            <p class="text-muted-small" style="margin:8px 0 12px;font-size:0.7rem;opacity:0.7;">
+                Only 🐋 Whale holders (1M+ tokens) can create rooms. 1 room per 24h.
+            </p>
+            <button id="roomCreateBtn">CREATE</button>
+            <button id="roomCancelBtn">Cancel</button>
+        </div>
+    </div>
+
     <div class="lightbox-overlay hidden" id="lightboxOverlay">
         <img id="lightboxImg" src="" alt="Enlarged image">
     </div>
