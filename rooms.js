@@ -22,7 +22,13 @@
     var _isBootingRooms     = false;
     var pendingSharedRoomId = null;
 
-    var solanaConnectionRooms = new solanaWeb3.Connection(RPC_ENDPOINT);
+       var _solConnRooms = null;
+    function getRoomsConnection() {
+        if (_solConnRooms) return _solConnRooms;
+        if (!window.solanaWeb3) return null;
+        _solConnRooms = new window.solanaWeb3.Connection(RPC_ENDPOINT);
+        return _solConnRooms;
+    }
 
     // ═══════════════════════════════════════════════════════
     //  HELPERS
@@ -45,16 +51,23 @@
     // ═══════════════════════════════════════════════════════
     //  TOKEN BALANCE CHECK — any mint
     // ═══════════════════════════════════════════════════════
-    async function fetchTokenBalance(wallet, mint) {
+        async function fetchTokenBalance(wallet, mint) {
         if (!wallet || !mint) return null;
+
+        var conn = getRoomsConnection();
+        if (!conn) {
+            console.warn('[rooms] solanaWeb3 not ready');
+            return null;
+        }
+
         try {
-            var pk = new solanaWeb3.PublicKey(wallet);
+            var pk = new window.solanaWeb3.PublicKey(wallet);
             var programs = [
-                new solanaWeb3.PublicKey(SPL_TOKEN_PROGRAM),
-                new solanaWeb3.PublicKey(TOKEN_2022_PROGRAM)
+                new window.solanaWeb3.PublicKey(SPL_TOKEN_PROGRAM),
+                new window.solanaWeb3.PublicKey(TOKEN_2022_PROGRAM)
             ];
             var results = await Promise.allSettled(programs.map(function (prog) {
-                return solanaConnectionRooms.getParsedTokenAccountsByOwner(
+                return conn.getParsedTokenAccountsByOwner(
                     pk, { programId: prog }, 'confirmed'
                 );
             }));
