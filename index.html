@@ -491,7 +491,8 @@
                     </button>
                     <button class="btn-icon mobile-edit-btn" id="mobileEditBtn" title="Edit profile">✎</button>
                     <span class="wallet-address" id="walletAddress"></span>
-                    <button class="btn-icon hidden" id="modSettingsBtn" title="Mod Settings">⚙️</button>
+                                       <button class="btn-icon hidden" id="modSettingsBtn" title="Mod Settings">⚙️</button>
+                    <button class="btn-icon" id="roomsBtn" title="Communities">🏛️</button>
                     <button class="btn-icon header-theme-btn" id="headerThemeBtn" title="Change theme">🎨</button>
                     <button class="btn-icon" id="refreshBtn" title="Reconnect"><span class="spin-icon">↻</span></button>
                 </div>
@@ -513,9 +514,10 @@
             <div class="messages-container hidden" id="privateMessagesContainer">
     <div class="empty-chat-hint" id="privateEmptyHint">No private messages with this user.</div>
 </div>
-<div class="messages-container hidden" id="whaleMessagesContainer">
+            <div class="messages-container hidden" id="whaleMessagesContainer">
     <div class="empty-chat-hint" id="whaleEmptyHint">🐋 Whale chat — loading…</div>
 </div>
+<div class="messages-container hidden" id="roomMessagesContainer"></div>
             <button class="scroll-bottom-btn" id="scrollBottomBtn" title="Scroll to bottom">↓</button>
             <div class="input-area-bar" id="inputAreaBar">
                 <div class="reply-indicator-bar hidden" id="replyIndicatorBar">
