@@ -160,9 +160,10 @@
             }
         }
 
-        var rText = bubble.querySelector('.reply-ref-block .r-text');
-        if (rText && rText.textContent.indexOf('__sticker:') !== -1) {
-            rText.textContent = '"🖼️ Sticker"';
+               var rText = bubble.querySelector('.reply-ref-block .r-text');
+        if (rText) {
+            var replyText = rText.textContent.replace(/^"|"$/g, '');
+            if (MARKER_RE.test(replyText)) rText.textContent = '"🖼️ Sticker"';
         }
 
         wrapper.setAttribute(DATA_ATTR, '1');
@@ -547,8 +548,15 @@
         var sb = getSB();
         if (!sb) { toast('Not connected'); return; }
 
-        var me = getSelfUsername();
+               var me = getSelfUsername();
         if (!me) { toast('Set your username first'); return; }
+
+        if (window.MSNChat && typeof window.MSNChat.canSend === 'function'
+            && !window.MSNChat.canSend()) {
+            toast('Connect Phantom and hold the required tokens to send');
+            return;
+        }
+
         if (isCooldownActive()) { toast('Cooldown active — wait a moment'); return; }
 
         var tab = currentTab();
