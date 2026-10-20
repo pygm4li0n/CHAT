@@ -217,12 +217,12 @@
     </script>
 
     <style>
-               /* ═══ HEADER SOCIAL LINKS — bare icons, centered ═══ */
+                      /* ═══ HEADER SOCIAL LINKS — bare icons, close to logo ═══ */
         .header-social-links {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            gap: 18px;
+            justify-content: flex-start;
+            gap: 14px;
             flex-shrink: 0;
         }
         .header-social-link {
@@ -262,7 +262,17 @@
             border-radius: 4px;
         }
         @media (min-width: 769px) {
-            .header-social-links { flex: 1; }
+            /* ⚑ Icons: tight next to logo, no expansion */
+            .header-social-links {
+                flex: 0 0 auto !important;
+                margin-left: 18px !important;
+                margin-right: 0 !important;
+            }
+            /* ⚑ Tracker+CA: pull left, push buttons to far right */
+            .chat-header-bar .header-center {
+                margin-left: 22px !important;
+                margin-right: auto !important;
+            }
         }
         @media (max-width: 768px) {
             .header-social-links { display: none !important; }
