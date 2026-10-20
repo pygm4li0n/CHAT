@@ -902,8 +902,30 @@
     let isModWallet = false;
     let modTokenRequirement = 50000;
     let modCooldownSeconds = 0;
-    let lastMessageTimestamp = 0;
+       let lastMessageTimestamp = 0;
     let cooldownInterval = null;
+    let modWordFilter = [];
+
+    function containsFilteredWord(text) {
+        if (!text || !modWordFilter.length) return null;
+        var lower = String(text).toLowerCase();
+        for (var i = 0; i < modWordFilter.length; i++) {
+            var w = modWordFilter[i];
+            if (!w) continue;
+            // Short words (1–3 chars) match as whole words only
+            // → "ass" blocks "you ass" but not "class"
+            if (w.length < 4) {
+                var escaped = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                var re = new RegExp('(^|[^a-z0-9])' + escaped + '([^a-z0-9]|$)', 'i');
+                if (re.test(lower)) return w;
+            } else {
+                // Longer words match anywhere
+                // → "badword" blocks "badword", "badwords", "badword123"
+                if (lower.indexOf(w) !== -1) return w;
+            }
+        }
+        return null;
+    }
 
     const TOKEN_MINT_ADDRESS = 'EJjqCJRYs19QDtQRM7QD5vwbdf1XfEysyF5nL1kNpump';
     const SOLANA_RPC_ENDPOINT = 'https://mainnet.helius-rpc.com/?api-key=fa7e6515-19de-45de-a7d1-35a64a0d9a1a';
@@ -1678,16 +1700,20 @@
         modAnnouncementInput.value = '';
     });
 
-    async function loadSettings() {
+       async function loadSettings() {
         try {
             const { data, error } = await supabase.from('settings')
-                .select('token_requirement, cooldown_seconds, mod_announcement')
+                .select('token_requirement, cooldown_seconds, mod_announcement, word_filter')
                 .eq('id', 1).single();
             if (!error && data) {
                 modTokenRequirement = data.token_requirement;
                 modCooldownSeconds = data.cooldown_seconds;
                 modAnnouncement = data.mod_announcement || '';
+                modWordFilter = Array.isArray(data.word_filter)
+                    ? data.word_filter.map(function (w) { return String(w).trim().toLowerCase(); }).filter(Boolean)
+                    : [];
                 updateModAnnouncementDisplay(modAnnouncement);
+                console.log('[mod] word filter loaded:', modWordFilter);
             }
         } catch (err) { console.error('Error loading settings:', err); }
         updateChatAccessibility();
@@ -1696,12 +1722,15 @@
     function subscribeToSettings() {
         if (settingsChannel) supabase.removeChannel(settingsChannel);
         settingsChannel = supabase.channel('settings-changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, payload => {
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, payload => {
                 const newData = payload.new;
                 if (newData && newData.id === 1) {
                     modTokenRequirement = newData.token_requirement;
                     modCooldownSeconds = newData.cooldown_seconds;
                     modAnnouncement = newData.mod_announcement || '';
+                    modWordFilter = Array.isArray(newData.word_filter)
+                        ? newData.word_filter.map(function (w) { return String(w).trim().toLowerCase(); }).filter(Boolean)
+                        : [];
                     updateModAnnouncementDisplay(modAnnouncement);
                     updateChatAccessibility();
                     if (phantomConnected) fetchAndDisplayAllTokens();
@@ -2913,9 +2942,13 @@ function showSuccess(msg) {
         const input = bubble.querySelector('.edit-input');
         input.focus();
         cancelBtn.addEventListener('click', () => textDiv.innerHTML = escapeHtml(currentText));
-        saveBtn.addEventListener('click', async () => {
+                saveBtn.addEventListener('click', async () => {
             const newText = input.value.trim();
             if (!newText) return;
+            if (containsFilteredWord(newText)) {
+                showError('Message blocked — contains a filtered word');
+                return;
+            }
             const table = isPrivate ? 'private_messages' : 'messages';
             const { error } = await supabase.from(table).update({ message: newText, edited_at: new Date().toISOString() }).eq('id', msg.id);
             if (error) { showError('Edit failed'); return; }
@@ -3703,9 +3736,17 @@ function showSuccess(msg) {
             }
         }
 
-        async function sendWhaleMessage(text) {
+                async function sendWhaleMessage(text) {
     const wallet = getWalletAddress();
     if (!wallet) { showError('Connect wallet first'); return; }
+
+    if (text) {
+        var filteredWord = containsFilteredWord(text);
+        if (filteredWord) {
+            showError('Message blocked — contains a filtered word');
+            return;
+        }
+    }
 
             const params = {
                 p_wallet:    wallet,
@@ -3934,8 +3975,17 @@ function showSuccess(msg) {
                 return;
             }
         }
-               const text = messageInput.value.trim();
+                              const text = messageInput.value.trim();
         if (!text && !pendingImageUrl) return;
+
+        if (text) {
+            var filteredWord = containsFilteredWord(text);
+            if (filteredWord) {
+                showError('Message blocked — contains a filtered word');
+                return;
+            }
+        }
+
                 sendBtn.disabled = true;
 
         const isPrivate = (currentTab === 'private' && activePrivateChat);
