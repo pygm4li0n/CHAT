@@ -3,11 +3,11 @@
    ────────────────────────────────────────────────────────────
    Drop-in. Load AFTER script.js + wallet-identity.js.
 
-     <script src="profile-system.js?v=18"></script>
+     <script src="profile-system.js?v=19"></script>
 
-   v17: fixes wallet-opened profiles showing 0 achievements /
-        0 messages / no joined date (username-keyed queries now
-        use rawUsername). Fixes username hover glow.
+   v19: corner brackets removed. Achievement header + count
+        bigger. Edit Profile button bigger. Stat labels bolder.
+        No reload flash on identity-changed while viewing.
    ============================================================ */
 (function () {
     'use strict';
@@ -155,40 +155,25 @@
         el._msnProfileTimeout = setTimeout(function () { el.classList.remove('visible'); }, 5000);
     }
 
-    /* ═══════════════════════════════════════════════════════
-       CSS — EPIC HERO v16 · theme-adaptive
-       ═══════════════════════════════════════════════════════ */
     function injectStyles() {
         var old = document.getElementById('msn-profile-styles');
         if (old) old.remove();
         var css = `
-/* ═══════════════════════════════════════════════════════════════
-   MSN PROFILE CARD — epic hero v16 · theme-adaptive
-   Stats container + cells derive from theme tokens (no fixed dark)
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ── Self-scoped theme tokens ─────────────────────────────── */
 .msn-profile-overlay{
-    /* surfaces */
     --p-surface-1: var(--bg-panel,    #070d19);
     --p-surface-2: var(--bg-deep,     #010306);
     --p-surface-3: var(--bg-elevated, #0a1424);
-    /* accents */
     --p-accent:      var(--accent-cyan,   #00f0ff);
     --p-accent-2:    var(--accent-purple, #a855f7);
     --p-accent-3:    var(--accent-green,  #22ff88);
     --p-accent-warn: var(--accent-orange, #ff8a00);
     --p-danger:      #ff2d55;
-    /* text */
     --p-text-1: var(--text-primary,   #f2f9ff);
     --p-text-2: var(--text-secondary, #9db0cd);
     --p-text-3: var(--text-muted,     #6d80a0);
-    /* derived borders */
     --p-border:        color-mix(in srgb, var(--p-accent) 24%, transparent);
     --p-border-soft:   color-mix(in srgb, var(--p-accent) 12%, transparent);
     --p-border-strong: color-mix(in srgb, var(--p-accent) 55%, transparent);
-
-    /* ★ Theme-adaptive stats tokens — override any of these from a theme */
     --stats-bg:         color-mix(in srgb, var(--p-surface-1) 76%, black 24%);
     --stats-cell:       color-mix(in srgb, var(--p-surface-1) 94%, black 6%);
     --stats-cell-hover: color-mix(in srgb, var(--p-accent) 10%, var(--p-surface-1) 90%);
@@ -198,7 +183,6 @@
     --stats-value:      var(--p-accent);
 }
 
-/* ── Overlay ──────────────────────────────────────────────── */
 .msn-profile-overlay{
     position:fixed;
     inset:0;
@@ -222,7 +206,6 @@
 }
 .msn-profile-overlay.open{opacity:1;pointer-events:auto;}
 
-/* ── Card ─────────────────────────────────────────────────── */
 .msn-profile-card{
     position:relative;
     width:100%;
@@ -305,22 +288,8 @@
     z-index:1;
 }
 .msn-card-inner::before{
-    content:"";
-    position:absolute;
-    inset:10px;
-    border-radius:18px;
-    pointer-events:none;
-    background:
-        linear-gradient(var(--p-accent),var(--p-accent)) 0    0    / 18px 1.5px no-repeat,
-        linear-gradient(var(--p-accent),var(--p-accent)) 0    0    / 1.5px 18px no-repeat,
-        linear-gradient(var(--p-accent),var(--p-accent)) 100% 0    / 18px 1.5px no-repeat,
-        linear-gradient(var(--p-accent),var(--p-accent)) 100% 0    / 1.5px 18px no-repeat,
-        linear-gradient(var(--p-accent),var(--p-accent)) 0    100% / 18px 1.5px no-repeat,
-        linear-gradient(var(--p-accent),var(--p-accent)) 0    100% / 1.5px 18px no-repeat,
-        linear-gradient(var(--p-accent),var(--p-accent)) 100% 100% / 18px 1.5px no-repeat,
-        linear-gradient(var(--p-accent),var(--p-accent)) 100% 100% / 1.5px 18px no-repeat;
-    opacity:.55;
-    z-index:0;
+    content:none;
+    display:none;
 }
 .msn-card-inner::after{
     content:"";
@@ -760,15 +729,15 @@
 .msn-stat:hover::before{opacity:1;left:8%;right:8%;}
 
 .msn-stat-lbl{
-    font-size:.52rem;
-    font-weight:800;
-    letter-spacing:.18em;
+    font-size:.66rem;
+    font-weight:900;
+    letter-spacing:.16em;
     text-transform:uppercase;
     color:var(--stats-label);
     line-height:1;
     font-family:var(--font-mono, monospace);
     white-space:nowrap;
-    text-shadow:0 1px 0 rgba(0,0,0,.35);
+    text-shadow:0 1px 0 rgba(0,0,0,.5);
 }
 .msn-stat-val{
     font-family:var(--font-mono, monospace);
@@ -822,9 +791,9 @@
     margin:0 24px 10px;
 }
 .msn-ach-header-label{
-    font-size:.52rem;
-    font-weight:800;
-    letter-spacing:.2em;
+    font-size:.72rem;
+    font-weight:900;
+    letter-spacing:.18em;
     text-transform:uppercase;
     color:var(--stats-label);
     font-family:var(--font-mono, monospace);
@@ -832,12 +801,12 @@
     align-items:center;
     gap:6px;
     flex-shrink:0;
-    text-shadow:0 1px 0 rgba(0,0,0,.35);
+    text-shadow:0 1px 0 rgba(0,0,0,.5);
 }
 .msn-ach-header-label::before{
     content:"◆";
     color:var(--p-accent);
-    font-size:.7rem;
+    font-size:.9rem;
     filter:drop-shadow(0 0 6px color-mix(in srgb, var(--p-accent) 80%, transparent));
 }
 .msn-ach-header::after{
@@ -849,12 +818,13 @@
         transparent);
 }
 .msn-ach-count{
-    font-size:.5rem;
+    font-size:.72rem;
     color:var(--stats-label);
     font-family:var(--font-mono, monospace);
-    font-weight:800;
-    letter-spacing:.08em;
+    font-weight:900;
+    letter-spacing:.06em;
     flex-shrink:0;
+    text-shadow:0 1px 0 rgba(0,0,0,.5);
 }
 
 .msn-achievements{
@@ -918,16 +888,16 @@
 
 .msn-actions{
     display:flex;
-    gap:10px;
-    padding:0 24px 22px;
+    gap:12px;
+    padding:0 24px 24px;
 }
 .msn-act-btn{
     flex:1;
-    padding:13px 16px;
-    border-radius:11px;
+    padding:16px 20px;
+    border-radius:12px;
     font-weight:900;
-    font-size:.72rem;
-    letter-spacing:.1em;
+    font-size:.88rem;
+    letter-spacing:.12em;
     text-transform:uppercase;
     cursor:pointer;
     border:1px solid color-mix(in srgb, var(--p-accent) 28%, transparent);
@@ -1014,7 +984,6 @@
     text-transform:uppercase;
 }
 
-/* ── Username affordance ─────────────────────────────────── */
 .msg-username .msn-username-link{
     cursor:pointer;
     transition:color .2s ease, text-shadow .2s ease;
@@ -1029,9 +998,6 @@
     .msn-profile-overlay{padding:12px;}
     .msn-profile-card{border-radius:20px;}
     .msn-profile-card::after{border-radius:20px;}
-    .msn-card-inner::before{inset:8px; border-radius:14px;
-        background-size:14px 1.5px, 1.5px 14px, 14px 1.5px, 1.5px 14px,
-                        14px 1.5px, 1.5px 14px, 14px 1.5px, 1.5px 14px;}
 
     .msn-hero{
         grid-template-columns:92px 1fr;
@@ -1052,15 +1018,17 @@
 
     .msn-stats{margin:0 18px 16px;}
     .msn-stat{padding:13px 3px 12px;gap:7px;}
-    .msn-stat-lbl{font-size:.46rem;letter-spacing:.12em;}
+    .msn-stat-lbl{font-size:.58rem;letter-spacing:.12em;}
     .msn-stat-val{font-size:1.14rem;min-height:1.14rem;}
 
     .msn-ach-header{margin:0 18px 8px;}
+    .msn-ach-header-label{font-size:.66rem;letter-spacing:.14em;}
+    .msn-ach-count{font-size:.64rem;}
     .msn-achievements{gap:7px;margin:0 18px 16px;}
     .msn-ach{font-size:1.15rem;border-radius:9px;}
 
-    .msn-actions{padding:0 18px 18px;gap:9px;}
-    .msn-act-btn{padding:12px 12px;font-size:.68rem;letter-spacing:.07em;}
+    .msn-actions{padding:0 18px 20px;gap:10px;}
+    .msn-act-btn{padding:14px 14px;font-size:.8rem;letter-spacing:.08em;}
 }
 
 @media (max-width:380px){
@@ -1079,15 +1047,17 @@
 
     .msn-stats{margin:0 14px 14px;}
     .msn-stat{padding:11px 2px 10px;gap:6px;}
-    .msn-stat-lbl{font-size:.4rem;letter-spacing:.08em;}
+    .msn-stat-lbl{font-size:.54rem;letter-spacing:.1em;}
     .msn-stat-val{font-size:1rem;min-height:1rem;}
 
     .msn-ach-header{margin:0 14px 6px;}
+    .msn-ach-header-label{font-size:.6rem;letter-spacing:.12em;}
+    .msn-ach-count{font-size:.58rem;}
     .msn-achievements{gap:6px;margin:0 14px 14px;}
     .msn-ach{font-size:1rem;border-radius:8px;}
 
-    .msn-actions{padding:0 14px 14px;gap:8px;}
-    .msn-act-btn{padding:11px 8px;font-size:.62rem;letter-spacing:.04em;}
+    .msn-actions{padding:0 14px 16px;gap:9px;}
+    .msn-act-btn{padding:13px 10px;font-size:.72rem;letter-spacing:.06em;}
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -1109,7 +1079,7 @@
 `;
         var tag = document.createElement('style');
         tag.id = 'msn-profile-styles';
-        tag.setAttribute('data-version', '18');
+        tag.setAttribute('data-version', '19');
         tag.textContent = css;
         document.head.appendChild(tag);
     }
@@ -1238,8 +1208,8 @@
         }, true);
     }
 
-       var _profileCache = new Map();
-    var _PROFILE_CACHE_MS = 5000;   // shortened — chain data changes
+    var _profileCache = new Map();
+    var _PROFILE_CACHE_MS = 5000;
 
     var _chainBalanceCache = new Map();
     var _CHAIN_CACHE_MS = 60000;
@@ -1353,11 +1323,6 @@
             rememberIdentity(profile);
         }
 
-                        // ⚑ Compute authoritative balance for the tier badge.
-        //   Priority:
-        //     1. Self → window.userBalances (already chain-verified)
-        //     2. Anyone → real on-chain lookup (60s cache)
-        //     3. Fallback → DB snapshot (may be stale)
         var balanceLookup = (profile && profile.username) || username;
 
         if (isSelf && window.userBalances && window.userBalances[balanceLookup] != null) {
@@ -1390,8 +1355,6 @@
             out.x_verified = !!profile.x_verified;
         }
 
-        // ⚑ FIX: username-keyed queries must use the profile's real username,
-        //   not the parameter (which may be a wallet or X handle).
         var rawUsername = (profile && profile.username) || username;
 
         var tasks = [];
@@ -1732,16 +1695,11 @@
         currentUsernameOpen = null;
     }
 
-    document.addEventListener('msn:identity-changed', function (e) {
+    // ⚑ Do NOT reload the open card when identity changes. The user is
+    //   actively viewing it — forcing a reload causes a visible loading
+    //   flash. Clearing the cache means next open shows the fresh data.
+    document.addEventListener('msn:identity-changed', function () {
         _profileCache.clear();
-        if (!overlay || !overlay.classList.contains('open')) return;
-        if (!currentUsernameOpen) return;
-        var changedWallet = e.detail && e.detail.wallet;
-        if (!changedWallet) return;
-        var openWallet = isWalletLike(currentUsernameOpen)
-            ? currentUsernameOpen
-            : (resolveIdentity(currentUsernameOpen) || {}).wallet;
-        if (openWallet && openWallet === changedWallet) openProfile(currentUsernameOpen);
     });
 
     document.addEventListener('click', function (e) {
@@ -1813,5 +1771,5 @@
         boot();
     }
 
-    console.log('[profile-system] loaded v18 — wallet-opened profiles fixed, hover glow fixed');
+    console.log('[profile-system] loaded v19 — corners removed, headers bigger, no reload flash');
 })();
