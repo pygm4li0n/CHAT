@@ -7,8 +7,12 @@
     if (window.MSNRooms) return;
 
     var RPC_ENDPOINT = 'https://mainnet.helius-rpc.com/?api-key=fa7e6515-19de-45de-a7d1-35a64a0d9a1a';
-    var SPL_TOKEN_PROGRAM   = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+        var SPL_TOKEN_PROGRAM   = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
     var TOKEN_2022_PROGRAM  = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
+
+    // ⚑ Main whale token + threshold — must match server-side create_room RPC
+    var MAIN_TOKEN_MINT = 'EJjqCJRYs19QDtQRM7QD5vwbdf1XfEysyF5nL1kNpump';
+    var WHALE_MIN       = 1000000;
 
     var roomsCache          = [];
     var activeRoomId        = null;
@@ -535,15 +539,54 @@
     // ═══════════════════════════════════════════════════════
     //  ROOM CREATION
     // ═══════════════════════════════════════════════════════
-    async function createRoom(tokenMint, name) {
+       async function createRoom(tokenMint, name) {
         var sb = getSB();
         var wallet = getWallet();
+        var username = getUsername();
         if (!sb || !wallet) { showError('Connect wallet first'); return null; }
+        if (!username) { showError('Set your username first'); return null; }
 
         tokenMint = (tokenMint || '').trim();
         if (!tokenMint || tokenMint.length < 32) {
             showError('Enter a valid token mint address');
             return null;
+        }
+
+        // ⚑ Fetch LIVE on-chain whale balance BEFORE calling create_room.
+        //   The server RPC reads profiles.token_balance which is stale
+        //   until wallet reconnect. Chain value is authoritative.
+        var chainBal = await fetchTokenBalance(wallet, MAIN_TOKEN_MINT);
+        if (chainBal == null) {
+            showError('Could not verify your whale balance — check connection and try again');
+            return null;
+        }
+
+        console.log('[rooms] create_room whale check:', {
+            chainBalance: chainBal,
+            required: WHALE_MIN,
+            pass: chainBal >= WHALE_MIN
+        });
+
+        if (chainBal < WHALE_MIN) {
+            showError(
+                'Only 🐋 Whale holders (' + WHALE_MIN.toLocaleString() + '+ tokens) can create rooms. ' +
+                'You currently hold ' + Math.floor(chainBal).toLocaleString() + '.'
+            );
+            return null;
+        }
+
+        // ⚑ CRITICAL: Sync fresh chain balance to DB BEFORE calling the RPC.
+        //   Without this, create_room reads stale profiles.token_balance
+        //   and returns "not_whale" even when you hold 2M on-chain.
+        try {
+            await sb.rpc('update_wallet_balance', {
+                p_wallet: wallet,
+                p_balance: chainBal
+            });
+            if (window.userBalances) window.userBalances[username] = chainBal;
+            console.log('[rooms] synced chain balance to DB:', chainBal);
+        } catch (e) {
+            console.warn('[rooms] balance sync failed — RPC may still use stale DB:', e);
         }
 
         try {
@@ -554,7 +597,10 @@
             });
             if (error) throw error;
             if (data.error === 'not_whale') {
-                showError('Only 🐋 Whale holders (1M+ tokens) can create rooms');
+                showError(
+                    'Whale check failed on server — the DB balance sync may not have committed. ' +
+                    'Refresh the page and try again.'
+                );
                 return null;
             }
             if (data.error === 'token_already_has_room') {
