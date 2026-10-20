@@ -11,8 +11,8 @@
         /(?:\bhttps?:\/\/[^\s<>"']+|\bwww\.[^\s<>"']+|\b[a-z0-9][a-z0-9-]*\.(?:com|net|org|io|xyz|app|dev|co|me|gg|link|site|online|tech|pro|info|biz|us|uk|tv|fm|cc|to|ws|ai|so|run|fun|xyz)(?:\/[^\s<>"']*)?)/gi;
 
     /* X/Twitter status URL — the ONLY thing allowed */
-    var X_POST_RE =
-        /^https?:\/\/(?:www\.)?(?:x\.com|twitter\.com)\/[^\/\s]+\/status\/\d+/i;
+       var X_POST_RE =
+        /^(?:https?:\/\/)?(?:www\.|mobile\.|m\.)?(?:x\.com|twitter\.com)\/[^\/\s]+\/status\/\d+/i;
 
     function firstDisallowed(text) {
         var t = String(text || '');
