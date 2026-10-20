@@ -446,13 +446,18 @@
             outline-offset: 2px;
         }
 
-        @media (max-width: 520px) {
+                @media (max-width: 520px) {
             .rooms-list-item-share {
                 width: 30px;
                 height: 30px;
                 min-width: 30px;
                 font-size: 0.8rem;
             }
+        }
+
+        /* ═══ ROOM MESSAGES — hide reactions (v1: wired to wrong table) ═══ */
+        #roomMessagesContainer .reactions-bar {
+            display: none !important;
         }
     </style>
 </head>
