@@ -1160,7 +1160,7 @@
         // No tiene el token
         container.innerHTML =
             '<div style="font-weight:bold;margin-bottom:6px;font-size:0.62rem;letter-spacing:0.14em;text-transform:uppercase;opacity:0.7;">YOUR BALANCE</div>' +
-            '<div style="display:flex;justify-content:space-between;gap:6px;color:#ef4444;font-weight:800;">' +
+                       '<div class="token-row target" style="display:flex;justify-content:space-between;gap:6px;color:#ef4444;font-weight:800;">' +
                 '<span>0</span>' +
                 '<span>❌ Not held</span>' +
             '</div>';
@@ -1174,7 +1174,7 @@
 
     container.innerHTML =
         '<div style="font-weight:bold;margin-bottom:6px;font-size:0.62rem;letter-spacing:0.14em;text-transform:uppercase;opacity:0.7;">YOUR BALANCE</div>' +
-        '<div style="display:flex;justify-content:space-between;gap:6px;color:#4ade80;font-weight:800;">' +
+               '<div class="token-row target" style="display:flex;justify-content:space-between;gap:6px;color:#4ade80;font-weight:800;">' +
             '<span>' + targetAmount.toLocaleString() + '</span>' +
             statusHtml +
         '</div>';
@@ -1391,7 +1391,7 @@
 
         if (modTokenRequirement <= 0) {
             hasTokenAccess = true;
-        } else if (targetBalance > modTokenRequirement) {
+                } else if (targetBalance >= modTokenRequirement) {
             hasTokenAccess = true;
             showSuccess(`You hold ${targetBalance.toLocaleString()} tokens — access granted!`);
         } else {
@@ -2012,13 +2012,22 @@ let whaleMessageReactions = {};   // whale chat reuses the message_reactions tab
                 catch (e) { /* ignore */ }
             }
 
-            const frag = document.createDocumentFragment();
-            for (const msg of data) {
-                if (knownMessageIds.has(msg.id)) continue;
+                       const toRender = data.filter(function (msg) {
+                if (knownMessageIds.has(msg.id)) return false;
                 knownMessageIds.add(msg.id);
-                const node = await buildMessageNode(msg, false);
-                frag.appendChild(node);
+                return true;
+            });
+            const nodes = [];
+            const BATCH = 10;
+            for (let i = 0; i < toRender.length; i += BATCH) {
+                const slice = toRender.slice(i, i + BATCH);
+                const batch = await Promise.all(slice.map(function (msg) {
+                    return buildMessageNode(msg, false);
+                }));
+                nodes.push.apply(nodes, batch);
             }
+            const frag = document.createDocumentFragment();
+            nodes.forEach(function (node) { frag.appendChild(node); });
 
             if (loaderEl) {
                 publicContainer.insertBefore(frag, loaderEl.nextSibling);
@@ -3886,9 +3895,21 @@ function showSuccess(msg) {
 
        async function sendMessage() {
         // ⚑ Whale tab bypasses the generic token gate — has its own
-        if (currentTab === 'whale') {
+               if (currentTab === 'whale') {
     const wtext = messageInput.value.trim();
     if (!wtext && !pendingImageUrl) return;
+
+    if (modCooldownSeconds > 0) {
+        const now = Date.now();
+        if (now - lastMessageTimestamp < modCooldownSeconds * 1000) {
+            const remaining = Math.ceil(
+                (modCooldownSeconds * 1000 - (now - lastMessageTimestamp)) / 1000
+            );
+            showCooldown(remaining);
+            return;
+        }
+    }
+
     sendBtn.disabled = true;
     await sendWhaleMessage(wtext);
     sendBtn.disabled = false;
@@ -3966,7 +3987,13 @@ function showSuccess(msg) {
                 inserted = Array.isArray(r.data) ? r.data[0] : r.data;
                 error = r.error;
             }
-            if (error) throw error;
+                      if (error) throw error;
+
+            if (inserted && inserted.id) {
+                if (isPrivate) renderMessage(inserted, true, true);
+                else           renderMessage(inserted, false, true);
+            }
+
             messageInput.value = '';
             setReplyingTo(null);
             clearAttachedImage();
@@ -4328,7 +4355,13 @@ switchTab('public');
 
     // ═══ Shared chat API for stickers.js (fixes reply + cooldown) ═══
     window.MSNChat = window.MSNChat || {};
-    window.MSNChat.getReplyingTo    = function () { return replyingTo; };
+        window.MSNChat.getReplyingTo    = function () { return replyingTo; };
+    window.MSNChat.canSend = function () {
+        if (!username) return false;
+        if (!TOKEN_MINT_ADDRESS) return true;
+        if (modTokenRequirement <= 0) return true;
+        return phantomConnected && hasTokenAccess;
+    };
     window.MSNChat.clearReplyingTo  = function () { setReplyingTo(null); };
     window.MSNChat.startCooldown    = function () {
         if (modCooldownSeconds > 0) startCooldown(modCooldownSeconds);
@@ -4706,10 +4739,11 @@ subscribeToPrivateRequests();
             setReplyingTo(null);
             switchTab('public');
 
-            await loadMessages();
+                        await loadMessages();
             subscribeToRealtime();
             loadReactions('message_reactions', false);
             subscribeReactions();
+            setupPresence();
             updateChatAccessibility();
 
             nameOverlay.classList.remove('hidden');
@@ -4755,7 +4789,11 @@ subscribeToPrivateRequests();
             else { sidebarToggle.classList.add('hidden'); sidebar.classList.remove('open'); }
         });
     }
-    init();
+      init().catch(function (err) {
+        console.error('[init] fatal:', err);
+        document.documentElement.classList.remove('msn-booting');
+        try { document.dispatchEvent(new CustomEvent('msn:app-ready')); } catch (e) {}
+    });
 
     
        /* ═══════════════════════════════════════════════════════════
@@ -5132,7 +5170,7 @@ subscribeToPrivateRequests();
     if (!el) return;
     try {
       // Step 1 — fetch candidates from RPC (still useful for names / avatars)
-      const { data, error } = await supabase.rpc('get_holders_leaderboard', { p_limit: 50 });
+     const { data, error } = await supabase.rpc('get_holders_leaderboard', { p_limit: 20 });
       if (error) {
         console.error('[rankings] holders RPC error:', error);
         el.innerHTML = '<div class="rankings-empty">Error loading</div>';
@@ -5164,13 +5202,19 @@ subscribeToPrivateRequests();
 
       // Step 3 — verify on-chain balance for TOKEN_MINT_ADDRESS (parallel)
       //          Non-holders of the CURRENT token are discarded.
-      const verified = await Promise.all(enriched.map(async (r) => {
-        if (!r.wallet_address) return null;
-        const chainBal = await fetchBalanceFromChain(r.wallet_address);
-        if (chainBal == null || chainBal <= 0) return null;   // ⚑ not a current-token holder
-        if (r.username) userBalances[r.username] = chainBal;
-        return Object.assign({}, r, { fresh_balance: chainBal });
-      }));
+            const verified = [];
+      const CHUNK = 8;
+      for (let i = 0; i < enriched.length; i += CHUNK) {
+        const slice = enriched.slice(i, i + CHUNK);
+        const results = await Promise.all(slice.map(async (r) => {
+          if (!r.wallet_address) return null;
+          const chainBal = await fetchBalanceFromChain(r.wallet_address);
+          if (chainBal == null || chainBal <= 0) return null;
+          if (r.username) userBalances[r.username] = chainBal;
+          return Object.assign({}, r, { fresh_balance: chainBal });
+        }));
+        verified.push.apply(verified, results);
+      }
 
       const filtered = verified.filter(Boolean);
       filtered.sort((a, b) => b.fresh_balance - a.fresh_balance);
@@ -5449,28 +5493,6 @@ subscribeToPrivateRequests();
         if (w) handleWallet(w);
     }, 800);
 
-    function attachResetListener() {
-        const resetBtn = document.getElementById('modResetLoginBtn');
-        if (!resetBtn || resetBtn.dataset.listenerAttached) return;
-        resetBtn.dataset.listenerAttached = 'true';
-        resetBtn.addEventListener('click', async () => {
-            if (!confirm('⚠️ Reset ALL wallet streaks and cached balances to zero?')) return;
-            try {
-                const { error } = await supabase.rpc('reset_login_tracking');
-                if (error) throw error;
-                showStreakToast('✅ All wallet data reset to zero.');
-                lastTrackedWallet = null;
-                updateStreakBadge(0);
-            } catch (err) {
-                console.error('[streak] reset failed:', err);
-                showStreakToast('❌ Failed to reset: ' + err.message);
-            }
-        });
-    }
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', attachResetListener);
-    } else {
-        attachResetListener();
-    }
+
 })();
     })();
