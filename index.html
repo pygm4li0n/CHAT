@@ -217,60 +217,52 @@
     </script>
 
     <style>
-        /* ═══ HEADER SOCIAL LINKS — desktop only ═══ */
+               /* ═══ HEADER SOCIAL LINKS — bare icons, centered ═══ */
         .header-social-links {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            margin-left: 8px;
+            justify-content: center;
+            gap: 18px;
             flex-shrink: 0;
         }
         .header-social-link {
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             width: 36px;
             height: 36px;
-            border-radius: 9px;
-            background: var(--bg-elevated, rgba(255, 255, 255, 0.04));
-            border: 1px solid var(--border-default, rgba(255, 255, 255, 0.10));
+            background: transparent;
+            border: none;
+            border-radius: 6px;
             text-decoration: none;
-            overflow: hidden;
             flex-shrink: 0;
-            transition:
-                border-color 0.2s ease,
-                box-shadow 0.22s ease,
-                background 0.2s ease,
-                transform 0.15s ease;
+            transition: transform 0.2s ease;
             -webkit-tap-highlight-color: transparent;
         }
         .header-social-link img {
-            width: 22px;
-            height: 22px;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
             display: block;
             pointer-events: none;
             user-select: none;
             -webkit-user-drag: none;
-            transition: transform 0.2s ease;
-        }
-        .header-social-link:hover {
-            border-color: var(--accent-cyan, #00f0ff);
-            background: var(--bg-hover, rgba(255, 255, 255, 0.06));
-            box-shadow:
-                0 0 12px var(--border-glow, rgba(0, 240, 255, 0.45)),
-                inset 0 1px 0 rgba(255, 255, 255, 0.08);
-            transform: translateY(-1px);
+            transition: transform 0.22s ease, filter 0.22s ease;
         }
         .header-social-link:hover img {
-            transform: scale(1.08);
+            transform: scale(1.15);
+            filter: drop-shadow(0 0 10px var(--accent-cyan, #00f0ff));
         }
-        .header-social-link:active {
-            transform: translateY(0) scale(0.94);
+        .header-social-link:active img {
+            transform: scale(0.92);
         }
         .header-social-link:focus-visible {
             outline: 2px solid var(--accent-cyan, #00f0ff);
             outline-offset: 2px;
+            border-radius: 4px;
+        }
+        @media (min-width: 769px) {
+            .header-social-links { flex: 1; }
         }
         @media (max-width: 768px) {
             .header-social-links { display: none !important; }
@@ -437,27 +429,26 @@
 
         <main class="chat-panel" id="chatPanel">
             <div class="chat-header-bar">
-                <div class="header-left">
+                                <div class="header-left">
                     <button class="sidebar-toggle hidden" id="sidebarToggle" title="Users">☰</button>
                     <img src="https://i.postimg.cc/HWf8LcLQ/Proyecto-nuevo-(4)-(1).png" alt="Logo" class="header-logo">
-
-                    <div class="header-social-links" aria-label="Official links">
-                        <a href="https://pump.fun/coin/EJjqCJRYs19QDtQRM7QD5vwbdf1XfEysyF5nL1kNpump?highlight_callout=f6b4318d-064b-4087-b4d4-62a9729bd06f"
-                           target="_blank" rel="noopener noreferrer"
-                           class="header-social-link" title="Pump.fun">
-                            <img src="https://i.postimg.cc/ry9HG152/pumplogo.png" alt="Pump.fun">
-                        </a>
-                        <a href="https://x.com/MemeSocialNet"
-                           target="_blank" rel="noopener noreferrer"
-                           class="header-social-link" title="X (Twitter)">
-                            <img src="https://i.postimg.cc/66hPVrCN/Xlogo.png" alt="X">
-                        </a>
-                        <a href="https://dexscreener.com/solana/9tzfbtlnsguvwrgymdqcf92stde5fdjna6w15l8plriy"
-                           target="_blank" rel="noopener noreferrer"
-                           class="header-social-link" title="DexScreener">
-                            <img src="https://i.postimg.cc/T2csjVn6/Dex-Logo.png" alt="DexScreener">
-                        </a>
-                    </div>
+                </div>
+                <div class="header-social-links" aria-label="Official links">
+                    <a href="https://pump.fun/coin/EJjqCJRYs19QDtQRM7QD5vwbdf1XfEysyF5nL1kNpump?highlight_callout=f6b4318d-064b-4087-b4d4-62a9729bd06f"
+                       target="_blank" rel="noopener noreferrer"
+                       class="header-social-link" title="Pump.fun">
+                        <img src="https://i.postimg.cc/ry9HG152/pumplogo.png" alt="Pump.fun">
+                    </a>
+                    <a href="https://x.com/MemeSocialNet"
+                       target="_blank" rel="noopener noreferrer"
+                       class="header-social-link" title="X (Twitter)">
+                        <img src="https://i.postimg.cc/66hPVrCN/Xlogo.png" alt="X">
+                    </a>
+                    <a href="https://dexscreener.com/solana/9tzfbtlnsguvwrgymdqcf92stde5fdjna6w15l8plriy"
+                       target="_blank" rel="noopener noreferrer"
+                       class="header-social-link" title="DexScreener">
+                        <img src="https://i.postimg.cc/T2csjVn6/Dex-Logo.png" alt="DexScreener">
+                    </a>
                 </div>
                 <div class="header-center">
                     <div class="token-tracker" id="tokenTracker">
