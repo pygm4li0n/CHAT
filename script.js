@@ -3197,7 +3197,14 @@ function showSuccess(msg) {
         }
     }
 
-       function switchTab(tabName) {
+             function switchTab(tabName) {
+        // ⚑ Deactivate any room we're leaving (presence + realtime cleanup)
+        if (currentTab && currentTab.indexOf('room-') === 0
+            && tabName.indexOf('room-') !== 0
+            && window.MSNRooms && window.MSNRooms.onDeactivate) {
+            try { window.MSNRooms.onDeactivate(); } catch (e) {}
+        }
+
         currentTab = tabName;
 
         // ⚑ Pinned announcement — restore when returning to a non-whale tab
