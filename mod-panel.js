@@ -381,9 +381,12 @@
         input.addEventListener('input', function () {
             goBtn.disabled = input.value.trim().toUpperCase() !== code;
         });
-        input.addEventListener('keydown', function (e) {
+               input.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && !goBtn.disabled) goBtn.click();
-            if (e.key === 'Escape') cancelBtn.click();
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                cancelBtn.click();
+            }
         });
         cancelBtn.addEventListener('click', function () { ov.remove(); });
         goBtn.addEventListener('click', function () {
