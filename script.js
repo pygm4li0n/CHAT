@@ -3205,7 +3205,15 @@ function showSuccess(msg) {
             try { window.MSNRooms.onDeactivate(); } catch (e) {}
         }
 
-        currentTab = tabName;
+               currentTab = tabName;
+
+        // ⚑ If leaving a room, restore the main Public/Private/Whale tabs
+        if (tabName.indexOf('room-') !== 0) {
+            var tabsBarRestore = document.getElementById('chatTabs');
+            if (tabsBarRestore) tabsBarRestore.classList.remove('hidden');
+            var hdrBarRestore = document.getElementById('roomHeaderBar');
+            if (hdrBarRestore) hdrBarRestore.classList.add('hidden');
+        }
 
         // ⚑ Pinned announcement — restore when returning to a non-whale tab
         if (tabName !== 'whale' && typeof updateModAnnouncementDisplay === 'function') {
