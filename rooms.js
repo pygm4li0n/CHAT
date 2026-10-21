@@ -110,22 +110,16 @@
         }
     }
 
-    function renderRoomTabs() {
+      function renderRoomTabs() {
+        // ⚑ Rooms no longer appear in the main Public/Private/Whale tab bar.
+        //   Navigation happens through the Communities modal only.
+        //   This function is kept as a no-op so other code that calls it
+        //   doesn't break — it now only cleans up any legacy room-tabs
+        //   that were rendered by an older version.
         var tabs = document.getElementById('chatTabs');
-        if (!tabs) return;
-        // Remove existing room tabs
-        tabs.querySelectorAll('.chat-tab.room-tab').forEach(function (t) { t.remove(); });
-        // Append current rooms
-        roomsCache.forEach(function (room) {
-            var tab = document.createElement('div');
-            tab.className = 'chat-tab room-tab';
-            tab.setAttribute('data-tab', 'room-' + room.id);
-            tab.setAttribute('data-room-id', room.id);
-            tab.setAttribute('data-mint', room.token_mint);
-            tab.title = 'Token: ' + room.token_mint;
-            tab.textContent = '🏛️ ' + room.name;
-            tabs.appendChild(tab);
-        });
+        if (tabs) {
+            tabs.querySelectorAll('.chat-tab.room-tab').forEach(function (t) { t.remove(); });
+        }
     }
 
     function findRoomById(id) {
@@ -138,13 +132,26 @@
     // ═══════════════════════════════════════════════════════
     //  ACTIVATE ROOM (called by script.js switchTab)
     // ═══════════════════════════════════════════════════════
-    async function activateRoom(roomId) {
+        async function activateRoom(roomId) {
         var room = findRoomById(roomId);
         if (!room) {
             showError('Room not found');
             return;
         }
         activeRoomId = roomId;
+
+        // ⚑ Show room header bar, hide main tabs
+        var tabsBar = document.getElementById('chatTabs');
+        if (tabsBar) tabsBar.classList.add('hidden');
+        var hdrBar = document.getElementById('roomHeaderBar');
+        if (hdrBar) {
+            hdrBar.classList.remove('hidden');
+            var nameEl = document.getElementById('roomHeaderName');
+            var mintEl = document.getElementById('roomHeaderMint');
+            if (nameEl) nameEl.textContent = '🏛️ ' + room.name;
+            if (mintEl) mintEl.textContent =
+                room.token_mint.slice(0, 6) + '…' + room.token_mint.slice(-6);
+        }
 
         var container = document.getElementById('roomMessagesContainer');
         if (!container) return;
@@ -839,6 +846,16 @@
                 e.preventDefault();
                 e.stopPropagation();
                 openRoomsList();
+            });
+        }
+
+                // Bind room header "Back" button
+        var backBtn = document.getElementById('roomBackBtn');
+        if (backBtn) {
+            backBtn.addEventListener('click', function () {
+                if (window.MSNChat && window.MSNChat.switchTab) {
+                    window.MSNChat.switchTab('public');
+                }
             });
         }
 
