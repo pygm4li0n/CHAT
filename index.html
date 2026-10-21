@@ -812,6 +812,11 @@
             <input type="text" id="roomTokenInput" placeholder="Paste token CA…" maxlength="60" autocomplete="off">
             <label for="roomNameInput">Room name</label>
             <input type="text" id="roomNameInput" placeholder="Community name (optional)" maxlength="40" autocomplete="off">
+                        <label class="room-gate-checkbox" for="roomRequireGate">
+                <input type="checkbox" id="roomRequireGate" checked>
+                <span class="room-gate-box"></span>
+                <span class="room-gate-label">Require holders to own the token to join</span>
+            </label>
             <p class="text-muted-small" style="margin:8px 0 12px;font-size:0.7rem;opacity:0.7;">
                 Only 🐋 Whale holders (1M+ tokens) can create rooms. 1 room per 24h.
             </p>
