@@ -4395,12 +4395,12 @@ switchTab('public');
             {
                 el:   document.getElementById('headerThemeBtn'),
                 into: actionsWrap,
-                logo: 'https://i.postimg.cc/5jcgpsN0/themes.png'
+                logo: 'https://i.postimg.cc/HxqtBPJD/THEMES-(1).png'
             },
             {
                 el:   document.getElementById('rankingsBtn'),
                 into: actionsWrap,
-                logo: 'https://i.postimg.cc/hhFsM2PG/leaderboards.png'
+                logo: 'https://i.postimg.cc/Hxc20CLL/leaderboards-(1).png'
             },
                         {
                 el:   document.getElementById('modSettingsBtn'),
