@@ -596,11 +596,11 @@
             }
         }
 
-        // ⚑ CRITICAL: Sync fresh chain balance to DB BEFORE calling the RPC.
+               // ⚑ CRITICAL: Sync fresh chain balance to DB BEFORE calling the RPC.
         //   Without this, create_room reads stale profiles.token_balance
         //   and returns "not_whale" even when you hold 2M on-chain.
-        try {
-                   if (!isMod && chainBal != null) {
+        //   (Skipped for mod — they bypass the whale check server-side too.)
+        if (!isMod && chainBal != null) {
             try {
                 await sb.rpc('update_wallet_balance', {
                     p_wallet: wallet,
@@ -613,7 +613,7 @@
             }
         }
 
-                try {
+        try {
             var { data, error } = await sb.rpc('create_room', {
                 p_wallet: wallet,
                 p_token_mint: tokenMint,
