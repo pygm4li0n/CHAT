@@ -658,37 +658,77 @@
         if (overlay) overlay.classList.add('hidden');
     }
 
-       function renderRoomsList() {
+          function formatCreatedAt(iso) {
+        if (!iso) return '—';
+        try {
+            var d = new Date(iso);
+            var diff = Math.floor((Date.now() - d.getTime()) / 1000);
+            if (diff < 60) return 'just now';
+            if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+            if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+            if (diff < 86400 * 7) return Math.floor(diff / 86400) + 'd ago';
+            return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        } catch (e) { return '—'; }
+    }
+
+    function shortAddr(addr) {
+        if (!addr) return '—';
+        return addr.slice(0, 4) + '…' + addr.slice(-4);
+    }
+
+    function renderRoomsList() {
         var list = document.getElementById('roomsList');
         if (!list) return;
         if (!roomsCache.length) {
-            list.innerHTML = '<div class="rooms-list-empty">No rooms yet. Create the first one.</div>';
+            list.innerHTML = '<div class="rooms-list-empty">No rooms yet.<br>Click <strong>+ Create New Room</strong> below.</div>';
             return;
         }
-               var currentWallet = getWallet();
+
+        var currentWallet = getWallet();
         list.innerHTML = roomsCache.map(function (room) {
             var isCreator = currentWallet && room.creator_wallet === currentWallet;
             var gateOn = room.require_token_gate !== false;
+
             var gateBadge = gateOn
-                ? '<span class="rooms-list-item-gate rooms-list-item-gate-on" title="Token required to join">🔒 Token</span>'
-                : '<span class="rooms-list-item-gate rooms-list-item-gate-off" title="Open to all wallets">🔓 Open</span>';
-            var toggleBtn = isCreator
-                ? '<button class="rooms-list-item-gate-toggle" data-toggle-room="' + esc(room.id) + '" data-current="' + (gateOn ? '1' : '0') + '" type="button" title="' + (gateOn ? 'Disable token gate' : 'Enable token gate') + '">' + (gateOn ? '🔓' : '🔒') + '</button>'
-                : '';
+                ? '<span class="rooms-list-item-gate rooms-list-item-gate-on" title="Token required to join">🔒 Token Required</span>'
+                : '<span class="rooms-list-item-gate rooms-list-item-gate-off" title="Open to any connected wallet">🔓 Open</span>';
+
+            var creatorLabel = isCreator
+                ? '<strong>You</strong>'
+                : esc(shortAddr(room.creator_wallet));
+
+            var actions = '<div class="rooms-list-item-actions">';
+            actions += '<button type="button" class="room-action-enter" data-enter-room="' + esc(room.id) + '">▶ Enter</button>';
+            actions += '<button type="button" class="room-action-share" data-share-room="' + esc(room.id) + '">🔗 Copy Link</button>';
+            if (isCreator) {
+                actions += '<button type="button" class="room-action-gate" data-toggle-room="' + esc(room.id) + '" data-current="' + (gateOn ? '1' : '0') + '">' + (gateOn ? '🔓 Open It' : '🔒 Gate It') + '</button>';
+                actions += '<button type="button" class="room-action-delete" data-delete-room="' + esc(room.id) + '" data-room-name="' + esc(room.name) + '">🗑 Delete</button>';
+            }
+            actions += '</div>';
+
             return '<div class="rooms-list-item" data-room-id="' + esc(room.id) + '">'
-                + '<div class="rooms-list-item-info">'
-                +   '<div class="rooms-list-item-name">🏛️ ' + esc(room.name) + ' ' + gateBadge + '</div>'
-                +   '<div class="rooms-list-item-mint">' + esc(room.token_mint.slice(0, 6)) + '…' + esc(room.token_mint.slice(-6)) + '</div>'
+                + '<div class="rooms-list-item-top">'
+                +   '<div class="rooms-list-item-name">🏛️ ' + esc(room.name) + '</div>'
+                +   gateBadge
                 + '</div>'
-                + toggleBtn
-                + '<button class="rooms-list-item-share" data-share-room="' + esc(room.id) + '" type="button" title="Copy share link">🔗</button>'
+                + '<div class="rooms-list-item-mint">'
+                +   '<span class="rooms-list-item-mint-label">CA</span>'
+                +   esc(room.token_mint)
+                + '</div>'
+                + '<div class="rooms-list-item-meta">'
+                +   '<span>By <strong>' + creatorLabel + '</strong></span>'
+                +   '<span>Created <strong>' + esc(formatCreatedAt(room.created_at)) + '</strong></span>'
+                + '</div>'
+                + actions
                 + '</div>';
         }).join('');
 
+        // ── Enter room (card click) ──
         list.querySelectorAll('.rooms-list-item').forEach(function (el) {
             el.addEventListener('click', function (e) {
-                if (e.target.closest('.rooms-list-item-share')) return;
+                if (e.target.closest('button')) return;
                 var id = el.getAttribute('data-room-id');
+                if (!id) return;
                 closeRoomsList();
                 if (window.MSNChat && window.MSNChat.switchTab) {
                     window.MSNChat.switchTab('room-' + id);
@@ -696,7 +736,21 @@
             });
         });
 
-               list.querySelectorAll('.rooms-list-item-share').forEach(function (btn) {
+        // ── Enter button ──
+        list.querySelectorAll('[data-enter-room]').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+                var id = this.getAttribute('data-enter-room');
+                closeRoomsList();
+                if (window.MSNChat && window.MSNChat.switchTab) {
+                    window.MSNChat.switchTab('room-' + id);
+                }
+            });
+        });
+
+        // ── Copy share link ──
+        list.querySelectorAll('[data-share-room]').forEach(function (btn) {
             btn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 e.preventDefault();
@@ -704,7 +758,8 @@
             });
         });
 
-        list.querySelectorAll('.rooms-list-item-gate-toggle').forEach(function (btn) {
+        // ── Toggle gate ──
+        list.querySelectorAll('[data-toggle-room]').forEach(function (btn) {
             btn.addEventListener('click', async function (e) {
                 e.stopPropagation();
                 e.preventDefault();
@@ -712,10 +767,12 @@
                 var currentlyOn = this.getAttribute('data-current') === '1';
                 var newValue = !currentlyOn;
                 this.disabled = true;
+                var origText = this.textContent;
+                this.textContent = '…';
                 try {
                     var sb = getSB();
                     var wallet = getWallet();
-                    if (!sb || !wallet) { showError('Connect wallet first'); this.disabled = false; return; }
+                    if (!sb || !wallet) { showError('Connect wallet first'); return; }
                     var { data, error } = await sb.rpc('toggle_room_token_gate', {
                         p_wallet: wallet,
                         p_room_id: roomId,
@@ -730,6 +787,58 @@
                     console.error('[rooms] toggle gate failed:', err);
                     showError('Toggle failed: ' + (err.message || 'unknown'));
                     this.disabled = false;
+                    this.textContent = origText;
+                }
+            });
+        });
+
+        // ── Delete room ──
+        list.querySelectorAll('[data-delete-room]').forEach(function (btn) {
+            btn.addEventListener('click', async function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+                var roomId = this.getAttribute('data-delete-room');
+                var roomName = this.getAttribute('data-room-name') || 'this room';
+                if (!confirm('Delete "' + roomName + '"?\n\nAll messages will be permanently removed. This cannot be undone.')) return;
+
+                this.disabled = true;
+                var origText = this.textContent;
+                this.textContent = 'Deleting…';
+
+                try {
+                    var sb = getSB();
+                    var wallet = getWallet();
+                    if (!sb || !wallet) { showError('Connect wallet first'); return; }
+
+                    // If we're currently viewing this room, exit first
+                    if (activeRoomId === roomId) {
+                        if (window.MSNChat && window.MSNChat.switchTab) {
+                            window.MSNChat.switchTab('public');
+                        }
+                    }
+
+                    var { data, error } = await sb.rpc('delete_room', {
+                        p_wallet: wallet,
+                        p_room_id: roomId
+                    });
+                    if (error) throw error;
+                    if (data && data.error) {
+                        if (data.error === 'not_creator') showError('Only the creator can delete this room');
+                        else if (data.error === 'room_not_found') showError('Room not found — refreshing');
+                        else showError('Delete failed: ' + data.error);
+                        await loadRooms();
+                        renderRoomsList();
+                        return;
+                    }
+
+                    showSuccess('🗑 Room deleted');
+                    await loadRooms();
+                    renderRoomsList();
+                } catch (err) {
+                    console.error('[rooms] delete failed:', err);
+                    showError('Delete failed: ' + (err.message || 'unknown'));
+                    this.disabled = false;
+                    this.textContent = origText;
                 }
             });
         });
