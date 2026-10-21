@@ -879,7 +879,7 @@
        // ═══════════════════════════════════════════════════════
     //  DEACTIVATE — call when leaving a room tab
     // ═══════════════════════════════════════════════════════
-    function deactivateRoom() {
+        function deactivateRoom() {
         var sb = getSB();
 
         if (roomPresenceChannel) {
@@ -893,6 +893,17 @@
         }
         roomOnlineUsers.clear();
         activeRoomId = null;
+
+        // ⚑ Hide the room container so its error messages don't bleed
+        //   into Public / Private / Whale tabs
+        var rc = document.getElementById('roomMessagesContainer');
+        if (rc) rc.classList.add('hidden');
+
+        // ⚑ Restore the normal tab bar and hide the room header bar
+        var tabs = document.getElementById('chatTabs');
+        if (tabs) tabs.classList.remove('hidden');
+        var hdr = document.getElementById('roomHeaderBar');
+        if (hdr) hdr.classList.add('hidden');
     }
 
     // ═══════════════════════════════════════════════════════
