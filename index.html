@@ -455,9 +455,76 @@
             }
         }
 
-        /* ═══ ROOM MESSAGES — hide reactions (v1: wired to wrong table) ═══ */
+                /* ═══ ROOM MESSAGES — hide reactions (v1: wired to wrong table) ═══ */
         #roomMessagesContainer .reactions-bar {
             display: none !important;
+        }
+
+        /* ═══ ROOM HEADER BAR — replaces main tabs while in a room ═══ */
+        .room-header-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-default, #454B4B);
+            background: linear-gradient(90deg,
+                color-mix(in srgb, var(--accent-cyan, #00f0ff) 6%, var(--bg-panel, #111827)) 0%,
+                var(--bg-panel, #111827) 100%);
+            flex-shrink: 0;
+        }
+        .room-header-bar.hidden { display: none !important; }
+        .room-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-default, #454B4B);
+            background: var(--bg-elevated, #1e2221);
+            color: var(--text-primary, #fff);
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        .room-back-btn:hover {
+            border-color: var(--accent-cyan, #00f0ff);
+            color: var(--accent-cyan, #00f0ff);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+        }
+        .room-back-btn .arrow {
+            font-size: 1rem;
+            line-height: 1;
+        }
+        .room-header-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+        .room-header-name {
+            font-weight: 900;
+            font-size: 0.92rem;
+            letter-spacing: 0.04em;
+            color: var(--text-primary, #fff);
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .room-header-mint {
+            font-family: var(--font-mono, monospace);
+            font-size: 0.62rem;
+            color: var(--text-muted, #64748b);
+            letter-spacing: 0.06em;
+        }
+        @media (max-width: 520px) {
+            .room-header-bar { padding: 8px 12px; gap: 10px; }
+            .room-header-name { font-size: 0.82rem; }
+            .room-back-btn { font-size: 0.7rem; padding: 5px 10px; }
         }
     </style>
 </head>
@@ -609,10 +676,21 @@
                     <button class="btn-icon" id="refreshBtn" title="Reconnect"><span class="spin-icon">↻</span></button>
                 </div>
             </div>
-            <div class="chat-tabs" id="chatTabs">
+                        <div class="chat-tabs" id="chatTabs">
                 <div class="chat-tab active" data-tab="public">🌐 Public</div>
                 <div class="chat-tab" data-tab="private">🔒 Private</div>
                 <div class="chat-tab whale-tab" data-tab="whale">🐋 Whale</div>
+            </div>
+
+            <div class="room-header-bar hidden" id="roomHeaderBar">
+                <button class="room-back-btn" id="roomBackBtn" type="button" title="Back to Public">
+                    <span class="arrow">←</span>
+                    <span>Back</span>
+                </button>
+                <div class="room-header-info">
+                    <span class="room-header-name" id="roomHeaderName">🏛️ Room</span>
+                    <span class="room-header-mint" id="roomHeaderMint"></span>
+                </div>
             </div>
             <div class="mod-message-box" id="modMessageBox">
                 <span class="mod-badge">PINNED</span>
