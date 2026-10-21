@@ -162,21 +162,26 @@
             return;
         }
 
-        container.innerHTML = '';
+                container.innerHTML = '';
         if (window.MSNChat && window.MSNChat.showMsgLoader) {
             window.MSNChat.showMsgLoader(container, 'Checking token balance');
         }
 
-        // 1. Check chain balance for room's mint
-        var bal = await fetchTokenBalance(wallet, room.token_mint);
-        if (bal == null) {
-            container.innerHTML = '<div class="empty-chat-hint">Could not verify token balance — try again.</div>';
-            return;
-        }
-        if (bal <= 0) {
-            container.innerHTML = '<div class="empty-chat-hint">🚫 You need to hold this room\'s token to enter.<br><br><span style="font-size:0.7em;opacity:0.6">Mint: ' + esc(room.token_mint.slice(0, 8)) + '…' + esc(room.token_mint.slice(-8)) + '</span></div>';
-            showError('You don\'t hold this room\'s token');
-            return;
+        // 1. Check chain balance — only if the room requires a token
+        if (room.require_token_gate === false) {
+            // ⚑ Gate disabled by creator — any connected wallet can enter
+            console.log('[rooms] token gate disabled for room:', roomId);
+        } else {
+            var bal = await fetchTokenBalance(wallet, room.token_mint);
+            if (bal == null) {
+                container.innerHTML = '<div class="empty-chat-hint">Could not verify token balance — try again.</div>';
+                return;
+            }
+            if (bal <= 0) {
+                container.innerHTML = '<div class="empty-chat-hint">🚫 You need to hold this room\'s token to enter.<br><br><span style="font-size:0.7em;opacity:0.6">Mint: ' + esc(room.token_mint.slice(0, 8)) + '…' + esc(room.token_mint.slice(-8)) + '</span></div>';
+                showError('You don\'t hold this room\'s token');
+                return;
+            }
         }
 
         // 2. Register membership
@@ -283,11 +288,13 @@
         var room = findRoomById(activeRoomId);
         if (!room) return;
 
-        // Chain check before send (cheap; catches users who sold)
-        var bal = await fetchTokenBalance(wallet, room.token_mint);
-        if (bal == null || bal <= 0) {
-            showError('You no longer hold this room\'s token');
-            return;
+                // Chain check before send — only if the room requires a token
+        if (room.require_token_gate !== false) {
+            var bal = await fetchTokenBalance(wallet, room.token_mint);
+            if (bal == null || bal <= 0) {
+                showError('You no longer hold this room\'s token');
+                return;
+            }
         }
 
         var inp = document.getElementById('messageInput');
@@ -546,12 +553,13 @@
     // ═══════════════════════════════════════════════════════
     //  ROOM CREATION
     // ═══════════════════════════════════════════════════════
-       async function createRoom(tokenMint, name) {
+           async function createRoom(tokenMint, name, requireGate) {
         var sb = getSB();
         var wallet = getWallet();
         var username = getUsername();
         if (!sb || !wallet) { showError('Connect wallet first'); return null; }
         if (!username) { showError('Set your username first'); return null; }
+        if (typeof requireGate !== 'boolean') requireGate = true;
 
         tokenMint = (tokenMint || '').trim();
         if (!tokenMint || tokenMint.length < 32) {
@@ -596,11 +604,12 @@
             console.warn('[rooms] balance sync failed — RPC may still use stale DB:', e);
         }
 
-        try {
+                try {
             var { data, error } = await sb.rpc('create_room', {
                 p_wallet: wallet,
                 p_token_mint: tokenMint,
-                p_name: (name || 'Community').trim()
+                p_name: (name || 'Community').trim(),
+                p_require_token_gate: requireGate
             });
             if (error) throw error;
             if (data.error === 'not_whale') {
@@ -656,12 +665,22 @@
             list.innerHTML = '<div class="rooms-list-empty">No rooms yet. Create the first one.</div>';
             return;
         }
+               var currentWallet = getWallet();
         list.innerHTML = roomsCache.map(function (room) {
+            var isCreator = currentWallet && room.creator_wallet === currentWallet;
+            var gateOn = room.require_token_gate !== false;
+            var gateBadge = gateOn
+                ? '<span class="rooms-list-item-gate rooms-list-item-gate-on" title="Token required to join">🔒 Token</span>'
+                : '<span class="rooms-list-item-gate rooms-list-item-gate-off" title="Open to all wallets">🔓 Open</span>';
+            var toggleBtn = isCreator
+                ? '<button class="rooms-list-item-gate-toggle" data-toggle-room="' + esc(room.id) + '" data-current="' + (gateOn ? '1' : '0') + '" type="button" title="' + (gateOn ? 'Disable token gate' : 'Enable token gate') + '">' + (gateOn ? '🔓' : '🔒') + '</button>'
+                : '';
             return '<div class="rooms-list-item" data-room-id="' + esc(room.id) + '">'
                 + '<div class="rooms-list-item-info">'
-                +   '<div class="rooms-list-item-name">🏛️ ' + esc(room.name) + '</div>'
+                +   '<div class="rooms-list-item-name">🏛️ ' + esc(room.name) + ' ' + gateBadge + '</div>'
                 +   '<div class="rooms-list-item-mint">' + esc(room.token_mint.slice(0, 6)) + '…' + esc(room.token_mint.slice(-6)) + '</div>'
                 + '</div>'
+                + toggleBtn
                 + '<button class="rooms-list-item-share" data-share-room="' + esc(room.id) + '" type="button" title="Copy share link">🔗</button>'
                 + '</div>';
         }).join('');
@@ -677,11 +696,41 @@
             });
         });
 
-        list.querySelectorAll('.rooms-list-item-share').forEach(function (btn) {
+               list.querySelectorAll('.rooms-list-item-share').forEach(function (btn) {
             btn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 e.preventDefault();
                 copyShareLink(this.getAttribute('data-share-room'));
+            });
+        });
+
+        list.querySelectorAll('.rooms-list-item-gate-toggle').forEach(function (btn) {
+            btn.addEventListener('click', async function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+                var roomId = this.getAttribute('data-toggle-room');
+                var currentlyOn = this.getAttribute('data-current') === '1';
+                var newValue = !currentlyOn;
+                this.disabled = true;
+                try {
+                    var sb = getSB();
+                    var wallet = getWallet();
+                    if (!sb || !wallet) { showError('Connect wallet first'); this.disabled = false; return; }
+                    var { data, error } = await sb.rpc('toggle_room_token_gate', {
+                        p_wallet: wallet,
+                        p_room_id: roomId,
+                        p_require: newValue
+                    });
+                    if (error) throw error;
+                    if (data && data.error) throw new Error(data.error);
+                    showSuccess(newValue ? '🔒 Token gate enabled' : '🔓 Token gate disabled');
+                    await loadRooms();
+                    renderRoomsList();
+                } catch (err) {
+                    console.error('[rooms] toggle gate failed:', err);
+                    showError('Toggle failed: ' + (err.message || 'unknown'));
+                    this.disabled = false;
+                }
             });
         });
     }
@@ -702,15 +751,17 @@
         if (overlay) overlay.classList.add('hidden');
     }
 
-    async function handleCreateSubmit() {
+        async function handleCreateSubmit() {
         var mintEl = document.getElementById('roomTokenInput');
         var nameEl = document.getElementById('roomNameInput');
+        var gateEl = document.getElementById('roomRequireGate');
         var btn = document.getElementById('roomCreateBtn');
         if (!mintEl) return;
         var mint = mintEl.value.trim();
         var name = nameEl ? nameEl.value.trim() : 'Community';
+        var requireGate = gateEl ? gateEl.checked : true;
         if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
-        var roomId = await createRoom(mint, name);
+        var roomId = await createRoom(mint, name, requireGate);
         if (btn) { btn.disabled = false; btn.textContent = 'CREATE'; }
         if (roomId) {
             closeCreateRoom();
