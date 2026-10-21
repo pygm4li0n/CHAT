@@ -567,41 +567,50 @@
             return null;
         }
 
-        // ⚑ Fetch LIVE on-chain whale balance BEFORE calling create_room.
-        //   The server RPC reads profiles.token_balance which is stale
-        //   until wallet reconnect. Chain value is authoritative.
+                // ⚑ Mod wallet bypasses the client-side whale check entirely.
+        //   Server-side create_room also bypasses it — this is the
+        //   client gate that would otherwise fire before the RPC.
+        var MOD_WALLET = '4XAqQmEcJW37ZUqDwwAWhuPy7xfQpTJTLoEUwmi51yuj';
+        var isMod = wallet && wallet.toLowerCase() === MOD_WALLET.toLowerCase();
+
         var chainBal = await fetchTokenBalance(wallet, MAIN_TOKEN_MINT);
-        if (chainBal == null) {
-            showError('Could not verify your whale balance — check connection and try again');
-            return null;
-        }
 
         console.log('[rooms] create_room whale check:', {
+            isMod:        isMod,
             chainBalance: chainBal,
-            required: WHALE_MIN,
-            pass: chainBal >= WHALE_MIN
+            required:     WHALE_MIN,
+            pass:         isMod || (chainBal != null && chainBal >= WHALE_MIN)
         });
 
-        if (chainBal < WHALE_MIN) {
-            showError(
-                'Only 🐋 Whale holders (' + WHALE_MIN.toLocaleString() + '+ tokens) can create rooms. ' +
-                'You currently hold ' + Math.floor(chainBal).toLocaleString() + '.'
-            );
-            return null;
+        if (!isMod) {
+            if (chainBal == null) {
+                showError('Could not verify your whale balance — check connection and try again');
+                return null;
+            }
+            if (chainBal < WHALE_MIN) {
+                showError(
+                    'Only 🐋 Whale holders (' + WHALE_MIN.toLocaleString() + '+ tokens) can create rooms. ' +
+                    'You currently hold ' + Math.floor(chainBal).toLocaleString() + '.'
+                );
+                return null;
+            }
         }
 
         // ⚑ CRITICAL: Sync fresh chain balance to DB BEFORE calling the RPC.
         //   Without this, create_room reads stale profiles.token_balance
         //   and returns "not_whale" even when you hold 2M on-chain.
         try {
-            await sb.rpc('update_wallet_balance', {
-                p_wallet: wallet,
-                p_balance: chainBal
-            });
-            if (window.userBalances) window.userBalances[username] = chainBal;
-            console.log('[rooms] synced chain balance to DB:', chainBal);
-        } catch (e) {
-            console.warn('[rooms] balance sync failed — RPC may still use stale DB:', e);
+                   if (!isMod && chainBal != null) {
+            try {
+                await sb.rpc('update_wallet_balance', {
+                    p_wallet: wallet,
+                    p_balance: chainBal
+                });
+                if (window.userBalances) window.userBalances[username] = chainBal;
+                console.log('[rooms] synced chain balance to DB:', chainBal);
+            } catch (e) {
+                console.warn('[rooms] balance sync failed — RPC may still use stale DB:', e);
+            }
         }
 
                 try {
