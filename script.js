@@ -4410,7 +4410,7 @@ switchTab('public');
             {
                 el:   document.getElementById('roomsBtn'),
                 into: actionsWrap,
-                logo: 'https://i.postimg.cc/ry9HG152/pumplogo.png'
+                logo: 'https://i.postimg.cc/y6cKdyxs/ROOMS.png'
             },
         ];
 
