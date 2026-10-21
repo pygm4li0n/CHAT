@@ -3216,10 +3216,12 @@ function showSuccess(msg) {
         tabs.forEach(t => t.classList.remove('active'));
         const activeTab = chatTabs.querySelector(`[data-tab="${tabName}"]`);
         if(activeTab) activeTab.classList.add('active');
-                if(tabName === 'public') {
+                        if(tabName === 'public') {
             publicContainer.classList.remove('hidden');
             privateContainer.classList.add('hidden');
             whaleContainer.classList.add('hidden');
+            var rcPub = document.getElementById('roomMessagesContainer');
+            if (rcPub) rcPub.classList.add('hidden');
             privateIndicatorBar.classList.add('hidden');
             messageInput.placeholder = 'Type a message...';
             autoScroll = true;
@@ -3228,6 +3230,8 @@ function showSuccess(msg) {
             publicContainer.classList.add('hidden');
             privateContainer.classList.add('hidden');
             whaleContainer.classList.remove('hidden');
+            var rcWhale = document.getElementById('roomMessagesContainer');
+            if (rcWhale) rcWhale.classList.add('hidden');
             privateIndicatorBar.classList.add('hidden');
 
             // ⚑ Pinned belongs to public — hide on whale tab
@@ -3257,10 +3261,12 @@ function showSuccess(msg) {
                     updateScrollButtonVisibility(roomContainer);
                 }
             }, 150);
-        } else {
+                } else {
             publicContainer.classList.add('hidden');
             whaleContainer.classList.add('hidden');
             privateContainer.classList.remove('hidden');
+            var rcPriv = document.getElementById('roomMessagesContainer');
+            if (rcPriv) rcPriv.classList.add('hidden');
          if(activePrivateChat) {
                 privateIndicatorBar.classList.remove('hidden');
                 refreshPrivatePartnerName();
