@@ -1257,12 +1257,12 @@
        // ⚑ Whale = ≥ 1M tokens. Client-side UX gate only —
     //   server-side RPC is the real enforcement.
     //   Dev (MOD_WALLET) always has access for testing.
-    function isWhale() {
+       function isWhale() {
         if (!username) return false;
         if (isModWallet) return true;                  // dev override
         const bal = userBalances[username];
         if (bal == null) return false;
-        return parseBalanceValue(bal) >= WHALE_MIN_BALANCE;
+        return parseBalanceValue(bal) >= 1_000_000;    // inline — no TDZ risk
     }
 
     function updateUserRank(balance) {
@@ -1428,12 +1428,14 @@
         // ⚑ FIX: mirror the fresh on-chain value into the DB so
         //   get_holders_leaderboard sees you as a real holder
         //   (many RPCs filter WHERE token_balance > 0).
-        try {
+               try {
             await supabase.rpc('update_wallet_balance', {
                 p_wallet:  getWalletAddress(),
                 p_balance: targetBalance
             });
-        } catch (e) { /* non-fatal — Section 3 also writes it */ }
+        } catch (e) {
+            console.warn('[wallet-balance] DB sync failed — leaderboard may lag:', e);
+        }
 
         if (modTokenRequirement <= 0) {
             hasTokenAccess = true;
@@ -3286,6 +3288,7 @@ function showSuccess(msg) {
             autoScroll = true;
             setTimeout(() => { scrollContainerToBottom(privateContainer); updateScrollButtonVisibility(privateContainer); }, 150);
         }
+              updateChatAccessibility();
         updateTypingIndicator();
         if (messageInput.value.length > 0) startTyping();
     }
@@ -3837,14 +3840,13 @@ function showSuccess(msg) {
                 const { data: inserted, error } = await supabase.rpc('post_whale_message', params);
                 if (error) throw error;
 
-                messageInput.value = '';
+                                messageInput.value = '';
                 setReplyingTo(null);
                 clearAttachedImage();
-                stopTyping();
                 startCooldown(modCooldownSeconds);
                 if (window.addXP && inserted?.id) window.addXP(inserted.id);
 
-                               if (!knownWhaleIds.has(inserted.id)) {
+                                               if (inserted && inserted.id && !knownWhaleIds.has(inserted.id)) {
                     knownWhaleIds.add(inserted.id);
                     if (whaleEmptyHint) whaleEmptyHint.style.display = 'none';
                     const wrapper = await buildMessageNode(inserted, false, true);
@@ -3855,6 +3857,7 @@ function showSuccess(msg) {
            } catch (err) {
     showError('Send failed: ' + (err.message || err));
 } finally {
+                stopTyping();
                 sendBtn.disabled = false;
                 messageInput.focus();
             }
@@ -4113,21 +4116,21 @@ function showSuccess(msg) {
                 else           renderMessage(inserted, false, true);
             }
 
-            messageInput.value = '';
-            setReplyingTo(null);
-            clearAttachedImage();
-            stopTyping();
-            startCooldown(modCooldownSeconds);
-        if (window.addXP && inserted?.id) window.addXP(inserted.id);
+                                                     messageInput.value = '';
+                setReplyingTo(null);
+                clearAttachedImage();
+                startCooldown(modCooldownSeconds);
+                if (window.addXP && inserted?.id) window.addXP(inserted.id);
             autoScroll = true;
             if (!isPrivate) bumpMessagesCount();
         } catch (err) {
             showError('Send failed: ' + err.message);
-        } finally {
-            sendBtn.disabled = false;
-            messageInput.focus();
+             } finally {
+                stopTyping();
+                sendBtn.disabled = false;
+                messageInput.focus();
+            }
         }
-    }
 
     function subscribeToRealtime() {
         if (realtimeChannel) supabase.removeChannel(realtimeChannel);
@@ -5262,8 +5265,15 @@ subscribeToPrivateRequests();
               : (row.token_balance != null ? row.token_balance : Date.now());
     return url + (url.indexOf('?') === -1 ? '?' : '&') + 'v=' + encodeURIComponent(String(tag));
   }
-  function avatarHTML(row) {
-    let url = row.avatar_url || row.avatar || row.profile_pic || row.profile_pic_url || row.pfp || null;
+   function avatarHTML(row) {
+    let url = (row.x_verified && row.x_avatar_url)
+            || row.avatar_url
+            || row.avatar
+            || row.x_avatar_url
+            || row.profile_pic
+            || row.profile_pic_url
+            || row.pfp
+            || null;
     if (url && !/^https?:\/\//i.test(url) && url.indexOf('/') !== -1) {
       url = 'https://uxrpjfsouwxnlcbhjilz.supabase.co/storage/v1/object/public/' +
             url.replace(/^\/+/, '');
@@ -5303,12 +5313,20 @@ subscribeToPrivateRequests();
             )
         ]);
 
-        var accounts = [];
+                var accounts = [];
+        var anySucceeded = false;
         results.forEach(function (r) {
             if (r.status === 'fulfilled' && r.value && Array.isArray(r.value.value)) {
+                anySucceeded = true;
                 accounts = accounts.concat(r.value.value);
             }
         });
+
+        // ⚑ Both RPCs failed → return null (UNKNOWN), not 0.
+        if (!anySucceeded) {
+            console.warn('[chain-balance] both RPC queries failed for', wallet);
+            return null;
+        }
 
         let balance = 0;
         for (const acc of accounts) {
@@ -5341,6 +5359,7 @@ subscribeToPrivateRequests();
       }
 
       // Step 2 — ingest into identity cache
+           const _holdersNow = new Date().toISOString();
       data.forEach(row => {
         if (window.MSNIdentity && window.MSNIdentity.remember) {
           window.MSNIdentity.remember({
@@ -5350,7 +5369,8 @@ subscribeToPrivateRequests();
             avatar_url:     row.avatar_url,
             x_handle:       row.x_handle,
             x_verified:     row.x_verified,
-            x_avatar_url:   row.x_avatar_url
+            x_avatar_url:   row.x_avatar_url,
+            updated_at:     row.updated_at || _holdersNow
           });
         }
       });
@@ -5361,23 +5381,39 @@ subscribeToPrivateRequests();
 
       // Step 3 — verify on-chain balance for TOKEN_MINT_ADDRESS (parallel)
       //          Non-holders of the CURRENT token are discarded.
-            const verified = [];
+                 const verified = [];
       const CHUNK = 8;
       for (let i = 0; i < enriched.length; i += CHUNK) {
         const slice = enriched.slice(i, i + CHUNK);
         const results = await Promise.all(slice.map(async (r) => {
           if (!r.wallet_address) return null;
-          const chainBal = await fetchBalanceFromChain(r.wallet_address);
-          if (chainBal == null || chainBal <= 0) return null;
+          let chainBal = await fetchBalanceFromChain(r.wallet_address);
+          if (chainBal == null) {
+            chainBal = parseFloat(r.token_balance || 0);
+          }
+          if (chainBal <= 0) return null;
           if (r.username) userBalances[r.username] = chainBal;
           return Object.assign({}, r, { fresh_balance: chainBal });
         }));
         verified.push.apply(verified, results);
-      }
-
-      const filtered = verified.filter(Boolean);
+      }      
+        const filtered = verified.filter(Boolean);
       filtered.sort((a, b) => b.fresh_balance - a.fresh_balance);
       const top10 = filtered.slice(0, 10);
+
+      // ⚑ Self-anchor: if I'm a holder but below top 10, still show me
+      const myWallet = getWalletAddress();
+      if (myWallet) {
+        const inTop = top10.some(r => r.wallet_address === myWallet);
+        if (!inTop) {
+          const selfEntry = filtered.find(r => r.wallet_address === myWallet);
+          if (selfEntry) {
+            const realRank = filtered.indexOf(selfEntry) + 1;
+            if (top10.length >= 10) top10.pop();
+            top10.push(Object.assign({}, selfEntry, { _is_self: true, _self_rank: realRank }));
+          }
+        }
+      }
 
       if (top10.length === 0) {
         el.innerHTML = '<div class="rankings-empty">No current-token holders yet</div>';
@@ -5423,6 +5459,7 @@ subscribeToPrivateRequests();
         return;
       }
       // ⚑ Ingest into identity cache, then enrich (X name + avatar).
+            const _holdersNow = new Date().toISOString();
       data.forEach(row => {
         if (window.MSNIdentity && window.MSNIdentity.remember) {
           window.MSNIdentity.remember({
@@ -5432,7 +5469,8 @@ subscribeToPrivateRequests();
             avatar_url:     row.avatar_url,
             x_handle:       row.x_handle,
             x_verified:     row.x_verified,
-            x_avatar_url:   row.x_avatar_url
+            x_avatar_url:   row.x_avatar_url,
+            updated_at:     row.updated_at || _holdersNow
           });
         }
       });
@@ -5585,12 +5623,20 @@ subscribeToPrivateRequests();
                 )
             ]);
 
-            var accounts = [];
+                        var accounts = [];
+            var anySucceeded = false;
             results.forEach(function (r) {
                 if (r.status === 'fulfilled' && r.value && Array.isArray(r.value.value)) {
+                    anySucceeded = true;
                     accounts = accounts.concat(r.value.value);
                 }
             });
+
+            // ⚑ Both RPCs failed → return null (UNKNOWN), not 0.
+            if (!anySucceeded) {
+                console.warn('[streak] both RPC queries failed for', wallet);
+                return null;
+            }
 
             let balance = 0;
             for (const acc of accounts) {
@@ -5626,9 +5672,11 @@ subscribeToPrivateRequests();
         const balance = await fetchWalletBalance(wallet);
         if (balance === null) return;
         updateUserRank(balance);   // shared with script.js — single writer
-        try {
+                try {
             await supabase.rpc('update_wallet_balance', { p_wallet: wallet, p_balance: balance });
-        } catch (e) { /* ignore */ }
+        } catch (e) {
+            console.warn('[wallet-balance] streak sync failed — leaderboard may lag:', e);
+        }
     }
 
     function handleWallet(wallet) {
