@@ -1159,8 +1159,12 @@
        // ═══════════════════════════════════════════════════════
     //  DEACTIVATE — call when leaving a room tab
     // ═══════════════════════════════════════════════════════
-        function deactivateRoom() {
+              function deactivateRoom() {
         var sb = getSB();
+
+        // Clear the token watermark so it doesn't leak into Public chat
+        var rc = document.getElementById('roomMessagesContainer');
+        if (rc) rc.style.removeProperty('--room-watermark');
 
         if (roomPresenceChannel) {
             try { roomPresenceChannel.untrack(); } catch (e) {}
