@@ -786,7 +786,8 @@
         ]);
     }
 
-    let _connectStartedAt = 0;
+       let _connectStartedAt = 0;
+    const _pageLoadedAt = Date.now();
     const CONNECT_HARD_LIMIT_MS = 45000;
 
     setInterval(function () {
@@ -1190,9 +1191,11 @@
                 : `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Connect Phantom</span>`;
         }
 
-        try {
+                try {
             if (connected) localStorage.setItem('msn_cached_wallet', addr);
-            else localStorage.removeItem('msn_cached_wallet');
+            // ⚑ Do NOT remove on disconnect here. This is the last-known wallet
+            //   and the fallback for the next page load. Only disconnectPhantom()
+            //   (user-initiated) clears it.
         } catch (e) { /* ignore */ }
 
         checkIfModWallet();
@@ -1664,7 +1667,7 @@ if (!hasMatch && accounts.length > 0) {
             }
             showOverlayMessage('Waiting for Phantom approval…', 'info');
 
-            try {
+                      try {
                 const resp = await _withTimeout(
                     provider.connect({ onlyIfTrusted: false }), 30000, 'Wallet connect'
                 );
@@ -1708,12 +1711,14 @@ if (!hasMatch && accounts.length > 0) {
             }
         }
     }
-    function disconnectPhantom() {
+        function disconnectPhantom() {
         const provider = getPhantomProvider();
         if (provider && phantomConnected) provider.disconnect().catch(console.warn);
         phantomWalletPublicKey = null;
         phantomConnected = false;
         hasTokenAccess = false;
+        // ⚑ ONLY explicit user disconnect clears the cached wallet.
+        try { localStorage.removeItem('msn_cached_wallet'); } catch (e) {}
         updatePhantomUI();
         const container = document.getElementById('walletTokenList');
         if (container) container.innerHTML = '';
@@ -4830,7 +4835,26 @@ setupTypingChannel();
                     checkIfModWallet();
                 }
 
-                provider.on?.('disconnect', () => {
+                               provider.on?.('disconnect', () => {
+                    // ⚑ Phantom fires 'disconnect' spuriously during
+                    //   trusted reconnect and shortly after page load,
+                    //   even though the wallet is still authorized.
+                    //   Both windows must be ignored — otherwise a
+                    //   transient event wipes identity to "Guest".
+                    if (isConnecting) {
+                        console.warn('[wallet] spurious disconnect during connect — ignored');
+                        return;
+                    }
+                    if (Date.now() - _pageLoadedAt < 10000) {
+                        console.warn('[wallet] spurious disconnect during init grace — ignored');
+                        return;
+                    }
+                    // Only act on a REAL disconnect (Phantom genuinely not connected)
+                    const p = getPhantomProvider();
+                    if (p && p.isConnected && p.publicKey) {
+                        console.warn('[wallet] disconnect event but provider still connected — ignored');
+                        return;
+                    }
                     handleWalletChange(null);
                 });
 
@@ -4854,9 +4878,9 @@ setupTypingChannel();
                } else {
                 isConnecting = true;
                 _connectStartedAt = Date.now();
-                try {
+                                try {
                     const resp = await _withTimeout(
-                        provider.connect({ onlyIfTrusted: true }), 4000, 'Trusted reconnect'
+                        provider.connect({ onlyIfTrusted: true }), 8000, 'Trusted reconnect'
                     );
                     console.log('[wallet] trusted reconnect OK:', resp.publicKey.toBase58());
                     phantomWalletPublicKey = resp.publicKey;
@@ -4866,8 +4890,8 @@ setupTypingChannel();
                     console.warn('[wallet] trusted reconnect failed:', e && e.message);
                     try {
                         await new Promise(function (r) { setTimeout(r, 800); });
-                        const resp2 = await _withTimeout(
-                            provider.connect({ onlyIfTrusted: true }), 4000, 'Trusted reconnect retry'
+                                              const resp2 = await _withTimeout(
+                            provider.connect({ onlyIfTrusted: true }), 8000, 'Trusted reconnect retry'
                         );
                         console.log('[wallet] trusted reconnect retry OK:', resp2.publicKey.toBase58());
                         phantomWalletPublicKey = resp2.publicKey;
