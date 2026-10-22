@@ -458,13 +458,13 @@
             background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 8%, var(--bg-elevated, #1e2221));
         }
 
-        /* ── Token thumbnail ── */
+              /* ── Token thumbnail + gate badge ── */
         .rl-thumb {
             grid-area: thumb;
+            position: relative;
             width: 48px;
             height: 48px;
             border-radius: 10px;
-            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -481,7 +481,25 @@
             height: 100%;
             object-fit: cover;
             display: block;
+            border-radius: 9px;
         }
+        .rl-gate-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--bg-panel, #0a0e14);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+            z-index: 2;
+            pointer-events: none;
+        }
+        .rl-gate-badge.rl-gate-on  { background: #fbbf24; color: #451a03; }
+        .rl-gate-badge.rl-gate-off { background: #22c55e; color: #052e16; }
 
         /* ── Info column ── */
         .rl-info {
@@ -757,19 +775,7 @@
             display: none !important;
         }
 
-        /* ═══ ROOM HEADER BAR — replaces main tabs while in a room ═══ */
-        .room-header-bar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 16px;
-            border-bottom: 1px solid var(--border-default, #454B4B);
-            background: linear-gradient(90deg,
-                color-mix(in srgb, var(--accent-cyan, #00f0ff) 6%, var(--bg-panel, #111827)) 0%,
-                var(--bg-panel, #111827) 100%);
-            flex-shrink: 0;
-        }
-        .room-header-bar.hidden { display: none !important; }
+              /* ═══ ROOM HEADER — epic one-line ═══ */
         .room-back-btn {
             display: inline-flex;
             align-items: center;
@@ -786,41 +792,89 @@
             letter-spacing: 0.06em;
             text-transform: uppercase;
             transition: all 0.2s;
+            flex-shrink: 0;
         }
         .room-back-btn:hover {
             border-color: var(--accent-cyan, #00f0ff);
             color: var(--accent-cyan, #00f0ff);
             box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
         }
-        .room-back-btn .arrow {
-            font-size: 1rem;
-            line-height: 1;
-        }
+        .room-back-btn .arrow { font-size: 1rem; line-height: 1; }
+
         .room-header-info {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            min-width: 0;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 10px !important;
+            min-width: 0 !important;
+            flex: 1 1 auto !important;
+            overflow: hidden !important;
+        }
+        .room-header-sep {
+            color: var(--text-muted, #64748b) !important;
+            opacity: 0.4 !important;
+            flex-shrink: 0 !important;
+            font-family: var(--font-mono, monospace) !important;
+            font-size: 0.85rem !important;
         }
         .room-header-name {
-            font-weight: 900;
-            font-size: 0.92rem;
-            letter-spacing: 0.04em;
-            color: var(--text-primary, #fff);
-            text-transform: uppercase;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-family: var(--font-mono, monospace) !important;
+            font-weight: 900 !important;
+            font-size: 0.88rem !important;
+            letter-spacing: 0.04em !important;
+            color: var(--text-primary, #fff) !important;
+            text-transform: uppercase !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            flex-shrink: 0 !important;
+            max-width: 32% !important;
+            text-shadow: 0 0 10px color-mix(in srgb, var(--accent-cyan, #00f0ff) 35%, transparent) !important;
+            margin: 0 !important;
         }
         .room-header-mint {
-            font-family: var(--font-mono, monospace);
-            font-size: 0.62rem;
-            color: var(--text-muted, #64748b);
-            letter-spacing: 0.06em;
+            font-family: var(--font-mono, monospace) !important;
+            font-size: 0.65rem !important;
+            color: var(--text-muted, #94a3b8) !important;
+            letter-spacing: 0.04em !important;
+            white-space: nowrap !important;
+            padding: 3px 8px !important;
+            border-radius: 4px !important;
+            background: rgba(255,255,255,0.04) !important;
+            border: 1px solid rgba(255,255,255,0.08) !important;
+            flex-shrink: 0 !important;
         }
-               @media (max-width: 520px) {
+        .room-header-price-wrap {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
+            margin-left: auto !important;
+        }
+        .room-header-price {
+            font-family: var(--font-mono, monospace) !important;
+            font-weight: 800 !important;
+            font-size: 0.75rem !important;
+            color: var(--text-primary, #fff) !important;
+            font-variant-numeric: tabular-nums !important;
+        }
+        .room-header-change {
+            font-family: var(--font-mono, monospace) !important;
+            font-weight: 800 !important;
+            font-size: 0.65rem !important;
+            padding: 2px 6px !important;
+            border-radius: 4px !important;
+            font-variant-numeric: tabular-nums !important;
+        }
+        .rh-change-pos { color: #4ade80 !important; background: color-mix(in srgb, #4ade80 15%, transparent) !important; }
+        .rh-change-neg { color: #f87171 !important; background: color-mix(in srgb, #f87171 15%, transparent) !important; }
+
+        @media (max-width: 520px) {
             .room-header-bar { padding: 8px 12px; gap: 10px; }
-            .room-header-name { font-size: 0.82rem; }
+            .room-header-name { font-size: 0.82rem !important; max-width: 45% !important; }
+            .room-header-price-wrap { display: none !important; }
+            .room-header-mint { font-size: 0.6rem !important; }
             .room-back-btn { font-size: 0.7rem; padding: 5px 10px; }
         }
 
