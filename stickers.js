@@ -59,6 +59,10 @@
         { key: 'DOGE', url: 'https://i.postimg.cc/VLGZ1fNR/DOGE.png' },
         { key: 'CHILL', url: 'https://i.postimg.cc/c49kZxJh/CHILL.png' },
         { key: 'ANSEM', url: 'https://i.postimg.cc/fyTLcjmF/Pegatinas-de-mascotas-con-coronas-(1).png' },
+        { key: 'ALON', url: 'https://i.postimg.cc/Prw7twsn/GIGACHAD-(1).png' },
+        { key: 'RETAIL', url: 'https://i.postimg.cc/wTmr6m8p/RETAIL.png' },
+        { key: 'KIMCHI', url: 'https://i.postimg.cc/RVHYMH5z/KIMCHI.png' },
+        { key: 'GIGA', url: 'https://i.postimg.cc/jd71s70V/GIGACHAD3.png' }
     ];
 
     var GRID_SLOTS = 16;   // base 4 × 4
@@ -177,10 +181,11 @@
 
     function setupObserver() {
         if (!('MutationObserver' in window)) return;
-        var containers = [
+                var containers = [
             document.getElementById('publicMessagesContainer'),
             document.getElementById('privateMessagesContainer'),
-            document.getElementById('whaleMessagesContainer')
+            document.getElementById('whaleMessagesContainer'),
+            document.getElementById('roomMessagesContainer')
         ];
         var mo = new MutationObserver(function (muts) {
             for (var i = 0; i < muts.length; i++) {
@@ -459,34 +464,52 @@
         }, true);
     }
 
-    function positionPicker() {
+       function positionPicker() {
         if (!pickerEl) return;
         var btn = document.getElementById('stickerBtn');
         if (!btn) return;
 
-        var btnRect = btn.getBoundingClientRect();
-        var pickerWidth = pickerEl.offsetWidth || 336;
-        var pickerHeight = pickerEl.offsetHeight || 380;
+        var btnRect       = btn.getBoundingClientRect();
+        var pickerWidth   = pickerEl.offsetWidth  || 336;
+        var pickerHeight  = pickerEl.offsetHeight || 380;
 
-        var margin = 8;
+        var margin = 10;
         var vw = window.innerWidth;
+        var vh = window.innerHeight;
 
-        var left = btnRect.left + btnRect.width / 2 - pickerWidth / 2;
-        var top = btnRect.top - pickerHeight - 12;
+        // Fallback if button is hidden/detached
+        if (!btnRect.width || !btnRect.height) {
+            pickerEl.style.left = (vw - pickerWidth - margin) + 'px';
+            pickerEl.style.top  = (vh - pickerHeight - margin) + 'px';
+            return;
+        }
 
-        if (left < margin) left = margin;
+        // ⚑ Anchor the picker's RIGHT edge to the input row's right edge.
+        //   Centering on the ✨ button pushes the picker over the 280px
+        //   right-sidebar on desktop.
+        var inputRow = btn.closest('.input-row-wrap');
+        var anchorRight = btnRect.right;
+        if (inputRow) {
+            var rowRect = inputRow.getBoundingClientRect();
+            if (rowRect.width > 0) anchorRight = rowRect.right;
+        }
+
+        var left = anchorRight - pickerWidth;
+
+        if (left < margin)                    left = margin;
         if (left + pickerWidth > vw - margin) left = vw - pickerWidth - margin;
 
-                if (top < margin) {
+        var top = btnRect.top - pickerHeight - 12;
+        if (top < margin) {
             var belowTop = btnRect.bottom + 12;
-            if (belowTop + pickerHeight > window.innerHeight - margin) {
-                belowTop = Math.max(margin, window.innerHeight - pickerHeight - margin);
+            if (belowTop + pickerHeight > vh - margin) {
+                belowTop = Math.max(margin, vh - pickerHeight - margin);
             }
             top = belowTop;
         }
 
         pickerEl.style.left = left + 'px';
-        pickerEl.style.top = top + 'px';
+        pickerEl.style.top  = top + 'px';
     }
 
     function renderPicker() {
@@ -538,32 +561,28 @@
     async function sendSticker(key) {
         if (!key) return;
 
-        if (typeof window.MSNStickers.canSend === 'function') {
-            try {
-                var allowed = await window.MSNStickers.canSend(key);
-                if (!allowed) return;
-            } catch (e) {}
-        }
-
         var sb = getSB();
         if (!sb) { toast('Not connected'); return; }
 
                var me = getSelfUsername();
         if (!me) { toast('Set your username first'); return; }
 
-        if (window.MSNChat && typeof window.MSNChat.canSend === 'function'
-            && !window.MSNChat.canSend()) {
-            toast('Connect Phantom and hold the required tokens to send');
-            return;
-        }
-
-        if (isCooldownActive()) { toast('Cooldown active — wait a moment'); return; }
-
-        var tab = currentTab();
+              var tab = currentTab();
 var isPrivate = (tab === 'private');
 var isWhale   = (tab === 'whale');
 var partner = isPrivate ? activePrivatePartner() : null;
 if (isPrivate && !partner) { toast('No private partner selected.'); return; }
+
+// Whale chat enforces its own chain gate (post_whale_message RPC).
+// Don't pre-block with the general token gate — the whale path handles
+// its own verification.
+if (!isWhale && window.MSNChat && typeof window.MSNChat.canSend === 'function'
+    && !window.MSNChat.canSend()) {
+    toast('Connect Phantom and hold the required tokens to send');
+    return;
+}
+
+if (isCooldownActive()) { toast('Cooldown active — wait a moment'); return; }
 
 // ── Whale tab — route through the whale RPC (same as sendWhaleMessage) ──
 if (isWhale) {
@@ -586,9 +605,12 @@ if (isWhale) {
             wparams.p_reply_to_message    = reply.message || null;
             wparams.p_reply_to_image_url  = reply.imageUrl || null;
         }
-        var wres = await sb.rpc('post_whale_message', wparams);
+               var wres = await sb.rpc('post_whale_message', wparams);
         if (wres.error) throw wres.error;
         var inserted = wres.data;
+        if (!inserted || !inserted.id) {
+            throw new Error('Server returned empty response');
+        }
 
         try {
             document.dispatchEvent(new CustomEvent('msn:render-local-message', {
@@ -611,14 +633,6 @@ if (isWhale) {
     }
     return;
 }
-        var table = isPrivate ? 'private_messages' : 'messages';
-        var payload = {
-            message: '__sticker:' + key + '__',
-            image_url: null,
-            created_at: new Date().toISOString()
-        };
-        if (isPrivate) { payload.from_user = me; payload.to_user = partner; }
-        else { payload.username = me; }
 
                 try {
             var reply = (window.MSNChat && window.MSNChat.getReplyingTo)
@@ -643,8 +657,11 @@ if (isWhale) {
             } else {
                 res = await sb.rpc('post_public_message', params);
             }
-            res.data = Array.isArray(res.data) ? res.data[0] : res.data;
+                        res.data = Array.isArray(res.data) ? res.data[0] : res.data;
             if (res.error) throw res.error;
+            if (!res.data || !res.data.id) {
+                throw new Error('Server returned empty response');
+            }
 
             try {
                 document.dispatchEvent(new CustomEvent('msn:render-local-message', {
@@ -692,10 +709,11 @@ if (isWhale) {
         open: openPicker,
         close: closePicker,
         canSend: null,
-        refresh: function () {
+                refresh: function () {
             scanContainer(document.getElementById('publicMessagesContainer'));
             scanContainer(document.getElementById('privateMessagesContainer'));
             scanContainer(document.getElementById('whaleMessagesContainer'));
+            scanContainer(document.getElementById('roomMessagesContainer'));
         },
         // Exposed so script.js can transform stickers synchronously
         // inside buildMessageNode — no flicker before the observer fires.
