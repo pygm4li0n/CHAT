@@ -877,16 +877,25 @@
             changeCls = parseFloat(info.change24h) >= 0 ? 'rl-change-pos' : 'rl-change-neg';
         }
 
-        var metaParts = [];
-        if (priceStr)  metaParts.push('<span class="rl-price">' + esc(priceStr) + '</span>');
-        if (changeStr) metaParts.push('<span class="rl-change ' + changeCls + '">' + esc(changeStr) + '</span>');
-        metaParts.push('<span class="rl-mint" title="' + esc(room.token_mint) + '">'
-            + esc(room.token_mint.slice(0, 5) + '…' + room.token_mint.slice(-5)) + '</span>');
-        metaParts.push('<span class="rl-time">' + esc(formatCreatedAt(room.created_at)) + '</span>');
-        var metaHtml = metaParts.join('<span class="rl-sep">·</span>');
+               // Build meta parts — separator before time is tagged for mobile hide
+        var parts = [];
+        if (priceStr)  parts.push('<span class="rl-price">' + esc(priceStr) + '</span>');
+        if (changeStr) parts.push('<span class="rl-change ' + changeCls + '">' + esc(changeStr) + '</span>');
+        parts.push('<button type="button" class="rl-mint" data-copy-ca="' + esc(room.token_mint) + '" title="' + esc(room.token_mint) + ' — click to copy">'
+            + esc(room.token_mint.slice(0, 5) + '…' + room.token_mint.slice(-5)) + '</button>');
+        parts.push('<span class="rl-time">' + esc(formatCreatedAt(room.created_at)) + '</span>');
+
+        var metaHtml = '';
+        for (var mi = 0; mi < parts.length; mi++) {
+            if (mi > 0) {
+                var isLastSep = (mi === parts.length - 1);
+                metaHtml += '<span class="rl-sep' + (isLastSep ? ' rl-sep-time' : '') + '">·</span>';
+            }
+            metaHtml += parts[mi];
+        }
 
         var actions = '<div class="rl-actions">';
-        actions += '<button type="button" class="rl-btn-primary" data-enter-room="' + esc(room.id) + '">Enter ' + ICONS.arrow + '</button>';
+        actions += '<button type="button" class="rl-btn-primary" data-enter-room="' + esc(room.id) + '">Enter</button>';
         actions += '<button type="button" class="rl-btn-ghost" data-share-room="' + esc(room.id) + '" title="Copy link" aria-label="Copy room link">' + ICONS.copy + '</button>';
                 if (canModify) {
             actions += '<button type="button" class="rl-btn-ghost" data-toggle-room="' + esc(room.id) + '" data-current="' + (gateOn ? '1' : '0') + '" title="' + (gateOn ? 'Disable token gate' : 'Enable token gate') + '" aria-label="Toggle token gate">' + (gateOn ? ICONS.lock : ICONS.unlock) + '</button>';
@@ -927,10 +936,40 @@
             });
         });
 
-                list.querySelectorAll('[data-share-room]').forEach(function (btn) {
+                              list.querySelectorAll('[data-share-room]').forEach(function (btn) {
             btn.addEventListener('click', function (e) {
                 e.stopPropagation(); e.preventDefault();
                 copyShareLink(this.getAttribute('data-share-room'), this);
+            });
+        });
+
+        // ⚑ Click-to-copy the CA chip
+        list.querySelectorAll('[data-copy-ca]').forEach(function (chip) {
+            chip.addEventListener('click', function (e) {
+                e.stopPropagation(); e.preventDefault();
+                var ca = this.getAttribute('data-copy-ca');
+                if (!ca) return;
+                var self = this;
+
+                var flashCopy = function () {
+                    var orig = self.textContent;
+                    self.classList.add('copied');
+                    self.textContent = '✓ Copied';
+                    clearTimeout(self._copyTimer);
+                    self._copyTimer = setTimeout(function () {
+                        self.classList.remove('copied');
+                        self.textContent = orig;
+                    }, 1500);
+                    showSuccess('📋 Contract address copied!');
+                };
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(ca).then(flashCopy).catch(function () {
+                        fallbackCopy(ca, flashCopy);
+                    });
+                } else {
+                    fallbackCopy(ca, flashCopy);
+                }
             });
         });
 
