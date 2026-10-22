@@ -543,44 +543,102 @@
         }
         .rl-symbol:empty { display: none; }
 
-        .rl-meta-row {
+                .rl-meta-row {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             font-family: var(--font-mono, monospace);
-            font-size: 0.65rem;
+            font-size: 0.68rem;
             color: var(--text-muted, #64748b);
             line-height: 1;
             min-width: 0;
             overflow: hidden;
         }
-               .rl-meta-row > * { flex-shrink: 0; }
+        .rl-meta-row > * { flex-shrink: 0; }
+
         .rl-price {
             font-weight: 800;
             color: var(--text-primary, #fff);
             font-variant-numeric: tabular-nums;
             flex-shrink: 0;
+            font-size: 0.72rem;
         }
+
+        /* ⚑ Bigger, bolder % change badge */
         .rl-change {
-            font-weight: 800;
+            font-weight: 900;
             font-variant-numeric: tabular-nums;
-            padding: 2px 5px;
-            border-radius: 3px;
-            font-size: 0.62rem;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 0.74rem;
             flex-shrink: 0;
-            line-height: 1.2;
+            line-height: 1;
+            letter-spacing: 0.03em;
+            border: 1px solid transparent;
         }
-        .rl-change-pos { color: #4ade80; background: color-mix(in srgb, #4ade80 14%, transparent); }
-        .rl-change-neg { color: #f87171; background: color-mix(in srgb, #f87171 14%, transparent); }
+        .rl-change-pos {
+            color: #4ade80;
+            background: color-mix(in srgb, #4ade80 15%, transparent);
+            border-color: color-mix(in srgb, #4ade80 35%, transparent);
+        }
+        .rl-change-neg {
+            color: #f87171;
+            background: color-mix(in srgb, #f87171 15%, transparent);
+            border-color: color-mix(in srgb, #f87171 35%, transparent);
+        }
+
+        /* ⚑ Clickable CA chip — copy on click */
         .rl-mint {
+            font: inherit;
+            font-family: var(--font-mono, monospace);
+            font-size: 0.64rem;
             font-variant-numeric: tabular-nums;
             overflow: hidden;
             text-overflow: ellipsis;
+            white-space: nowrap;
             min-width: 0;
             flex-shrink: 1;
+            padding: 3px 7px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--text-secondary, #94a3b8);
+            cursor: pointer;
+            transition: background .15s ease, border-color .15s ease,
+                        color .15s ease, transform .12s ease;
+            line-height: 1;
+            box-sizing: border-box;
         }
-        .rl-time { flex-shrink: 0; opacity: 0.9; }
+        .rl-mint:hover {
+            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 12%, transparent);
+            border-color: color-mix(in srgb, var(--accent-cyan, #00f0ff) 40%, transparent);
+            color: var(--accent-cyan, #00f0ff);
+        }
+        .rl-mint:active { transform: scale(0.96); }
+        .rl-mint.copied {
+            background: color-mix(in srgb, #4ade80 16%, transparent);
+            border-color: color-mix(in srgb, #4ade80 55%, transparent);
+            color: #4ade80;
+            animation: rl-copy-flash 0.35s ease-out;
+        }
+        @keyframes rl-copy-flash {
+            0%   { transform: scale(1); }
+            50%  { transform: scale(1.07); }
+            100% { transform: scale(1); }
+        }
+
+        .rl-time {
+            flex-shrink: 0;
+            opacity: 0.7;
+            font-size: 0.64rem;
+        }
         .rl-sep  { opacity: 0.35; flex-shrink: 0; }
+
+        /* ⚑ Hide time + its separator on narrow cards so CA stays readable */
+        @media (max-width: 520px) {
+            .rl-time, .rl-sep-time { display: none !important; }
+        }
+
         .rl-gate-on  { color: #fbbf24; }
         .rl-gate-off { color: #86efac; }
 
