@@ -1398,12 +1398,14 @@
         var accounts = await _fetchAllAccounts();
 
         var hasMatch = accounts.some(function (acc) {
-            return acc.account.data.parsed.info.mint === TOKEN_MINT_ADDRESS;
-        });
-        if (!hasMatch) {
-            await new Promise(function (r) { setTimeout(r, 1500); });
-            try { accounts = await _fetchAllAccounts(); } catch (e) { /* keep first result */ }
-        }
+    return acc.account.data.parsed.info.mint === TOKEN_MINT_ADDRESS;
+});
+// Only retry if the user has SOME accounts (RPC indexing lag).
+// Zero accounts = user genuinely doesn't hold the token — skip retry.
+if (!hasMatch && accounts.length > 0) {
+    await new Promise(function (r) { setTimeout(r, 800); });
+    try { accounts = await _fetchAllAccounts(); } catch (e) { /* keep first result */ }
+}
 
         // ⚑ Diagnostic log — open DevTools Console to see exactly what
         //   your wallet holds and whether the target mint is present.
@@ -1499,65 +1501,89 @@
     }
 
         async function afterWalletConnect(walletAddr) {
-        if (!walletAddr) return;
-        if (username) return;   // already a full user
+    if (!walletAddr) return;
 
-        try {
-            const { data: existing } = await supabase.from('profiles')
-                .select('*')
-                .eq('wallet_address', walletAddr)
-                .maybeSingle();
+    // Only bail if THIS exact wallet is already fully loaded.
+    // A wallet swap must always re-hydrate.
+    var cachedWallet = null;
+    try { cachedWallet = localStorage.getItem('msn_cached_wallet'); } catch (e) {}
+    if (username && cachedWallet && cachedWallet === walletAddr) return;
 
-            if (existing && existing.username) {
-                // ─── Returning user → silent hydrate ───
-                username = existing.username;
-                localStorage.setItem(STORAGE_KEY_NAME, username);
-                localStorage.setItem(LAST_USERNAME_KEY, username);
-                if (window.MSNIdentity && window.MSNIdentity.remember) {
-                    window.MSNIdentity.remember(existing);
-                }
-                avatarCache[username] = existing.avatar_url || null;
-                currentAvatarUrl = existing.avatar_url || null;
-                const meName   = displayNameForUser(username);
-                const meAvatar = getAvatarURL(username);
-                if (sidebarBigAvatar) {
-                    sidebarBigAvatar.innerHTML = meAvatar
-                        ? `<img src="${meAvatar}" style="width:100%;height:100%;object-fit:cover;">`
-                        : (meName[0] || '?').toUpperCase();
-                }
-                if (sidebarBigName) sidebarBigName.textContent = meName;
-                userBalances[username] = existing.token_balance || 0;
-                updateUserRank(userBalances[username]);
-                nameOverlay.classList.add('hidden');
-                hideOverlayMessage();
+    try {
+        const { data: existing } = await supabase.from('profiles')
+            .select('*')
+            .eq('wallet_address', walletAddr)
+            .maybeSingle();
 
-                                await loadAcceptedChatsFromDB();
-                // ⚑ Reset presence so the new username is broadcast, not the
-                //   leftover guest presence entry from a guest → connect flow.
-                if (presenceChannel) {
-                    try { await presenceChannel.untrack(); } catch (e) {}
-                    supabase.removeChannel(presenceChannel);
-                    presenceChannel = null;
-                }
-                onlineUsers.clear();
-                await updateSidebarUI();
-                setupPresence();
-                setupTypingChannel();
-                subscribeToPrivateRequests();
-                loadPendingRequests();
-                loadReactions('private_message_reactions', true);
-                updateChatAccessibility();
-            } else {
-                // ─── New user → prompt for name + image ───
-                nameOverlay.classList.remove('hidden');
-                hideOverlayMessage();
-                nameInput.value = '';
-                nameInput.focus();
+        if (existing && existing.username) {
+            // ─── Returning user → hydrate UI FIRST, then network in background ───
+            username = existing.username;
+            localStorage.setItem(STORAGE_KEY_NAME, username);
+            localStorage.setItem(LAST_USERNAME_KEY, username);
+            if (window.MSNIdentity && window.MSNIdentity.remember) {
+                window.MSNIdentity.remember(existing);
             }
-        } catch (e) {
-            console.warn('[afterWalletConnect] failed:', e);
+            avatarCache[username] = existing.avatar_url || null;
+            currentAvatarUrl = existing.avatar_url || null;
+
+            const meName   = displayNameForUser(username);
+            const meAvatar = getAvatarURL(username);
+            if (sidebarBigAvatar) {
+                sidebarBigAvatar.innerHTML = meAvatar
+                    ? `<img src="${meAvatar}" style="width:100%;height:100%;object-fit:cover;">`
+                    : (meName[0] || '?').toUpperCase();
+            }
+            if (sidebarBigName) sidebarBigName.textContent = meName;
+
+            userBalances[username] = existing.token_balance || 0;
+            updateUserRank(userBalances[username]);
+
+            // ⚑ OPTIMISTIC token access — enable the input from DB balance
+            //   right now. fetchAndDisplayAllTokens() corrects it in ~1s if
+            //   the DB value was stale (user sold).
+            if (modTokenRequirement <= 0 || !TOKEN_MINT_ADDRESS) {
+                hasTokenAccess = true;
+            } else if ((existing.token_balance || 0) >= modTokenRequirement) {
+                hasTokenAccess = true;
+            }
+
+            nameOverlay.classList.add('hidden');
+            hideOverlayMessage();
+            inputAreaBar.classList.remove('hidden');
+
+            // ── Fire-and-forget background work (NOT awaited) ──
+            loadAcceptedChatsFromDB().catch(function (e) {
+                console.warn('[afterWalletConnect] accepted-chats failed:', e);
+            });
+
+            // Reset presence so the new username is broadcast
+            if (presenceChannel) {
+                try { await presenceChannel.untrack(); } catch (e) {}
+                try { supabase.removeChannel(presenceChannel); } catch (e) {}
+                presenceChannel = null;
+            }
+            onlineUsers.clear();
+
+            // Kick everything off in parallel — none of these block the UI
+            setupPresence();
+            setupTypingChannel();
+            subscribeToPrivateRequests();
+            loadPendingRequests();
+            loadReactions('private_message_reactions', true);
+            updateChatAccessibility();
+            updateSidebarUI();   // fire-and-forget
+
+        } else {
+            // ─── New user → prompt for name ───
+            nameOverlay.classList.remove('hidden');
+            hideOverlayMessage();
+            nameInput.value = '';
+            nameInput.focus();
         }
+    } catch (e) {
+        console.warn('[afterWalletConnect] failed:', e);
     }
+}
 
         async function connectPhantom() {
         if (isConnecting) {
@@ -1605,9 +1631,13 @@
                 updatePhantomUI();
                 const addr = phantomWalletPublicKey.toBase58();
                 showSuccess(`Wallet connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
-                await afterWalletConnect(addr);
-                await fetchAndDisplayAllTokens();
-                return true;
+                afterWalletConnect(addr).catch(function (e) {
+    console.warn('[connect] afterWalletConnect failed:', e);
+});
+fetchAndDisplayAllTokens().catch(function (e) {
+    console.warn('[connect] token fetch failed:', e);
+});
+return true;
             } catch (silentErr) {
                 console.log('[wallet] trusted connect unavailable:', silentErr && silentErr.message);
                 // fall through to interactive
@@ -1624,9 +1654,13 @@
                 updatePhantomUI();
                 const addr = phantomWalletPublicKey.toBase58();
                 showSuccess(`Wallet connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
-                await afterWalletConnect(addr);
-                await fetchAndDisplayAllTokens();
-                return true;
+                afterWalletConnect(addr).catch(function (e) {
+    console.warn('[connect] afterWalletConnect failed:', e);
+});
+fetchAndDisplayAllTokens().catch(function (e) {
+    console.warn('[connect] token fetch failed:', e);
+});
+return true;
             } catch (err) {
                 console.error('[wallet] connection error:', err);
                 const raw = String((err && err.message) || err || '').trim();
@@ -1643,15 +1677,19 @@
                 showError(friendly);
                 return false;
             }
-        } finally {
-            // ║ GUARANTEED CLEANUP — runs on success, failure, AND timeout
-            isConnecting = false;
-            if (phantomConnectBtnOverlay) {
-                phantomConnectBtnOverlay.disabled = false;
-            }
-            try { updatePhantomUI(); } catch (e) {}
-        }
+       } finally {
+    isConnecting = false;
+    if (phantomConnectBtnOverlay) {
+        phantomConnectBtnOverlay.disabled = false;
     }
+    // Reset the overlay button text if we never actually connected —
+    // otherwise it stays stuck on "Connecting…" after a user rejection
+    // or timeout, which looks like the connect is still pending.
+    if (!phantomConnected && phantomConnectBtnOverlay) {
+        phantomConnectBtnOverlay.innerHTML =
+            `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Connect Phantom</span>`;
+    }
+}
     function disconnectPhantom() {
         const provider = getPhantomProvider();
         if (provider && phantomConnected) provider.disconnect().catch(console.warn);
@@ -2135,26 +2173,26 @@ let whaleMessageReactions = {};   // whale chat reuses the message_reactions tab
 
     function saveAcceptedChats() { localStorage.setItem('msn_accepted_chats', JSON.stringify([...acceptedPrivateChats])); }
 
-    async function loadAcceptedChatsFromDB() {
-        if (!username) return;
-        try {
-            const { data: sent } = await supabase.from('private_chat_requests')
-                .select('to_user').eq('from_user', username).eq('status', 'accepted');
-            const { data: received } = await supabase.from('private_chat_requests')
-                .select('from_user').eq('to_user', username).eq('status', 'accepted');
-            (sent || []).forEach(r => r.to_user && acceptedPrivateChats.add(r.to_user));
-            (received || []).forEach(r => r.from_user && acceptedPrivateChats.add(r.from_user));
-
-            const { data: msgSent } = await supabase.from('private_messages')
-                .select('to_user').eq('from_user', username).limit(500);
-            const { data: msgReceived } = await supabase.from('private_messages')
-                .select('from_user').eq('to_user', username).limit(500);
-            (msgSent || []).forEach(r => r.to_user && acceptedPrivateChats.add(r.to_user));
-            (msgReceived || []).forEach(r => r.from_user && acceptedPrivateChats.add(r.from_user));
-
-            saveAcceptedChats();
-        } catch (err) { console.error('Error loading accepted chats:', err); }
-    }
+   async function loadAcceptedChatsFromDB() {
+    if (!username) return;
+    try {
+        const [r1, r2, r3, r4] = await Promise.all([
+            supabase.from('private_chat_requests')
+                .select('to_user').eq('from_user', username).eq('status', 'accepted'),
+            supabase.from('private_chat_requests')
+                .select('from_user').eq('to_user', username).eq('status', 'accepted'),
+            supabase.from('private_messages')
+                .select('to_user').eq('from_user', username).limit(500),
+            supabase.from('private_messages')
+                .select('from_user').eq('to_user', username).limit(500)
+        ]);
+        (r1.data || []).forEach(r => r.to_user && acceptedPrivateChats.add(r.to_user));
+        (r2.data || []).forEach(r => r.from_user && acceptedPrivateChats.add(r.from_user));
+        (r3.data || []).forEach(r => r.to_user && acceptedPrivateChats.add(r.to_user));
+        (r4.data || []).forEach(r => r.from_user && acceptedPrivateChats.add(r.from_user));
+        saveAcceptedChats();
+    } catch (err) { console.error('Error loading accepted chats:', err); }
+}
 
     const particleCanvas = document.getElementById('particleCanvas');
     const pCtx = particleCanvas.getContext('2d');
@@ -4340,11 +4378,13 @@ setReplyingTo(null);
 // Don't reset private chat — partner identity is wallet-anchored
 switchTab('public');
 
-        // ⚑ First-ever fetch with username set — chain balance now goes to
+                // ⚑ First-ever fetch with username set — chain balance now goes to
         //   userBalances[username] instead of userBalances[''].
+        //   Fire-and-forget — never blocks the sidebar / presence setup below.
         if (phantomConnected && phantomWalletPublicKey) {
-            try { await fetchAndDisplayAllTokens(); }
-            catch (e) { console.warn('[applyUsername] token fetch failed:', e); }
+            fetchAndDisplayAllTokens().catch(function (e) {
+                console.warn('[applyUsername] token fetch failed:', e);
+            });
         }
 
         await updateSidebarUI();
@@ -4706,29 +4746,42 @@ subscribeToPrivateRequests();
                                 if (sidebarBigName) sidebarBigName.textContent = meName;
                                 userBalances[username] = data.token_balance || 0;
 
-                                // ⚑ Chain fetch NOW (username set) — placeholder
-                                //   above is overwritten with real balance before
-                                //   updateSidebarUI or messages render.
-                                try { await fetchAndDisplayAllTokens(); }
-                                catch (e) { console.warn('[wallet-change] token fetch:', e); }
-                                updateUserRank(userBalances[username]);
+                                // ⚑ Kick the chain fetch OFF the critical path — optimistic
+//   access from DB balance, corrected ~1s later.
+if (modTokenRequirement <= 0 || !TOKEN_MINT_ADDRESS) {
+    hasTokenAccess = true;
+} else if ((data.token_balance || 0) >= modTokenRequirement) {
+    hasTokenAccess = true;
+}
+updateUserRank(userBalances[username]);
 
-                                inputAreaBar.classList.remove('hidden');
-                                nameOverlay.classList.add('hidden');
-                                setReplyingTo(null);
-                                setActivePrivateChat(null);
-                                switchTab('public');
-                                await updateSidebarUI();
-                                setupPresence();
-                                setupTypingChannel();
+// Show the input NOW — don't wait on any RPC
+inputAreaBar.classList.remove('hidden');
+nameOverlay.classList.add('hidden');
+setReplyingTo(null);
+setActivePrivateChat(null);
+switchTab('public');
+updateChatAccessibility();
+
+// Fire-and-forget background work
+fetchAndDisplayAllTokens().catch(function (e) {
+    console.warn('[wallet-change] token fetch:', e);
+});
+updateSidebarUI();
+setupPresence();
+setupTypingChannel();
                             } else {
-                                // No profile — still fetch tokens so balance UI populates
-                                try { await fetchAndDisplayAllTokens(); } catch (e) {}
-                                nameOverlay.classList.remove('hidden');
-                                hideOverlayMessage();
-                                nameInput.value = '';
-                                nameInput.focus();
-                            }
+    // No profile — kick off token fetch in the background; show overlay now.
+    // (Otherwise the user sees their PREVIOUS profile for ~1–2s until the
+    //  RPC returns, then the name overlay suddenly pops up.)
+    fetchAndDisplayAllTokens().catch(function (e) {
+        console.warn('[wallet-change] token fetch:', e);
+    });
+    nameOverlay.classList.remove('hidden');
+    hideOverlayMessage();
+    nameInput.value = '';
+    nameInput.focus();
+}
                         } catch (e) {
                             console.warn('[wallet-change] profile lookup failed:', e);
                         }
@@ -4850,12 +4903,12 @@ subscribeToPrivateRequests();
 
                        switchTab('public');
 
-            // ⚑ Fetch chain balance BEFORE first UI render so every badge
-            //   (sidebar, messages, rankings) reads the real on-chain tier,
-            //   not the stale DB placeholder.
+                      // ⚑ Fetch chain balance AFTER first render — badge corrects
+            //   itself ~1s later when the RPC returns. Never blocks the UI.
             if (phantomConnected && phantomWalletPublicKey) {
-                try { await fetchAndDisplayAllTokens(); }
-                catch (e) { console.warn('[init] token fetch failed:', e); }
+                fetchAndDisplayAllTokens().catch(function (e) {
+                    console.warn('[init] token fetch failed:', e);
+                });
             }
 
             await updateSidebarUI();
@@ -4881,7 +4934,7 @@ subscribeToPrivateRequests();
 
             window.__msnAppReady = true;
             try { document.dispatchEvent(new CustomEvent('msn:app-ready')); } catch (e) {}
-        } else if (connectedWallet) {
+                } else if (connectedWallet) {
             // ═══ WALLET CONNECTED BUT NO PROFILE ═══
             // Trusted reconnect succeeded but this wallet has no username yet.
             // Show the identity overlay so they can complete setup.
@@ -4890,15 +4943,17 @@ subscribeToPrivateRequests();
             if (sidebarBigRank) { sidebarBigRank.textContent = ''; sidebarBigRank.classList.add('hidden'); }
             if (sidebarBigLevel) { sidebarBigLevel.textContent = ''; sidebarBigLevel.classList.add('hidden'); }
 
-                        inputAreaBar.classList.remove('hidden');
+            inputAreaBar.classList.remove('hidden');
             nameOverlay.classList.add('hidden');
             setReplyingTo(null);
             switchTab('public');
 
-            // ⚑ Fetch chain balance so the wallet token list populates
+            // ⚑ Fetch chain balance so the wallet token list populates —
+            //   fire-and-forget, never blocks the identity overlay.
             if (phantomConnected && phantomWalletPublicKey) {
-                try { await fetchAndDisplayAllTokens(); }
-                catch (e) { console.warn('[init] token fetch failed:', e); }
+                fetchAndDisplayAllTokens().catch(function (e) {
+                    console.warn('[init] token fetch failed:', e);
+                });
             }
 
             await loadMessages();
