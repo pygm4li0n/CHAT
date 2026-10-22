@@ -1677,7 +1677,7 @@ return true;
                 showError(friendly);
                 return false;
             }
-       } finally {
+              } finally {
     isConnecting = false;
     if (phantomConnectBtnOverlay) {
         phantomConnectBtnOverlay.disabled = false;
@@ -1690,6 +1690,7 @@ return true;
             `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Connect Phantom</span>`;
     }
 }
+}   // ⚑ FIX: closes async function connectPhantom()
     function disconnectPhantom() {
         const provider = getPhantomProvider();
         if (provider && phantomConnected) provider.disconnect().catch(console.warn);
