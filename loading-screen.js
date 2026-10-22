@@ -40,10 +40,10 @@
 
     var CSS_ID = 'msn-boot-styles';
     var OVERLAY_ID = 'msnBootOverlay';
-    var REVEAL_DELAY = 800;   // dwell after ready before reveal
-    var FADE_DURATION = 500;
-    var MAX_WAIT = 12000;     // hard timeout — never sticks
-    var MIN_DISPLAY = 2800;   // always show at least one full spin cycle
+    var REVEAL_DELAY = 450;   // dwell after ready before reveal
+    var FADE_DURATION = 400;
+    var MAX_WAIT = 12000;
+    var MIN_DISPLAY = 1600;   // one full spin still plays, but much shorter
     var MOUNT_TIME;
 
     var LOGO_URL = 'https://i.postimg.cc/fbZCV8sQ/Chat-GPT-Image-20-sept-2026-23-51-47.png';
