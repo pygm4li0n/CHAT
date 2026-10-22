@@ -851,8 +851,8 @@
         return addr.slice(0, 4) + '…' + addr.slice(-4);
     }
 
-               // ── Epic clean card ──
-        function buildRoomCard(room, currentWallet, activeId) {
+                // ── Epic clean card v2 — ticker tight, full CA on own line ──
+    function buildRoomCard(room, currentWallet, activeId) {
         var canModify = canModifyRoom(room, currentWallet);
         var gateOn    = room.require_token_gate !== false;
         var isActive  = activeId && activeId === room.id;
@@ -877,27 +877,22 @@
             changeCls = parseFloat(info.change24h) >= 0 ? 'rl-change-pos' : 'rl-change-neg';
         }
 
-               // Build meta parts — separator before time is tagged for mobile hide
-        var parts = [];
-        if (priceStr)  parts.push('<span class="rl-price">' + esc(priceStr) + '</span>');
-        if (changeStr) parts.push('<span class="rl-change ' + changeCls + '">' + esc(changeStr) + '</span>');
-        parts.push('<button type="button" class="rl-mint" data-copy-ca="' + esc(room.token_mint) + '" title="' + esc(room.token_mint) + ' — click to copy">'
-            + esc(room.token_mint.slice(0, 5) + '…' + room.token_mint.slice(-5)) + '</button>');
-        parts.push('<span class="rl-time">' + esc(formatCreatedAt(room.created_at)) + '</span>');
+        // Row 2 — price + change + time
+        var priceParts = [];
+        if (priceStr)  priceParts.push('<span class="rl-price">' + esc(priceStr) + '</span>');
+        if (changeStr) priceParts.push('<span class="rl-change ' + changeCls + '">' + esc(changeStr) + '</span>');
+        priceParts.push('<span class="rl-time">' + esc(formatCreatedAt(room.created_at)) + '</span>');
+        var priceHtml = priceParts.join('<span class="rl-sep">·</span>');
 
-        var metaHtml = '';
-        for (var mi = 0; mi < parts.length; mi++) {
-            if (mi > 0) {
-                var isLastSep = (mi === parts.length - 1);
-                metaHtml += '<span class="rl-sep' + (isLastSep ? ' rl-sep-time' : '') + '">·</span>';
-            }
-            metaHtml += parts[mi];
-        }
+        // Row 3 — full CA chip (copyable)
+        var caHtml = '<button type="button" class="rl-mint" data-copy-ca="'
+            + esc(room.token_mint) + '" title="' + esc(room.token_mint)
+            + ' — click to copy">' + esc(room.token_mint) + '</button>';
 
         var actions = '<div class="rl-actions">';
         actions += '<button type="button" class="rl-btn-primary" data-enter-room="' + esc(room.id) + '">Enter</button>';
         actions += '<button type="button" class="rl-btn-ghost" data-share-room="' + esc(room.id) + '" title="Copy link" aria-label="Copy room link">' + ICONS.copy + '</button>';
-                if (canModify) {
+        if (canModify) {
             actions += '<button type="button" class="rl-btn-ghost" data-toggle-room="' + esc(room.id) + '" data-current="' + (gateOn ? '1' : '0') + '" title="' + (gateOn ? 'Disable token gate' : 'Enable token gate') + '" aria-label="Toggle token gate">' + (gateOn ? ICONS.lock : ICONS.unlock) + '</button>';
             actions += '<button type="button" class="rl-btn-danger" data-delete-room="' + esc(room.id) + '" data-room-name="' + esc(room.name) + '" title="Delete room" aria-label="Delete room">' + ICONS.trash + '</button>';
         }
@@ -910,12 +905,12 @@
             +     '<span class="rl-name">' + esc(room.name) + '</span>'
             +     symbolHtml
             +   '</div>'
-            +   '<div class="rl-meta-row">' + metaHtml + '</div>'
+            +   '<div class="rl-meta-row">' + priceHtml + '</div>'
+            +   caHtml
             + '</div>'
             + actions
             + '</div>';
     }
-
     function attachRoomListListeners(list) {
         list.querySelectorAll('.rooms-list-item').forEach(function (el) {
             el.addEventListener('click', function (e) {
@@ -1100,7 +1095,9 @@
                 var priceStr  = formatPrice(info.priceUsd);
                 var changeStr = formatChange(info.change24h);
                 if (priceStr || changeStr) {
+                    var timeEl = metaRow.querySelector('.rl-time');
                     var frag = document.createDocumentFragment();
+
                     if (priceStr) {
                         var pEl = document.createElement('span');
                         pEl.className = 'rl-price';
@@ -1108,20 +1105,29 @@
                         frag.appendChild(pEl);
                     }
                     if (changeStr) {
-                        var sep1 = document.createElement('span');
-                        sep1.className = 'rl-sep';
-                        sep1.textContent = '·';
-                        frag.appendChild(sep1);
+                        if (priceStr) {
+                            var sep1 = document.createElement('span');
+                            sep1.className = 'rl-sep';
+                            sep1.textContent = '·';
+                            frag.appendChild(sep1);
+                        }
                         var cEl = document.createElement('span');
                         cEl.className = 'rl-change ' + (parseFloat(info.change24h) >= 0 ? 'rl-change-pos' : 'rl-change-neg');
                         cEl.textContent = changeStr;
                         frag.appendChild(cEl);
                     }
-                    var sep2 = document.createElement('span');
-                    sep2.className = 'rl-sep';
-                    sep2.textContent = '·';
-                    frag.appendChild(sep2);
-                    metaRow.insertBefore(frag, metaRow.firstChild);
+
+                    // Insert before time if it exists, else append
+                    if (timeEl) {
+                        // also add a separator before the time
+                        var sepTime = document.createElement('span');
+                        sepTime.className = 'rl-sep rl-sep-time';
+                        sepTime.textContent = '·';
+                        frag.appendChild(sepTime);
+                        metaRow.insertBefore(frag, timeEl);
+                    } else {
+                        metaRow.appendChild(frag);
+                    }
                 }
             }
         });
