@@ -107,6 +107,36 @@
         return false;
     }
 
+        // ── SVG icon set — crisp, no emoji ──
+    var ICONS = {
+        copy:   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+        check:  '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>',
+        trash:  '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+        lock:   '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+        unlock: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
+        arrow:  '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+        lockSm:   '<svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9z"/></svg>',
+        unlockSm: '<svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true"><path d="M12 2a5 5 0 0 0-5 5h2a3 3 0 1 1 6 0v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5z"/></svg>'
+    };
+
+    function formatPrice(p) {
+        if (p == null) return null;
+        var n = parseFloat(p);
+        if (!isFinite(n) || n <= 0) return null;
+        if (n >= 1000)   return '$' + n.toFixed(0);
+        if (n >= 1)      return '$' + n.toFixed(2);
+        if (n >= 0.01)   return '$' + n.toFixed(4);
+        if (n >= 0.0001) return '$' + n.toFixed(6);
+        return '$' + n.toExponential(2);
+    }
+
+    function formatChange(c) {
+        if (c == null) return null;
+        var n = parseFloat(c);
+        if (!isFinite(n)) return null;
+        return (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
+    }
+
     function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) {
             return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m];
@@ -204,43 +234,55 @@
         if (!room) { showError('Room not found'); return; }
         activeRoomId = roomId;
 
-        // ── Show room header, hide main tabs ──
+                // ── Show room header, hide main tabs ──
         var tabsBar = document.getElementById('chatTabs');
         if (tabsBar) tabsBar.classList.add('hidden');
         var hdrBar = document.getElementById('roomHeaderBar');
         if (hdrBar) {
             hdrBar.classList.remove('hidden');
 
-            // Build logo + text wrapper inside .room-header-info (once)
+            // Epic one-line: [logo] Name · CA · $price Δ%
             var info = hdrBar.querySelector('.room-header-info');
-            if (info && !info.querySelector('.room-header-text')) {
-                var nameText = (document.getElementById('roomHeaderName') || {}).textContent || '';
-                var mintText = (document.getElementById('roomHeaderMint') || {}).textContent || '';
+            if (info) {
+                var mintShort = room.token_mint.slice(0, 4) + '…' + room.token_mint.slice(-4);
                 info.innerHTML =
                     '<img class="room-header-token-logo" id="roomHeaderTokenLogo" src="" alt="" style="display:none;">' +
-                    '<div class="room-header-text">' +
-                        '<span class="room-header-name" id="roomHeaderName">' + esc(nameText) + '</span>' +
-                        '<span class="room-header-mint" id="roomHeaderMint">' + esc(mintText) + '</span>' +
-                    '</div>';
+                    '<span class="room-header-name" id="roomHeaderName">' + esc(room.name) + '</span>' +
+                    '<span class="room-header-sep">·</span>' +
+                    '<span class="room-header-mint" id="roomHeaderMint" title="' + esc(room.token_mint) + '">' + esc(mintShort) + '</span>' +
+                    '<span class="room-header-price-wrap" id="roomHeaderPriceWrap" style="display:none;">' +
+                        '<span class="room-header-price" id="roomHeaderPrice"></span>' +
+                        '<span class="room-header-change" id="roomHeaderChange"></span>' +
+                    '</span>';
             }
-            var nameEl = document.getElementById('roomHeaderName');
-            var mintEl = document.getElementById('roomHeaderMint');
-            if (nameEl) nameEl.textContent = room.name;
-            if (mintEl) mintEl.textContent = room.token_mint.slice(0, 6) + '…' + room.token_mint.slice(-6);
 
-            // Token logo into the header
-            var logoEl = document.getElementById('roomHeaderTokenLogo');
-            if (logoEl) {
-                logoEl.style.display = 'none';
-                logoEl.removeAttribute('src');
-                fetchTokenInfo(room.token_mint).then(function (tinfo) {
-                    if (tinfo && tinfo.imageUrl) {
-                        logoEl.src = tinfo.imageUrl;
-                        logoEl.style.display = 'block';
-                        logoEl.onerror = function () { logoEl.style.display = 'none'; };
+            fetchTokenInfo(room.token_mint).then(function (tinfo) {
+                if (!tinfo) return;
+
+                var logoEl = document.getElementById('roomHeaderTokenLogo');
+                if (logoEl && tinfo.imageUrl) {
+                    logoEl.src = tinfo.imageUrl;
+                    logoEl.style.display = 'block';
+                    logoEl.onerror = function () { logoEl.style.display = 'none'; };
+                }
+
+                var wrapEl   = document.getElementById('roomHeaderPriceWrap');
+                var priceEl  = document.getElementById('roomHeaderPrice');
+                var changeEl = document.getElementById('roomHeaderChange');
+
+                var priceStr  = formatPrice(tinfo.priceUsd);
+                var changeStr = formatChange(tinfo.change24h);
+
+                if (wrapEl && (priceStr || changeStr)) {
+                    wrapEl.style.display = 'inline-flex';
+                    if (priceEl && priceStr) priceEl.textContent = priceStr;
+                    if (changeEl && changeStr) {
+                        changeEl.textContent = changeStr;
+                        changeEl.className = 'room-header-change ' +
+                            (parseFloat(tinfo.change24h) >= 0 ? 'rh-change-pos' : 'rh-change-neg');
                     }
-                });
-            }
+                }
+            });
         }
 
         var container = document.getElementById('roomMessagesContainer');
@@ -794,50 +836,57 @@
         return addr.slice(0, 4) + '…' + addr.slice(-4);
     }
 
-            // ── One card — clean single-row grid ──
+               // ── Epic clean card ──
     function buildRoomCard(room, currentWallet, activeId) {
         var isCreator = isRoomCreator(room, currentWallet);
         var gateOn    = room.require_token_gate !== false;
         var isActive  = activeId && activeId === room.id;
         var info      = tokenInfoCache.get(room.token_mint) || null;
 
-        var gateIcon  = gateOn ? '🔒' : '🔓';
-        var gateClass = gateOn ? 'rl-gate-on' : 'rl-gate-off';
-        var gateTitle = gateOn ? 'Token gated — must hold to enter' : 'Open to all';
-
         var logoHtml = info && info.imageUrl
             ? '<img src="' + esc(info.imageUrl) + '" alt="" onerror="this.replaceWith(document.createTextNode(\'?\'));">'
             : '?';
+
+        var badgeHtml = '<span class="rl-gate-badge ' + (gateOn ? 'rl-gate-on' : 'rl-gate-off') + '" title="'
+            + (gateOn ? 'Token gated' : 'Open to all') + '">'
+            + (gateOn ? ICONS.lockSm : ICONS.unlockSm) + '</span>';
 
         var symbolHtml = info && info.symbol
             ? '<span class="rl-symbol">$' + esc(info.symbol) + '</span>'
             : '';
 
-        var mintShort = room.token_mint.slice(0, 5) + '…' + room.token_mint.slice(-5);
-        var timeStr   = formatCreatedAt(room.created_at);
+        var priceStr  = formatPrice(info && info.priceUsd);
+        var changeStr = formatChange(info && info.change24h);
+        var changeCls = '';
+        if (info && info.change24h != null) {
+            changeCls = parseFloat(info.change24h) >= 0 ? 'rl-change-pos' : 'rl-change-neg';
+        }
+
+        var metaParts = [];
+        if (priceStr)  metaParts.push('<span class="rl-price">' + esc(priceStr) + '</span>');
+        if (changeStr) metaParts.push('<span class="rl-change ' + changeCls + '">' + esc(changeStr) + '</span>');
+        metaParts.push('<span class="rl-mint" title="' + esc(room.token_mint) + '">'
+            + esc(room.token_mint.slice(0, 5) + '…' + room.token_mint.slice(-5)) + '</span>');
+        metaParts.push('<span class="rl-time">' + esc(formatCreatedAt(room.created_at)) + '</span>');
+        var metaHtml = metaParts.join('<span class="rl-sep">·</span>');
 
         var actions = '<div class="rl-actions">';
-        actions += '<button type="button" class="rl-btn-primary" data-enter-room="' + esc(room.id) + '">Enter</button>';
-        actions += '<button type="button" class="rl-btn-ghost" data-share-room="' + esc(room.id) + '" title="Copy room link">⧉</button>';
+        actions += '<button type="button" class="rl-btn-primary" data-enter-room="' + esc(room.id) + '">Enter ' + ICONS.arrow + '</button>';
+        actions += '<button type="button" class="rl-btn-ghost" data-share-room="' + esc(room.id) + '" title="Copy link" aria-label="Copy room link">' + ICONS.copy + '</button>';
         if (isCreator) {
-            actions += '<button type="button" class="rl-btn-ghost" data-toggle-room="' + esc(room.id) + '" data-current="' + (gateOn ? '1' : '0') + '" title="' + (gateOn ? 'Disable token gate' : 'Enable token gate') + '">' + gateIcon + '</button>';
-            actions += '<button type="button" class="rl-btn-danger" data-delete-room="' + esc(room.id) + '" data-room-name="' + esc(room.name) + '" title="Delete room">🗑</button>';
+            actions += '<button type="button" class="rl-btn-ghost" data-toggle-room="' + esc(room.id) + '" data-current="' + (gateOn ? '1' : '0') + '" title="' + (gateOn ? 'Disable token gate' : 'Enable token gate') + '" aria-label="Toggle token gate">' + (gateOn ? ICONS.lock : ICONS.unlock) + '</button>';
+            actions += '<button type="button" class="rl-btn-danger" data-delete-room="' + esc(room.id) + '" data-room-name="' + esc(room.name) + '" title="Delete room" aria-label="Delete room">' + ICONS.trash + '</button>';
         }
         actions += '</div>';
 
         return '<div class="rooms-list-item' + (isActive ? ' is-active' : '') + '" data-room-id="' + esc(room.id) + '">'
-            + '<div class="rl-thumb">' + logoHtml + '</div>'
+            + '<div class="rl-thumb">' + logoHtml + badgeHtml + '</div>'
             + '<div class="rl-info">'
             +   '<div class="rl-title-row">'
             +     '<span class="rl-name">' + esc(room.name) + '</span>'
             +     symbolHtml
             +   '</div>'
-            +   '<div class="rl-meta-row">'
-            +     '<span class="' + gateClass + '" title="' + gateTitle + '">' + gateIcon + '</span>'
-            +     '<span class="rl-mint" title="' + esc(room.token_mint) + '">' + esc(mintShort) + '</span>'
-            +     '<span class="rl-sep">·</span>'
-            +     '<span>' + esc(timeStr) + '</span>'
-            +   '</div>'
+            +   '<div class="rl-meta-row">' + metaHtml + '</div>'
             + '</div>'
             + actions
             + '</div>';
@@ -970,15 +1019,56 @@
             var info = tokenInfoCache.get(room.token_mint);
             if (!info) return;
 
-                       if (info.imageUrl) {
-                var logoEl = card.querySelector('.rl-thumb');
-                if (logoEl) {
-                    logoEl.innerHTML = '<img src="' + esc(info.imageUrl) + '" alt="" onerror="this.replaceWith(document.createTextNode(\'?\'));">';
+                                  if (info.imageUrl) {
+                var thumbEl = card.querySelector('.rl-thumb');
+                if (thumbEl) {
+                    var badgeEl = thumbEl.querySelector('.rl-gate-badge');
+                    thumbEl.innerHTML = '<img src="' + esc(info.imageUrl) + '" alt="" onerror="this.replaceWith(document.createTextNode(\'?\'));">'
+                        + (badgeEl ? badgeEl.outerHTML : '');
                 }
             }
             if (info.symbol) {
                 var symEl = card.querySelector('.rl-symbol');
-                if (symEl) symEl.textContent = '$' + info.symbol;
+                if (symEl) { symEl.textContent = '$' + info.symbol; }
+                else {
+                    var titleRow = card.querySelector('.rl-title-row');
+                    if (titleRow) {
+                        var newSym = document.createElement('span');
+                        newSym.className = 'rl-symbol';
+                        newSym.textContent = '$' + info.symbol;
+                        titleRow.appendChild(newSym);
+                    }
+                }
+            }
+            // Inject price + change if they arrived late
+            var metaRow = card.querySelector('.rl-meta-row');
+            if (metaRow && !metaRow.querySelector('.rl-price')) {
+                var priceStr  = formatPrice(info.priceUsd);
+                var changeStr = formatChange(info.change24h);
+                if (priceStr || changeStr) {
+                    var frag = document.createDocumentFragment();
+                    if (priceStr) {
+                        var pEl = document.createElement('span');
+                        pEl.className = 'rl-price';
+                        pEl.textContent = priceStr;
+                        frag.appendChild(pEl);
+                    }
+                    if (changeStr) {
+                        var sep1 = document.createElement('span');
+                        sep1.className = 'rl-sep';
+                        sep1.textContent = '·';
+                        frag.appendChild(sep1);
+                        var cEl = document.createElement('span');
+                        cEl.className = 'rl-change ' + (parseFloat(info.change24h) >= 0 ? 'rl-change-pos' : 'rl-change-neg');
+                        cEl.textContent = changeStr;
+                        frag.appendChild(cEl);
+                    }
+                    var sep2 = document.createElement('span');
+                    sep2.className = 'rl-sep';
+                    sep2.textContent = '·';
+                    frag.appendChild(sep2);
+                    metaRow.insertBefore(frag, metaRow.firstChild);
+                }
             }
         });
     }
@@ -1034,19 +1124,19 @@
         }
     }
 
-       function copyShareLink(roomId, btnEl) {
+           function copyShareLink(roomId, btnEl) {
         if (!roomId) return;
         var url = getShareUrl(roomId);
 
         var flash = function () {
             if (btnEl) {
-                var orig = btnEl.textContent;
+                var orig = btnEl.innerHTML;
                 btnEl.classList.add('copied');
-                btnEl.textContent = '✓';
+                btnEl.innerHTML = ICONS.check;
                 clearTimeout(btnEl._copyTimer);
                 btnEl._copyTimer = setTimeout(function () {
                     btnEl.classList.remove('copied');
-                    btnEl.textContent = orig;
+                    btnEl.innerHTML = orig;
                 }, 1500);
             }
             showSuccess('🔗 Room link copied!');
