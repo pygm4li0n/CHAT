@@ -24,7 +24,55 @@
     var roomOnlineUsers     = new Map();
     var roomListChannel     = null;
     var _isBootingRooms     = false;
-    var pendingSharedRoomId = null;
+      var pendingSharedRoomId = null;
+
+    // ═══════════════════════════════════════════════════════
+    //  TOKEN INFO — DexScreener lookup with 1h cache
+    //  Powers card logos, symbol pills, room header, watermark.
+    // ═══════════════════════════════════════════════════════
+    var tokenInfoCache = new Map();      // mint → { imageUrl, symbol, name, priceUsd, fetchedAt }
+    var TOKEN_INFO_TTL = 60 * 60 * 1000;
+
+    async function fetchTokenInfo(mint) {
+        if (!mint) return null;
+
+        var cached = tokenInfoCache.get(mint);
+        if (cached && (Date.now() - cached.fetchedAt) < TOKEN_INFO_TTL) return cached;
+
+        try {
+            var res  = await fetch('https://api.dexscreener.com/latest/dex/tokens/' + mint);
+            var json = await res.json();
+            var pair = json && json.pairs && json.pairs[0];
+
+            var info = {
+                imageUrl:  pair && ((pair.info && pair.info.imageUrl) || (pair.baseToken && pair.baseToken.imageUrl)) || null,
+                symbol:    (pair && pair.baseToken && pair.baseToken.symbol) || null,
+                name:      (pair && pair.baseToken && pair.baseToken.name)   || null,
+                priceUsd:  (pair && pair.priceUsd) || null,
+                change24h: (pair && pair.priceChange && pair.priceChange.h24) || null,
+                fetchedAt: Date.now()
+            };
+            tokenInfoCache.set(mint, info);
+            return info;
+        } catch (e) {
+            console.warn('[rooms] token info fetch failed:', mint, e);
+            tokenInfoCache.set(mint, { imageUrl: null, symbol: null, fetchedAt: Date.now() });
+            return null;
+        }
+    }
+
+    async function prefetchTokenInfo(mints) {
+        var toFetch = (mints || []).filter(function (m) {
+            var c = tokenInfoCache.get(m);
+            return m && (!c || (Date.now() - c.fetchedAt) >= TOKEN_INFO_TTL);
+        });
+        if (!toFetch.length) return;
+
+        // 4 at a time to stay under DexScreener's rate limit
+        for (var i = 0; i < toFetch.length; i += 4) {
+            await Promise.all(toFetch.slice(i, i + 4).map(fetchTokenInfo));
+        }
+    }
 
        var _solConnRooms = null;
     function getRoomsConnection() {
@@ -132,25 +180,48 @@
     // ═══════════════════════════════════════════════════════
     //  ACTIVATE ROOM (called by script.js switchTab)
     // ═══════════════════════════════════════════════════════
-        async function activateRoom(roomId) {
+                async function activateRoom(roomId) {
         var room = findRoomById(roomId);
-        if (!room) {
-            showError('Room not found');
-            return;
-        }
+        if (!room) { showError('Room not found'); return; }
         activeRoomId = roomId;
 
-        // ⚑ Show room header bar, hide main tabs
+        // ── Show room header, hide main tabs ──
         var tabsBar = document.getElementById('chatTabs');
         if (tabsBar) tabsBar.classList.add('hidden');
         var hdrBar = document.getElementById('roomHeaderBar');
         if (hdrBar) {
             hdrBar.classList.remove('hidden');
+
+            // Build logo + text wrapper inside .room-header-info (once)
+            var info = hdrBar.querySelector('.room-header-info');
+            if (info && !info.querySelector('.room-header-text')) {
+                var nameText = (document.getElementById('roomHeaderName') || {}).textContent || '';
+                var mintText = (document.getElementById('roomHeaderMint') || {}).textContent || '';
+                info.innerHTML =
+                    '<img class="room-header-token-logo" id="roomHeaderTokenLogo" src="" alt="" style="display:none;">' +
+                    '<div class="room-header-text">' +
+                        '<span class="room-header-name" id="roomHeaderName">' + esc(nameText) + '</span>' +
+                        '<span class="room-header-mint" id="roomHeaderMint">' + esc(mintText) + '</span>' +
+                    '</div>';
+            }
             var nameEl = document.getElementById('roomHeaderName');
             var mintEl = document.getElementById('roomHeaderMint');
-            if (nameEl) nameEl.textContent = '🏛️ ' + room.name;
-            if (mintEl) mintEl.textContent =
-                room.token_mint.slice(0, 6) + '…' + room.token_mint.slice(-6);
+            if (nameEl) nameEl.textContent = room.name;
+            if (mintEl) mintEl.textContent = room.token_mint.slice(0, 6) + '…' + room.token_mint.slice(-6);
+
+            // Token logo into the header
+            var logoEl = document.getElementById('roomHeaderTokenLogo');
+            if (logoEl) {
+                logoEl.style.display = 'none';
+                logoEl.removeAttribute('src');
+                fetchTokenInfo(room.token_mint).then(function (tinfo) {
+                    if (tinfo && tinfo.imageUrl) {
+                        logoEl.src = tinfo.imageUrl;
+                        logoEl.style.display = 'block';
+                        logoEl.onerror = function () { logoEl.style.display = 'none'; };
+                    }
+                });
+            }
         }
 
         var container = document.getElementById('roomMessagesContainer');
@@ -162,16 +233,13 @@
             return;
         }
 
-                container.innerHTML = '';
+        container.innerHTML = '';
         if (window.MSNChat && window.MSNChat.showMsgLoader) {
             window.MSNChat.showMsgLoader(container, 'Checking token balance');
         }
 
-        // 1. Check chain balance — only if the room requires a token
-        if (room.require_token_gate === false) {
-            // ⚑ Gate disabled by creator — any connected wallet can enter
-            console.log('[rooms] token gate disabled for room:', roomId);
-        } else {
+        // ── Token gate ──
+        if (room.require_token_gate !== false) {
             var bal = await fetchTokenBalance(wallet, room.token_mint);
             if (bal == null) {
                 container.innerHTML = '<div class="empty-chat-hint">Could not verify token balance — try again.</div>';
@@ -184,23 +252,27 @@
             }
         }
 
-        // 2. Register membership
+        // ── Token watermark inside the chat container ──
+        try {
+            var tinfo = await fetchTokenInfo(room.token_mint);
+            if (tinfo && tinfo.imageUrl) {
+                container.style.setProperty('--room-watermark', 'url("' + tinfo.imageUrl + '")');
+            } else {
+                container.style.removeProperty('--room-watermark');
+            }
+        } catch (e) { /* non-fatal */ }
+
+        // ── Register membership ──
         try {
             var sb = getSB();
             await sb.rpc('join_room', { p_wallet: wallet, p_room_id: roomId });
-        } catch (e) { /* non-fatal — get_room_messages will validate */ }
+        } catch (e) { /* non-fatal */ }
 
-        // 3. Load messages
         await loadRoomMessages(roomId);
-
-        // 4. Subscribe presence + realtime
         setupRoomPresence(roomId);
         setupRoomRealtime(roomId);
-
-        // 5. Load room XP
         loadRoomXp(roomId);
     }
-
     // ═══════════════════════════════════════════════════════
     //  MESSAGE LOADING
     // ═══════════════════════════════════════════════════════
@@ -685,107 +757,98 @@
         return addr.slice(0, 4) + '…' + addr.slice(-4);
     }
 
-    function renderRoomsList() {
-        var list = document.getElementById('roomsList');
-        if (!list) return;
-        if (!roomsCache.length) {
-            list.innerHTML = '<div class="rooms-list-empty">No rooms yet.<br>Click <strong>+ Create New Room</strong> below.</div>';
-            return;
+        // ── One card, hero layout ──
+    function buildRoomCard(room, currentWallet, activeId) {
+        var isCreator = currentWallet && room.creator_wallet === currentWallet;
+        var gateOn    = room.require_token_gate !== false;
+        var isActive  = activeId && activeId === room.id;
+        var info      = tokenInfoCache.get(room.token_mint) || null;
+
+        var gateBadge = gateOn
+            ? '<span class="rooms-list-item-gate rooms-list-item-gate-on">🔒 Required</span>'
+            : '<span class="rooms-list-item-gate rooms-list-item-gate-off">🔓 Open</span>';
+
+        var creatorLabel = isCreator ? '<strong>You</strong>' : esc(shortAddr(room.creator_wallet));
+
+        var logoHtml = info && info.imageUrl
+            ? '<img src="' + esc(info.imageUrl) + '" alt="" onerror="this.replaceWith(document.createTextNode(\'?\'));">'
+            : '?';
+
+        var symbolHtml = info && info.symbol
+            ? '<span class="rooms-list-item-symbol">$' + esc(info.symbol) + '</span>'
+            : '<span class="rooms-list-item-symbol"></span>';
+
+        var mintShort = room.token_mint.slice(0, 5) + '…' + room.token_mint.slice(-5);
+
+        var actions = '<div class="rooms-list-item-actions">';
+        actions += '<button type="button" class="room-action-enter" data-enter-room="' + esc(room.id) + '">▶ Enter</button>';
+        actions += '<button type="button" class="room-action-share" data-share-room="' + esc(room.id) + '">🔗 Copy</button>';
+        if (isCreator) {
+            actions += '<button type="button" class="room-action-gate" data-toggle-room="' + esc(room.id) + '" data-current="' + (gateOn ? '1' : '0') + '">'
+                     + (gateOn ? '🔓 Open It' : '🔒 Gate It')
+                     + '</button>';
+            actions += '<button type="button" class="room-action-delete" data-delete-room="' + esc(room.id) + '" data-room-name="' + esc(room.name) + '" title="Delete room">🗑</button>';
         }
+        actions += '</div>';
 
-        var currentWallet = getWallet();
-        list.innerHTML = roomsCache.map(function (room) {
-            var isCreator = currentWallet && room.creator_wallet === currentWallet;
-            var gateOn = room.require_token_gate !== false;
+        return '<div class="rooms-list-item' + (isActive ? ' is-active' : '') + '" data-room-id="' + esc(room.id) + '">'
+            + '<div class="rooms-list-item-logo">' + logoHtml + '</div>'
+            + '<div class="rooms-list-item-top">'
+            +   '<div class="rooms-list-item-name">' + esc(room.name) + '</div>'
+            +   gateBadge
+            + '</div>'
+            + '<div class="rooms-list-item-meta">'
+            +   symbolHtml
+            +   '<span class="rooms-list-item-mint-text" title="' + esc(room.token_mint) + '">' + esc(mintShort) + '</span>'
+            +   '<span>By <strong>' + creatorLabel + '</strong></span>'
+            +   '<span>Created <strong>' + esc(formatCreatedAt(room.created_at)) + '</strong></span>'
+            + '</div>'
+            + actions
+            + '</div>';
+    }
 
-            var gateBadge = gateOn
-                ? '<span class="rooms-list-item-gate rooms-list-item-gate-on" title="Token required to join">🔒 Token Required</span>'
-                : '<span class="rooms-list-item-gate rooms-list-item-gate-off" title="Open to any connected wallet">🔓 Open</span>';
-
-            var creatorLabel = isCreator
-                ? '<strong>You</strong>'
-                : esc(shortAddr(room.creator_wallet));
-
-            var actions = '<div class="rooms-list-item-actions">';
-            actions += '<button type="button" class="room-action-enter" data-enter-room="' + esc(room.id) + '">▶ Enter</button>';
-            actions += '<button type="button" class="room-action-share" data-share-room="' + esc(room.id) + '">🔗 Copy Link</button>';
-            if (isCreator) {
-                actions += '<button type="button" class="room-action-gate" data-toggle-room="' + esc(room.id) + '" data-current="' + (gateOn ? '1' : '0') + '">' + (gateOn ? '🔓 Open It' : '🔒 Gate It') + '</button>';
-                actions += '<button type="button" class="room-action-delete" data-delete-room="' + esc(room.id) + '" data-room-name="' + esc(room.name) + '">🗑 Delete</button>';
-            }
-            actions += '</div>';
-
-            return '<div class="rooms-list-item" data-room-id="' + esc(room.id) + '">'
-                + '<div class="rooms-list-item-top">'
-                +   '<div class="rooms-list-item-name">🏛️ ' + esc(room.name) + '</div>'
-                +   gateBadge
-                + '</div>'
-                + '<div class="rooms-list-item-mint">'
-                +   '<span class="rooms-list-item-mint-label">CA</span>'
-                +   esc(room.token_mint)
-                + '</div>'
-                + '<div class="rooms-list-item-meta">'
-                +   '<span>By <strong>' + creatorLabel + '</strong></span>'
-                +   '<span>Created <strong>' + esc(formatCreatedAt(room.created_at)) + '</strong></span>'
-                + '</div>'
-                + actions
-                + '</div>';
-        }).join('');
-
-        // ── Enter room (card click) ──
+    function attachRoomListListeners(list) {
         list.querySelectorAll('.rooms-list-item').forEach(function (el) {
             el.addEventListener('click', function (e) {
                 if (e.target.closest('button')) return;
                 var id = el.getAttribute('data-room-id');
                 if (!id) return;
                 closeRoomsList();
-                if (window.MSNChat && window.MSNChat.switchTab) {
-                    window.MSNChat.switchTab('room-' + id);
-                }
+                if (window.MSNChat && window.MSNChat.switchTab) window.MSNChat.switchTab('room-' + id);
             });
         });
 
-        // ── Enter button ──
         list.querySelectorAll('[data-enter-room]').forEach(function (btn) {
             btn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                e.preventDefault();
+                e.stopPropagation(); e.preventDefault();
                 var id = this.getAttribute('data-enter-room');
                 closeRoomsList();
-                if (window.MSNChat && window.MSNChat.switchTab) {
-                    window.MSNChat.switchTab('room-' + id);
-                }
+                if (window.MSNChat && window.MSNChat.switchTab) window.MSNChat.switchTab('room-' + id);
             });
         });
 
-        // ── Copy share link ──
         list.querySelectorAll('[data-share-room]').forEach(function (btn) {
             btn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                e.preventDefault();
+                e.stopPropagation(); e.preventDefault();
                 copyShareLink(this.getAttribute('data-share-room'));
             });
         });
 
-        // ── Toggle gate ──
         list.querySelectorAll('[data-toggle-room]').forEach(function (btn) {
             btn.addEventListener('click', async function (e) {
-                e.stopPropagation();
-                e.preventDefault();
-                var roomId = this.getAttribute('data-toggle-room');
+                e.stopPropagation(); e.preventDefault();
+                var roomId      = this.getAttribute('data-toggle-room');
                 var currentlyOn = this.getAttribute('data-current') === '1';
-                var newValue = !currentlyOn;
-                this.disabled = true;
-                var origText = this.textContent;
+                var newValue    = !currentlyOn;
+                this.disabled   = true;
+                var origText    = this.textContent;
                 this.textContent = '…';
                 try {
                     var sb = getSB();
                     var wallet = getWallet();
                     if (!sb || !wallet) { showError('Connect wallet first'); return; }
                     var { data, error } = await sb.rpc('toggle_room_token_gate', {
-                        p_wallet: wallet,
-                        p_room_id: roomId,
-                        p_require: newValue
+                        p_wallet: wallet, p_room_id: roomId, p_require: newValue
                     });
                     if (error) throw error;
                     if (data && data.error) throw new Error(data.error);
@@ -801,45 +864,34 @@
             });
         });
 
-        // ── Delete room ──
         list.querySelectorAll('[data-delete-room]').forEach(function (btn) {
             btn.addEventListener('click', async function (e) {
-                e.stopPropagation();
-                e.preventDefault();
-                var roomId = this.getAttribute('data-delete-room');
+                e.stopPropagation(); e.preventDefault();
+                var roomId   = this.getAttribute('data-delete-room');
                 var roomName = this.getAttribute('data-room-name') || 'this room';
                 if (!confirm('Delete "' + roomName + '"?\n\nAll messages will be permanently removed. This cannot be undone.')) return;
 
-                this.disabled = true;
-                var origText = this.textContent;
-                this.textContent = 'Deleting…';
-
+                this.disabled   = true;
+                var origText    = this.textContent;
+                this.textContent = '…';
                 try {
                     var sb = getSB();
                     var wallet = getWallet();
                     if (!sb || !wallet) { showError('Connect wallet first'); return; }
-
-                    // If we're currently viewing this room, exit first
                     if (activeRoomId === roomId) {
-                        if (window.MSNChat && window.MSNChat.switchTab) {
-                            window.MSNChat.switchTab('public');
-                        }
+                        if (window.MSNChat && window.MSNChat.switchTab) window.MSNChat.switchTab('public');
                     }
-
                     var { data, error } = await sb.rpc('delete_room', {
-                        p_wallet: wallet,
-                        p_room_id: roomId
+                        p_wallet: wallet, p_room_id: roomId
                     });
                     if (error) throw error;
                     if (data && data.error) {
-                        if (data.error === 'not_creator') showError('Only the creator can delete this room');
-                        else if (data.error === 'room_not_found') showError('Room not found — refreshing');
-                        else showError('Delete failed: ' + data.error);
-                        await loadRooms();
-                        renderRoomsList();
+                        if (data.error === 'not_creator')          showError('Only the creator can delete this room');
+                        else if (data.error === 'room_not_found')  showError('Room not found — refreshing');
+                        else                                       showError('Delete failed: ' + data.error);
+                        await loadRooms(); renderRoomsList();
                         return;
                     }
-
                     showSuccess('🗑 Room deleted');
                     await loadRooms();
                     renderRoomsList();
@@ -850,6 +902,48 @@
                     this.textContent = origText;
                 }
             });
+        });
+    }
+
+    async function renderRoomsList() {
+        var list = document.getElementById('roomsList');
+        if (!list) return;
+
+        if (!roomsCache.length) {
+            list.innerHTML = '<div class="rooms-list-empty">No rooms yet.<br>Tap <strong>+ Create New Room</strong> below to found one.</div>';
+            return;
+        }
+
+        var currentWallet = getWallet();
+
+        // ── Pass 1 — instant render (logos show "?" until pass 2) ──
+        list.innerHTML = roomsCache.map(function (room) {
+            return buildRoomCard(room, currentWallet, activeRoomId);
+        }).join('');
+
+        attachRoomListListeners(list);
+
+        // ── Pass 2 — fetch token info, patch cards in place ──
+        var mints = roomsCache.map(function (r) { return r.token_mint; });
+        await prefetchTokenInfo(mints);
+
+        roomsCache.forEach(function (room) {
+            var card = list.querySelector('.rooms-list-item[data-room-id="' + CSS.escape(room.id) + '"]');
+            if (!card) return;
+
+            var info = tokenInfoCache.get(room.token_mint);
+            if (!info) return;
+
+            if (info.imageUrl) {
+                var logoEl = card.querySelector('.rooms-list-item-logo');
+                if (logoEl) {
+                    logoEl.innerHTML = '<img src="' + esc(info.imageUrl) + '" alt="" onerror="this.replaceWith(document.createTextNode(\'?\'));">';
+                }
+            }
+            if (info.symbol) {
+                var symEl = card.querySelector('.rooms-list-item-symbol');
+                if (symEl) symEl.textContent = '$' + info.symbol;
+            }
         });
     }
 
