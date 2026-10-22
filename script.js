@@ -53,9 +53,73 @@
                 animation: phantomDotPulse 2s ease-in-out infinite;
                 pointer-events: none;
             }
-            @keyframes phantomDotPulse {
+                       @keyframes phantomDotPulse {
                 0%, 100% { opacity: 1; transform: scale(1); }
                 50%      { opacity: 0.55; transform: scale(0.82); }
+            }
+
+            /* ═══════════════════════════════════════════════════════════
+               ⚑ CONNECTING STATE — epic clear feedback
+            ═══════════════════════════════════════════════════════════ */
+            .btn-icon.is-connecting,
+            #phantomConnectBtn.is-connecting {
+                pointer-events: none !important;
+                cursor: wait !important;
+                opacity: 0.9 !important;
+                background: linear-gradient(180deg, #4a3580 0%, #2e1f52 100%) !important;
+                border-color: #9945FF !important;
+                animation: phantomConnectingPulse 1.4s ease-in-out infinite !important;
+            }
+            .btn-icon.is-connecting img,
+            #phantomConnectBtn.is-connecting img {
+                opacity: 0.55 !important;
+                animation: phantomImgFlicker 2s ease-in-out infinite !important;
+                filter: drop-shadow(0 0 6px rgba(153, 69, 255, 0.9)) !important;
+            }
+            .btn-icon.is-connecting::before,
+            #phantomConnectBtn.is-connecting::before {
+                content: '' !important;
+                position: absolute !important;
+                inset: -6px !important;
+                border-radius: 50% !important;
+                border: 2px solid transparent !important;
+                border-top-color: #9945FF !important;
+                border-right-color: #9945FF !important;
+                animation: phantomSpin 0.9s linear infinite !important;
+                pointer-events: none !important;
+            }
+            @keyframes phantomConnectingPulse {
+                0%, 100% {
+                    box-shadow: 0 0 0 3px rgba(153, 69, 255, 0.25),
+                                0 0 20px rgba(153, 69, 255, 0.55);
+                }
+                50% {
+                    box-shadow: 0 0 0 5px rgba(153, 69, 255, 0.15),
+                                0 0 28px rgba(153, 69, 255, 0.85);
+                }
+            }
+            @keyframes phantomImgFlicker {
+                0%, 100% { opacity: 0.55; }
+                50%      { opacity: 0.9; }
+            }
+            @keyframes phantomSpin { to { transform: rotate(360deg); } }
+
+            /* ── Error flash — brief red pulse ── */
+            .btn-icon.is-error,
+            #phantomConnectBtn.is-error {
+                animation: phantomErrorFlash 1.4s ease-out !important;
+            }
+            @keyframes phantomErrorFlash {
+                0%, 40%, 80% {
+                    background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
+                    border-color: #ef4444;
+                    box-shadow: 0 0 16px rgba(239, 68, 68, 0.8);
+                }
+                20%, 60%, 100% {
+                    background: var(--bg-elevated, #1e2221);
+                    border-color: var(--border-default, #454B4B);
+                    box-shadow: none;
+                }
             }
 
             /* ═══════════════════════════════════════════════════════════
@@ -794,17 +858,17 @@
         if (!isConnecting) return;
         if (Date.now() - _connectStartedAt < CONNECT_HARD_LIMIT_MS) return;
 
-        console.warn('[wallet] watchdog: connect stuck, forcing reset');
+                console.warn('[wallet] watchdog: connect stuck, forcing reset');
         isConnecting = false;
-        const btn = document.getElementById('phantomConnectBtnOverlay');
-        if (btn) {
-            btn.disabled = false;
-            if (!phantomConnected) {
-                btn.innerHTML =
-                    `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Connect Phantom</span>`;
-            }
-        }
         try { getPhantomProvider()?.disconnect(); } catch (e) {}
+
+        // ⚑ Force UI back to a clean idle state + error flash
+        updatePhantomUI();
+        phantomConnectBtn.classList.add('is-error');
+        setTimeout(function () {
+            phantomConnectBtn.classList.remove('is-error');
+        }, 1400);
+
         showError('Wallet connection timed out. Click Connect to retry.');
     }, 5000);
 
@@ -1168,34 +1232,63 @@
         }
     }
 
-    function updatePhantomUI() {
-        const connected = !!(phantomConnected && phantomWalletPublicKey);
-        const addr = connected ? phantomWalletPublicKey.toBase58() : '';
-        const shortAddr = connected ? `${addr.slice(0, 4)}...${addr.slice(-4)}` : '';
+        function updatePhantomUI() {
+        // ⚑ State machine: connecting | connected | idle
+        const connecting = !!isConnecting;
+        const connected  = !connecting && !!(phantomConnected && phantomWalletPublicKey);
 
-        walletAddressSpan.textContent = connected ? `👛 ${shortAddr}` : '';
-        phantomConnectBtn.title = connected ? 'Disconnect Phantom' : 'Connect Phantom Wallet';
+        const addr      = connected && phantomWalletPublicKey ? phantomWalletPublicKey.toBase58() : '';
+        const shortAddr = connected && addr ? `${addr.slice(0, 4)}...${addr.slice(-4)}` : '';
+
+        // ── Main header button ──
         phantomConnectBtn.classList.toggle('connected', connected);
+        phantomConnectBtn.classList.toggle('is-connecting', connecting);
+        phantomConnectBtn.disabled = connecting;
+        phantomConnectBtn.title = connecting ? 'Connecting to Phantom…'
+                                : connected  ? 'Disconnect Phantom'
+                                : 'Connect Phantom Wallet';
+
+        // ── Wallet address slot ──
+        if (connecting) {
+            walletAddressSpan.textContent = '🔄 Connecting…';
+        } else {
+            walletAddressSpan.textContent = connected ? `👛 ${shortAddr}` : '';
+        }
 
         if (sidebarWalletAddress) {
-            sidebarWalletAddress.textContent = connected ? `👛 ${shortAddr}` : '';
+            sidebarWalletAddress.textContent = connecting ? 'Connecting…'
+                                            : connected  ? `👛 ${shortAddr}`
+                                            : '';
         }
 
+        // ── Overlay button (name overlay) ──
         if (phantomConnectBtnOverlay) {
-            walletAddressOverlay.textContent = connected ? `👛 ${shortAddr}` : '';
-            phantomConnectBtnOverlay.title = connected ? 'Disconnect Phantom' : 'Connect Phantom Wallet';
+            if (connecting) {
+                walletAddressOverlay.textContent = 'Connecting…';
+            } else {
+                walletAddressOverlay.textContent = connected ? `👛 ${shortAddr}` : '';
+            }
+            phantomConnectBtnOverlay.title = connecting ? 'Connecting…'
+                                           : connected  ? 'Disconnect Phantom'
+                                           : 'Connect Phantom Wallet';
             phantomConnectBtnOverlay.classList.toggle('connected', connected);
-            phantomConnectBtnOverlay.disabled = false;
-            phantomConnectBtnOverlay.innerHTML = connected
-                ? `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Disconnect</span>`
-                : `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Connect Phantom</span>`;
+            phantomConnectBtnOverlay.classList.toggle('is-connecting', connecting);
+            phantomConnectBtnOverlay.disabled = connecting;
+
+            if (connecting) {
+                phantomConnectBtnOverlay.innerHTML =
+                    `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Connecting…</span>`;
+            } else if (connected) {
+                phantomConnectBtnOverlay.innerHTML =
+                    `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Disconnect</span>`;
+            } else {
+                phantomConnectBtnOverlay.innerHTML =
+                    `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Connect Phantom</span>`;
+            }
         }
 
-                try {
-            if (connected) localStorage.setItem('msn_cached_wallet', addr);
-            // ⚑ Do NOT remove on disconnect here. This is the last-known wallet
-            //   and the fallback for the next page load. Only disconnectPhantom()
-            //   (user-initiated) clears it.
+        try {
+            if (connected && addr) localStorage.setItem('msn_cached_wallet', addr);
         } catch (e) { /* ignore */ }
 
         checkIfModWallet();
@@ -1621,26 +1714,32 @@ if (!hasMatch && accounts.length > 0) {
     }
 }
 
-                async function connectPhantom() {
+                    async function connectPhantom() {
         if (isConnecting) {
             showError('Wallet is connecting — please wait…');
             return false;
         }
         isConnecting = true;
         _connectStartedAt = Date.now();
+        updatePhantomUI();                    // ⚑ shows "Connecting…" + spinner instantly
+
+        let progressTimer = null;
 
         try {
+            // ── Provider discovery with retry (Phantom can be sleepy) ──
             let provider = getPhantomProvider();
             if (!provider) {
-                await new Promise(r => setTimeout(r, 400));
-                provider = getPhantomProvider();
+                for (var i = 0; i < 3 && !provider; i++) {
+                    await new Promise(function (r) { setTimeout(r, 300 * (i + 1)); });
+                    provider = getPhantomProvider();
+                }
             }
             if (!provider) {
-                showError('Phantom wallet not installed. Please install it from phantom.app');
+                showError('Phantom extension not responding — refresh the page and try again');
                 return false;
             }
 
-            // ── Fast trusted attempt (2s — if Phantom is healthy, this is instant) ──
+            // ── Fast trusted attempt (2s) ──
             try {
                 const trusted = await _withTimeout(
                     provider.connect({ onlyIfTrusted: true }), 2000, 'Trusted connect'
@@ -1648,38 +1747,37 @@ if (!hasMatch && accounts.length > 0) {
                 if (trusted && trusted.publicKey) {
                     phantomWalletPublicKey = trusted.publicKey;
                     phantomConnected = true;
-                    updatePhantomUI();
                     const addr = trusted.publicKey.toBase58();
                     showSuccess(`Wallet connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
-                    afterWalletConnect(addr).catch(e => console.warn('[connect] afterWalletConnect:', e));
-                    fetchAndDisplayAllTokens().catch(e => console.warn('[connect] token fetch:', e));
+                    afterWalletConnect(addr).catch(function (e) { console.warn('[connect] afterWalletConnect:', e); });
+                    fetchAndDisplayAllTokens().catch(function (e) { console.warn('[connect] token fetch:', e); });
                     return true;
                 }
             } catch (silentErr) {
                 console.log('[wallet] trusted connect unavailable:', silentErr && silentErr.message);
             }
 
-            // ── Interactive (30s — popup should be visible immediately) ──
-            if (phantomConnectBtnOverlay) {
-                phantomConnectBtnOverlay.disabled = true;
-                phantomConnectBtnOverlay.innerHTML =
-                    `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Connecting…</span>`;
-            }
-            showOverlayMessage('Waiting for Phantom approval…', 'info');
+            // ── Interactive (20s) — user must approve popup ──
+            showOverlayMessage('Approve the Phantom popup to connect…', 'info');
 
-                      try {
+            progressTimer = setTimeout(function () {
+                if (isConnecting) {
+                    showOverlayMessage('Still waiting for Phantom — check your browser windows', 'info');
+                }
+            }, 6000);
+
+            try {
                 const resp = await _withTimeout(
-                    provider.connect({ onlyIfTrusted: false }), 30000, 'Wallet connect'
+                    provider.connect({ onlyIfTrusted: false }), 20000, 'Wallet connect'
                 );
                 if (!resp || !resp.publicKey) throw new Error('Wallet returned no public key');
 
                 phantomWalletPublicKey = resp.publicKey;
                 phantomConnected = true;
-                updatePhantomUI();
                 const addr = resp.publicKey.toBase58();
                 showSuccess(`Wallet connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
-                afterWalletConnect(addr).catch(e => console.warn('[connect] afterWalletConnect:', e));
-                fetchAndDisplayAllTokens().catch(e => console.warn('[connect] token fetch:', e));
+                afterWalletConnect(addr).catch(function (e) { console.warn('[connect] afterWalletConnect:', e); });
+                fetchAndDisplayAllTokens().catch(function (e) { console.warn('[connect] token fetch:', e); });
                 return true;
             } catch (err) {
                 console.error('[wallet] connection error:', err);
@@ -1688,27 +1786,29 @@ if (!hasMatch && accounts.length > 0) {
                 if (/user rejected|rejected by user|cancell?ed|declined|closed/i.test(raw)) {
                     friendly = 'Connection cancelled';
                 } else if (/timed?\s*out/i.test(raw)) {
-                    friendly = 'Phantom didn\'t respond — try disconnect, then Connect again';
+                    friendly = 'Phantom not responding — click the refresh button, then Connect';
                 } else if (/not\s+ready|not\s+installed/i.test(raw)) {
-                    friendly = 'Wallet not ready — refresh and try again';
+                    friendly = 'Phantom extension not responding — check phantom.app';
                 } else if (!raw) {
                     friendly = 'Could not connect wallet';
                 }
                 showError(friendly);
 
-                // Recovery — kill any half-open Phantom session so the next click is clean
+                // Clean up half-open session so next click is fresh
                 try { await provider.disconnect(); } catch (e) {}
+
+                // ⚑ Brief red flash so the failure is unmissable
+                phantomConnectBtn.classList.add('is-error');
+                setTimeout(function () {
+                    phantomConnectBtn.classList.remove('is-error');
+                }, 1400);
+
                 return false;
             }
         } finally {
+            if (progressTimer) clearTimeout(progressTimer);
             isConnecting = false;
-            if (phantomConnectBtnOverlay) {
-                phantomConnectBtnOverlay.disabled = false;
-                if (!phantomConnected) {
-                    phantomConnectBtnOverlay.innerHTML =
-                        `<img src="https://i.postimg.cc/kXtLPZVF/Phanyoms2.png" alt="Phantom" class="phantom-icon"> <span>Connect Phantom</span>`;
-                }
-            }
+            updatePhantomUI();                // ⚑ restoring idle/connected state
         }
     }
         function disconnectPhantom() {
