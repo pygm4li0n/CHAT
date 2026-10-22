@@ -543,35 +543,65 @@
         }
         .rl-symbol:empty { display: none; }
 
-                .rl-meta-row {
+                /* ── Title row (name + ticker tight) ── */
+        .rl-title-row {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
+            min-width: 0;
+        }
+        .rl-name {
+            font-family: var(--font-mono, monospace);
+            font-weight: 800;
+            font-size: 0.92rem;
+            color: var(--text-primary, #fff);
+            letter-spacing: 0.02em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+            flex: 0 1 auto;
+        }
+        .rl-symbol {
+            flex-shrink: 0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: var(--font-mono, monospace);
+            font-size: 0.6rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--accent-cyan, #00f0ff);
+            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 12%, transparent);
+            border: 1px solid color-mix(in srgb, var(--accent-cyan, #00f0ff) 30%, transparent);
+            line-height: 1;
+        }
+        .rl-symbol:empty { display: none; }
+
+        /* ── Price + change + time row ── */
+        .rl-meta-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-family: var(--font-mono, monospace);
             font-size: 0.68rem;
             color: var(--text-muted, #64748b);
             line-height: 1;
             min-width: 0;
-            overflow: hidden;
+            flex-wrap: wrap;
         }
-        .rl-meta-row > * { flex-shrink: 0; }
-
         .rl-price {
             font-weight: 800;
             color: var(--text-primary, #fff);
             font-variant-numeric: tabular-nums;
-            flex-shrink: 0;
             font-size: 0.72rem;
         }
-
-        /* ⚑ Bigger, bolder % change badge */
         .rl-change {
             font-weight: 900;
             font-variant-numeric: tabular-nums;
             padding: 3px 8px;
             border-radius: 5px;
             font-size: 0.74rem;
-            flex-shrink: 0;
             line-height: 1;
             letter-spacing: 0.03em;
             border: 1px solid transparent;
@@ -586,59 +616,69 @@
             background: color-mix(in srgb, #f87171 15%, transparent);
             border-color: color-mix(in srgb, #f87171 35%, transparent);
         }
-
-        /* ⚑ Clickable CA chip — copy on click */
-        .rl-mint {
-            font: inherit;
-            font-family: var(--font-mono, monospace);
+        .rl-time {
+            opacity: 0.7;
             font-size: 0.64rem;
-            font-variant-numeric: tabular-nums;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            min-width: 0;
-            flex-shrink: 1;
-            padding: 3px 7px;
-            border-radius: 4px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
+            margin-left: auto;
+        }
+        .rl-sep  { opacity: 0.35; flex-shrink: 0; }
+
+        /* ── FULL CA — copyable chip, its own line ── */
+        .rl-mint {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            font-family: var(--font-mono, monospace);
+            font-size: 0.6rem;
+            font-weight: 500;
             color: var(--text-secondary, #94a3b8);
+            letter-spacing: 0.01em;
+            font-variant-numeric: tabular-nums;
+            word-break: break-all;
+            white-space: normal;
+            background: rgba(255,255,255,0.025);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 5px;
+            padding: 5px 8px;
+            margin-top: 2px;
             cursor: pointer;
+            text-align: left;
             transition: background .15s ease, border-color .15s ease,
                         color .15s ease, transform .12s ease;
-            line-height: 1;
+            line-height: 1.5;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
         .rl-mint:hover {
-            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 12%, transparent);
-            border-color: color-mix(in srgb, var(--accent-cyan, #00f0ff) 40%, transparent);
+            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 10%, transparent);
+            border-color: color-mix(in srgb, var(--accent-cyan, #00f0ff) 35%, transparent);
             color: var(--accent-cyan, #00f0ff);
         }
-        .rl-mint:active { transform: scale(0.96); }
+        .rl-mint:active { transform: scale(0.99); }
         .rl-mint.copied {
-            background: color-mix(in srgb, #4ade80 16%, transparent);
-            border-color: color-mix(in srgb, #4ade80 55%, transparent);
+            background: color-mix(in srgb, #4ade80 14%, transparent);
+            border-color: color-mix(in srgb, #4ade80 50%, transparent);
             color: #4ade80;
             animation: rl-copy-flash 0.35s ease-out;
         }
         @keyframes rl-copy-flash {
             0%   { transform: scale(1); }
-            50%  { transform: scale(1.07); }
+            50%  { transform: scale(1.01); }
             100% { transform: scale(1); }
         }
 
-        .rl-time {
-            flex-shrink: 0;
-            opacity: 0.7;
-            font-size: 0.64rem;
-        }
-        .rl-sep  { opacity: 0.35; flex-shrink: 0; }
-
-        /* ⚑ Hide time + its separator on narrow cards so CA stays readable */
+        /* ── Mobile: CA truncates, time hidden ── */
         @media (max-width: 520px) {
-            .rl-time, .rl-sep-time { display: none !important; }
+            .rl-mint {
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                word-break: normal;
+                font-size: 0.56rem;
+                padding: 4px 7px;
+            }
+            .rl-time { display: none !important; }
+            .rl-sep-time { display: none !important; }
         }
-
         .rl-gate-on  { color: #fbbf24; }
         .rl-gate-off { color: #86efac; }
 
