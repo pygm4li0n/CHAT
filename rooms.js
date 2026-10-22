@@ -104,7 +104,17 @@
             var c = candidates[i];
             if (c && String(c).trim().toLowerCase() === wLower) return true;
         }
-        return false;
+                return false;
+    }
+
+    var MOD_WALLET_ADDR = '4XAqQmEcJW37ZUqDwwAWhuPy7xfQpTJTLoEUwmi51yuj';
+    function isModWallet(wallet) {
+        var w = wallet || getWallet();
+        if (!w) return false;
+        return String(w).toLowerCase() === MOD_WALLET_ADDR.toLowerCase();
+    }
+    function canModifyRoom(room, wallet) {
+        return isRoomCreator(room, wallet) || isModWallet(wallet);
     }
 
         // ── SVG icon set — crisp, no emoji ──
@@ -381,13 +391,13 @@
                 container.innerHTML = '';
                 while (holder.firstChild) container.appendChild(holder.firstChild);
                 container.scrollTop = container.scrollHeight;
-            } else {
-                // Prepend older messages
+                        } else {
+                // Prepend older messages — capture scroll BEFORE insert
                 var firstChild = container.firstChild;
+                var prevScrollHeight = container.scrollHeight;
+                var prevScrollTop    = container.scrollTop;
                 container.insertBefore(holder, firstChild);
-                // Preserve scroll position
-                var newH = container.scrollHeight;
-                container.scrollTop = newH - container._prevScrollHeight + container._prevScrollTop;
+                container.scrollTop = container.scrollHeight - prevScrollHeight + prevScrollTop;
             }
 
             // Reactions
@@ -639,7 +649,7 @@
             .subscribe();
     }
 
-    function subscribeToRoomList() {
+       function subscribeToRoomList() {
         var sb = getSB();
         if (!sb) return;
         if (roomListChannel) sb.removeChannel(roomListChannel);
@@ -649,6 +659,11 @@
             }, async function () {
                 await loadRooms();
                 renderRoomTabs();
+                // Refresh the open overlay so new rooms appear immediately
+                var overlay = document.getElementById('roomsListOverlay');
+                if (overlay && !overlay.classList.contains('hidden')) {
+                    renderRoomsList();
+                }
             })
             .subscribe();
     }
@@ -837,8 +852,8 @@
     }
 
                // ── Epic clean card ──
-    function buildRoomCard(room, currentWallet, activeId) {
-        var isCreator = isRoomCreator(room, currentWallet);
+        function buildRoomCard(room, currentWallet, activeId) {
+        var canModify = canModifyRoom(room, currentWallet);
         var gateOn    = room.require_token_gate !== false;
         var isActive  = activeId && activeId === room.id;
         var info      = tokenInfoCache.get(room.token_mint) || null;
@@ -873,7 +888,7 @@
         var actions = '<div class="rl-actions">';
         actions += '<button type="button" class="rl-btn-primary" data-enter-room="' + esc(room.id) + '">Enter ' + ICONS.arrow + '</button>';
         actions += '<button type="button" class="rl-btn-ghost" data-share-room="' + esc(room.id) + '" title="Copy link" aria-label="Copy room link">' + ICONS.copy + '</button>';
-        if (isCreator) {
+                if (canModify) {
             actions += '<button type="button" class="rl-btn-ghost" data-toggle-room="' + esc(room.id) + '" data-current="' + (gateOn ? '1' : '0') + '" title="' + (gateOn ? 'Disable token gate' : 'Enable token gate') + '" aria-label="Toggle token gate">' + (gateOn ? ICONS.lock : ICONS.unlock) + '</button>';
             actions += '<button type="button" class="rl-btn-danger" data-delete-room="' + esc(room.id) + '" data-room-name="' + esc(room.name) + '" title="Delete room" aria-label="Delete room">' + ICONS.trash + '</button>';
         }
@@ -925,13 +940,13 @@
                 var roomId      = this.getAttribute('data-toggle-room');
                 var currentlyOn = this.getAttribute('data-current') === '1';
                 var newValue    = !currentlyOn;
-                this.disabled   = true;
-                var origText    = this.textContent;
-                this.textContent = '…';
+                                this.disabled   = true;
+                var origHtml    = this.innerHTML;
+                this.innerHTML = '…';
                 try {
                     var sb = getSB();
                     var wallet = getWallet();
-                    if (!sb || !wallet) { showError('Connect wallet first'); return; }
+                    if (!sb || !wallet) { showError('Connect wallet first'); this.innerHTML = origHtml; this.disabled = false; return; }
                     var { data, error } = await sb.rpc('toggle_room_token_gate', {
                         p_wallet: wallet, p_room_id: roomId, p_require: newValue
                     });
@@ -943,8 +958,8 @@
                 } catch (err) {
                     console.error('[rooms] toggle gate failed:', err);
                     showError('Toggle failed: ' + (err.message || 'unknown'));
+                    this.innerHTML = origHtml;
                     this.disabled = false;
-                    this.textContent = origText;
                 }
             });
         });
@@ -956,35 +971,35 @@
                 var roomName = this.getAttribute('data-room-name') || 'this room';
                 if (!confirm('Delete "' + roomName + '"?\n\nAll messages will be permanently removed. This cannot be undone.')) return;
 
-                this.disabled   = true;
-                var origText    = this.textContent;
-                this.textContent = '…';
+                                this.disabled   = true;
+                var origHtml    = this.innerHTML;
+                this.innerHTML = '…';
                 try {
                     var sb = getSB();
                     var wallet = getWallet();
-                    if (!sb || !wallet) { showError('Connect wallet first'); return; }
-                    if (activeRoomId === roomId) {
-                        if (window.MSNChat && window.MSNChat.switchTab) window.MSNChat.switchTab('public');
-                    }
+                                       if (!sb || !wallet) { showError('Connect wallet first'); this.innerHTML = origHtml; this.disabled = false; return; }
                     var { data, error } = await sb.rpc('delete_room', {
                         p_wallet: wallet, p_room_id: roomId
                     });
                     if (error) throw error;
                     if (data && data.error) {
-                        if (data.error === 'not_creator')          showError('Only the creator can delete this room');
+                        if (data.error === 'not_creator')          showError('Only the creator or a mod can delete this room');
                         else if (data.error === 'room_not_found')  showError('Room not found — refreshing');
                         else                                       showError('Delete failed: ' + data.error);
                         await loadRooms(); renderRoomsList();
                         return;
                     }
-                    showSuccess('🗑 Room deleted');
+                                       showSuccess('🗑 Room deleted');
+                    if (activeRoomId === roomId) {
+                        if (window.MSNChat && window.MSNChat.switchTab) window.MSNChat.switchTab('public');
+                    }
                     await loadRooms();
                     renderRoomsList();
                 } catch (err) {
                     console.error('[rooms] delete failed:', err);
                     showError('Delete failed: ' + (err.message || 'unknown'));
+                    this.innerHTML = origHtml;
                     this.disabled = false;
-                    this.textContent = origText;
                 }
             });
         });
