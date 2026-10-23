@@ -1757,18 +1757,18 @@ if (!hasMatch && accounts.length > 0) {
                 console.log('[wallet] trusted connect unavailable:', silentErr && silentErr.message);
             }
 
-            // ── Interactive (20s) — user must approve popup ──
+                       // ── Interactive (60s) — user must approve popup ──
             showOverlayMessage('Approve the Phantom popup to connect…', 'info');
 
             progressTimer = setTimeout(function () {
                 if (isConnecting) {
                     showOverlayMessage('Still waiting for Phantom — check your browser windows', 'info');
                 }
-            }, 6000);
+            }, 8000);
 
             try {
                 const resp = await _withTimeout(
-                    provider.connect({ onlyIfTrusted: false }), 20000, 'Wallet connect'
+                    provider.connect({ onlyIfTrusted: false }), 60000, 'Wallet connect'
                 );
                 if (!resp || !resp.publicKey) throw new Error('Wallet returned no public key');
 
@@ -1782,20 +1782,41 @@ if (!hasMatch && accounts.length > 0) {
             } catch (err) {
                 console.error('[wallet] connection error:', err);
                 const raw = String((err && err.message) || err || '').trim();
+
+                // ⚑ On TIMEOUT, don't disconnect — the user may have just
+                //   approved right as the timer fired. Wiping Phantom here
+                //   would kick a connection that succeeded at 21s.
+                const isTimeout = /timed?\s*out/i.test(raw);
+                if (!isTimeout) {
+                    try { provider.disconnect().catch(function () {}); } catch (e) {}
+                } else {
+                    // Check if Phantom actually connected while we timed out
+                    try {
+                        const p = getPhantomProvider();
+                        if (p && p.publicKey && p.isConnected) {
+                            console.log('[wallet] timeout but Phantom is connected — adopting session');
+                            phantomWalletPublicKey = p.publicKey;
+                            phantomConnected = true;
+                            const addr = p.publicKey.toBase58();
+                            showSuccess(`Wallet connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
+                            afterWalletConnect(addr).catch(function () {});
+                            fetchAndDisplayAllTokens().catch(function () {});
+                            return true;
+                        }
+                    } catch (e) {}
+                }
+
                 let friendly = raw;
                 if (/user rejected|rejected by user|cancell?ed|declined|closed/i.test(raw)) {
                     friendly = 'Connection cancelled';
-                } else if (/timed?\s*out/i.test(raw)) {
-                    friendly = 'Phantom not responding — click the refresh button, then Connect';
+                } else if (isTimeout) {
+                    friendly = 'Phantom not responding — try disconnect, then Connect again';
                 } else if (/not\s+ready|not\s+installed/i.test(raw)) {
                     friendly = 'Phantom extension not responding — check phantom.app';
                 } else if (!raw) {
                     friendly = 'Could not connect wallet';
                 }
                 showError(friendly);
-
-                // Clean up half-open session so next click is fresh
-                try { await provider.disconnect(); } catch (e) {}
 
                 // ⚑ Brief red flash so the failure is unmissable
                 phantomConnectBtn.classList.add('is-error');
@@ -1826,19 +1847,45 @@ if (!hasMatch && accounts.length > 0) {
         hideCooldown();
         showOverlayMessage('Phantom disconnected', 'info');
     }
-        function togglePhantomConnection() {
+               function togglePhantomConnection() {
         const provider = getPhantomProvider();
         const phantomSaysConnected = !!(provider && provider.isConnected && provider.publicKey);
 
-        // State drift — our flag says connected, Phantom says no. Force-resync.
+        // ⚑ Drift: app says connected, Phantom says no.
+        //   Try silent trusted reconnect first — usually succeeds without popup.
         if (phantomConnected && !phantomSaysConnected) {
-            console.warn('[wallet] state drift detected — resyncing');
+            console.warn('[wallet] drift detected — attempting silent reconnect');
+            if (provider) {
+                (async function () {
+                    try {
+                        const resp = await _withTimeout(
+                            provider.connect({ onlyIfTrusted: true }), 3000,
+                            'Drift reconnect'
+                        );
+                        if (resp && resp.publicKey) {
+                            console.log('[wallet] drift silent reconnect OK');
+                            phantomWalletPublicKey = resp.publicKey;
+                            phantomConnected = true;
+                            updatePhantomUI();
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('[wallet] drift silent reconnect failed:', e && e.message);
+                    }
+                    // Silent failed — user must re-approve
+                    phantomWalletPublicKey = null;
+                    phantomConnected = false;
+                    hasTokenAccess = false;
+                    updatePhantomUI();
+                    connectPhantom();
+                })();
+                return;
+            }
+            // No provider — fall through
             phantomWalletPublicKey = null;
             phantomConnected = false;
             hasTokenAccess = false;
             updatePhantomUI();
-            connectPhantom();
-            return;
         }
 
         if (phantomConnected && phantomSaysConnected) {
@@ -4935,12 +4982,7 @@ setupTypingChannel();
                     checkIfModWallet();
                 }
 
-                               provider.on?.('disconnect', () => {
-                    // ⚑ Phantom fires 'disconnect' spuriously during
-                    //   trusted reconnect and shortly after page load,
-                    //   even though the wallet is still authorized.
-                    //   Both windows must be ignored — otherwise a
-                    //   transient event wipes identity to "Guest".
+                                               provider.on?.('disconnect', async () => {
                     if (isConnecting) {
                         console.warn('[wallet] spurious disconnect during connect — ignored');
                         return;
@@ -4949,15 +4991,36 @@ setupTypingChannel();
                         console.warn('[wallet] spurious disconnect during init grace — ignored');
                         return;
                     }
-                    // Only act on a REAL disconnect (Phantom genuinely not connected)
                     const p = getPhantomProvider();
                     if (p && p.isConnected && p.publicKey) {
                         console.warn('[wallet] disconnect event but provider still connected — ignored');
                         return;
                     }
+
+                    // ⚑ Phantom fires spurious disconnect events even while
+                    //   it still trusts us. Try a silent trusted reconnect
+                    //   BEFORE wiping the user's session.
+                    if (p) {
+                        try {
+                            const resp = await _withTimeout(
+                                p.connect({ onlyIfTrusted: true }), 3000,
+                                'Reconnect after disconnect event'
+                            );
+                            if (resp && resp.publicKey) {
+                                console.log('[wallet] silent reconnect OK — session preserved');
+                                phantomWalletPublicKey = resp.publicKey;
+                                phantomConnected = true;
+                                updatePhantomUI();
+                                return;
+                            }
+                        } catch (e) {
+                            console.warn('[wallet] silent reconnect after disconnect failed:', e && e.message);
+                        }
+                    }
+
+                    // Genuine disconnect — now it's safe to wipe
                     handleWalletChange(null);
                 });
-
                 provider.on?.('connect', () => {
                     // Skip if we're mid-connect — our own connect flow sets up
                     // state after the promise resolves. Prevents handleWalletChange
