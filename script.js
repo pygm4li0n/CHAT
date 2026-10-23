@@ -5094,8 +5094,9 @@ setupTypingChannel();
                         } catch (e3) { /* ignore */ }
                         await new Promise(function (r) { setTimeout(r, 200); });
                     }
-                } finally {
+                              } finally {
                     isConnecting = false;
+                    updatePhantomUI();   // ⚑ repaint after clearing — otherwise button stays purple
                 }
             }
         }
