@@ -1739,10 +1739,10 @@ if (!hasMatch && accounts.length > 0) {
                 return false;
             }
 
-            // ── Fast trusted attempt (2s) ──
+                      // ── Fast trusted attempt (5s — give Phantom time to wake up) ──
             try {
                 const trusted = await _withTimeout(
-                    provider.connect({ onlyIfTrusted: true }), 2000, 'Trusted connect'
+                    provider.connect({ onlyIfTrusted: true }), 5000, 'Trusted connect'
                 );
                 if (trusted && trusted.publicKey) {
                     phantomWalletPublicKey = trusted.publicKey;
@@ -1757,7 +1757,15 @@ if (!hasMatch && accounts.length > 0) {
                 console.log('[wallet] trusted connect unavailable:', silentErr && silentErr.message);
             }
 
-                       // ── Interactive (60s) — user must approve popup ──
+            // ⚑ CRITICAL — clean up any pending Phantom state before
+            //   starting the interactive attempt. Phantom will reject a new
+            //   connect() while a previous request is still pending.
+            try {
+                await _withTimeout(provider.disconnect(), 2000, 'Phase cleanup');
+            } catch (e) { /* ignore — we were probably disconnected anyway */ }
+            await new Promise(function (r) { setTimeout(r, 300); });
+
+            // ── Interactive (60s) — user must approve popup ──
             showOverlayMessage('Approve the Phantom popup to connect…', 'info');
 
             progressTimer = setTimeout(function () {
@@ -1779,18 +1787,16 @@ if (!hasMatch && accounts.length > 0) {
                 afterWalletConnect(addr).catch(function (e) { console.warn('[connect] afterWalletConnect:', e); });
                 fetchAndDisplayAllTokens().catch(function (e) { console.warn('[connect] token fetch:', e); });
                 return true;
-            } catch (err) {
+                        } catch (err) {
                 console.error('[wallet] connection error:', err);
                 const raw = String((err && err.message) || err || '').trim();
 
-                // ⚑ On TIMEOUT, don't disconnect — the user may have just
-                //   approved right as the timer fired. Wiping Phantom here
-                //   would kick a connection that succeeded at 21s.
+                // ⚑ On TIMEOUT, check if Phantom actually connected first.
+                //   Only disconnect AFTER the check — do not kick a session
+                //   that succeeded at 61s.
                 const isTimeout = /timed?\s*out/i.test(raw);
-                if (!isTimeout) {
-                    try { provider.disconnect().catch(function () {}); } catch (e) {}
-                } else {
-                    // Check if Phantom actually connected while we timed out
+
+                if (isTimeout) {
                     try {
                         const p = getPhantomProvider();
                         if (p && p.publicKey && p.isConnected) {
@@ -1805,6 +1811,13 @@ if (!hasMatch && accounts.length > 0) {
                         }
                     } catch (e) {}
                 }
+
+                // ⚑ ALWAYS force Phantom to a clean state after a failure,
+                //   with a timeout so a frozen extension can't block recovery.
+                try {
+                    await _withTimeout(provider.disconnect(), 2000, 'Recovery disconnect');
+                } catch (e) { /* ignore */ }
+                await new Promise(function (r) { setTimeout(r, 200); });
 
                 let friendly = raw;
                 if (/user rejected|rejected by user|cancell?ed|declined|closed/i.test(raw)) {
@@ -1853,13 +1866,13 @@ if (!hasMatch && accounts.length > 0) {
 
         // ⚑ Drift: app says connected, Phantom says no.
         //   Try silent trusted reconnect first — usually succeeds without popup.
-        if (phantomConnected && !phantomSaysConnected) {
+               if (phantomConnected && !phantomSaysConnected) {
             console.warn('[wallet] drift detected — attempting silent reconnect');
             if (provider) {
                 (async function () {
                     try {
                         const resp = await _withTimeout(
-                            provider.connect({ onlyIfTrusted: true }), 3000,
+                            provider.connect({ onlyIfTrusted: true }), 5000,
                             'Drift reconnect'
                         );
                         if (resp && resp.publicKey) {
@@ -1872,6 +1885,14 @@ if (!hasMatch && accounts.length > 0) {
                     } catch (e) {
                         console.warn('[wallet] drift silent reconnect failed:', e && e.message);
                     }
+                    // ⚑ Force clean state before re-entering connectPhantom()
+                    //   so the trusted-attempt timeout can't leave a pending
+                    //   request that rejects the interactive connect().
+                    try {
+                        await _withTimeout(provider.disconnect(), 2000, 'Drift cleanup');
+                    } catch (e) { /* ignore */ }
+                    await new Promise(function (r) { setTimeout(r, 200); });
+
                     // Silent failed — user must re-approve
                     phantomWalletPublicKey = null;
                     phantomConnected = false;
@@ -1897,15 +1918,7 @@ if (!hasMatch && accounts.length > 0) {
     phantomConnectBtn.addEventListener('click', togglePhantomConnection);
     if (phantomConnectBtnOverlay) phantomConnectBtnOverlay.addEventListener('click', togglePhantomConnection);
 
-    function initPhantomAutoConnect() {
-        const provider = getPhantomProvider();
-        if (provider && provider.isConnected && provider.publicKey) {
-            phantomWalletPublicKey = provider.publicKey;
-            phantomConnected = true;
-            updatePhantomUI();
-            fetchAndDisplayAllTokens();
-        }
-    }
+       // (removed — dead code; init() handles auto-connect with drift protection)
 
     modSettingsBtn.addEventListener('click', () => {
         modTokenRequirementInput.value = modTokenRequirement;
@@ -4997,13 +5010,13 @@ setupTypingChannel();
                         return;
                     }
 
-                    // ⚑ Phantom fires spurious disconnect events even while
+                                        // ⚑ Phantom fires spurious disconnect events even while
                     //   it still trusts us. Try a silent trusted reconnect
                     //   BEFORE wiping the user's session.
                     if (p) {
                         try {
                             const resp = await _withTimeout(
-                                p.connect({ onlyIfTrusted: true }), 3000,
+                                p.connect({ onlyIfTrusted: true }), 5000,
                                 'Reconnect after disconnect event'
                             );
                             if (resp && resp.publicKey) {
@@ -5016,6 +5029,10 @@ setupTypingChannel();
                         } catch (e) {
                             console.warn('[wallet] silent reconnect after disconnect failed:', e && e.message);
                         }
+                        // ⚑ Force clean state before wiping our session.
+                        try {
+                            await _withTimeout(p.disconnect(), 2000, 'Disconnect cleanup');
+                        } catch (e) { /* ignore */ }
                     }
 
                     // Genuine disconnect — now it's safe to wipe
@@ -5038,7 +5055,7 @@ setupTypingChannel();
             phantomWalletPublicKey = provider.publicKey;
             phantomConnected = true;
             updatePhantomUI();
-               } else {
+                              } else {
                 isConnecting = true;
                 _connectStartedAt = Date.now();
                                 try {
@@ -5051,8 +5068,16 @@ setupTypingChannel();
                     updatePhantomUI();
                 } catch (e) {
                     console.warn('[wallet] trusted reconnect failed:', e && e.message);
+
+                    // ⚑ Clean up the timed-out request before retrying — otherwise
+                    //   Phantom rejects the retry as "pending" and cold start
+                    //   silently fails to auto-connect.
                     try {
-                        await new Promise(function (r) { setTimeout(r, 800); });
+                        await _withTimeout(provider.disconnect(), 2000, 'Init reconnect cleanup');
+                    } catch (e) { /* ignore */ }
+                    await new Promise(function (r) { setTimeout(r, 400); });
+
+                    try {
                                               const resp2 = await _withTimeout(
                             provider.connect({ onlyIfTrusted: true }), 8000, 'Trusted reconnect retry'
                         );
@@ -5061,7 +5086,13 @@ setupTypingChannel();
                         phantomConnected = true;
                         updatePhantomUI();
                     } catch (e2) {
-                        console.warn('[wallet] trusted reconnect retry failed:', e2 && e2.message);
+                        console.warn('[wallet] trusted reconnect retry failed:', e2 && e.message);
+                        // ⚑ Also clean up the retry failure so the first user
+                        //   click on Connect isn't rejected as pending.
+                        try {
+                            await _withTimeout(provider.disconnect(), 2000, 'Init retry cleanup');
+                        } catch (e3) { /* ignore */ }
+                        await new Promise(function (r) { setTimeout(r, 200); });
                     }
                 } finally {
                     isConnecting = false;
