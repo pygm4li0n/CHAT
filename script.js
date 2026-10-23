@@ -832,11 +832,12 @@
         localStorage.setItem(CLIENT_ID_KEY, clientId);
     }
 
-        // Phantom state
+                // Phantom state
     let phantomWalletPublicKey = null;
     let phantomConnected = false;
     let hasTokenAccess = false;
     let isConnecting = false;
+    let _lastUserDisconnectAt = 0;   // ⚑ timestamp of last manual disconnect — enables fast-reconnect
 
     // ═══ Shared timeout helper + connection watchdog ═══
     function _withTimeout(p, ms, label) {
@@ -1739,31 +1740,41 @@ if (!hasMatch && accounts.length > 0) {
                 return false;
             }
 
-                      // ── Fast trusted attempt (5s — give Phantom time to wake up) ──
-            try {
-                const trusted = await _withTimeout(
-                    provider.connect({ onlyIfTrusted: true }), 5000, 'Trusted connect'
-                );
-                if (trusted && trusted.publicKey) {
-                    phantomWalletPublicKey = trusted.publicKey;
-                    phantomConnected = true;
-                    const addr = trusted.publicKey.toBase58();
-                    showSuccess(`Wallet connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
-                    afterWalletConnect(addr).catch(function (e) { console.warn('[connect] afterWalletConnect:', e); });
-                    fetchAndDisplayAllTokens().catch(function (e) { console.warn('[connect] token fetch:', e); });
-                    return true;
-                }
-            } catch (silentErr) {
-                console.log('[wallet] trusted connect unavailable:', silentErr && silentErr.message);
-            }
+                                 // ⚑ FAST PATH — user just clicked Disconnect then Connect.
+            //   Phantom won't honor trusted-connect after a manual disconnect,
+            //   so skip the 5s trusted attempt and skip Phase cleanup (the
+            //   awaited disconnect already flushed Phantom's queue).
+            //   → popup appears in <1s instead of ~7s.
+            const justDisconnected = _lastUserDisconnectAt && (Date.now() - _lastUserDisconnectAt < 5000);
 
-            // ⚑ CRITICAL — clean up any pending Phantom state before
-            //   starting the interactive attempt. Phantom will reject a new
-            //   connect() while a previous request is still pending.
-            try {
-                await _withTimeout(provider.disconnect(), 2000, 'Phase cleanup');
-            } catch (e) { /* ignore — we were probably disconnected anyway */ }
-            await new Promise(function (r) { setTimeout(r, 300); });
+            if (!justDisconnected) {
+                // ── Fast trusted attempt (5s — give Phantom time to wake up) ──
+                try {
+                    const trusted = await _withTimeout(
+                        provider.connect({ onlyIfTrusted: true }), 5000, 'Trusted connect'
+                    );
+                    if (trusted && trusted.publicKey) {
+                        phantomWalletPublicKey = trusted.publicKey;
+                        phantomConnected = true;
+                        const addr = trusted.publicKey.toBase58();
+                        showSuccess(`Wallet connected: ${addr.slice(0,4)}…${addr.slice(-4)}`);
+                        afterWalletConnect(addr).catch(function (e) { console.warn('[connect] afterWalletConnect:', e); });
+                        fetchAndDisplayAllTokens().catch(function (e) { console.warn('[connect] token fetch:', e); });
+                        return true;
+                    }
+                } catch (silentErr) {
+                    console.log('[wallet] trusted connect unavailable:', silentErr && silentErr.message);
+                }
+
+                // ⚑ CRITICAL — clean up any pending Phantom state before
+                //   starting the interactive attempt.
+                try {
+                    await _withTimeout(provider.disconnect(), 2000, 'Phase cleanup');
+                } catch (e) { /* ignore */ }
+                await new Promise(function (r) { setTimeout(r, 300); });
+            } else {
+                console.log('[wallet] fast-reconnect path — skipping trusted + cleanup');
+            }
 
             // ── Interactive (60s) — user must approve popup ──
             showOverlayMessage('Approve the Phantom popup to connect…', 'info');
@@ -1845,15 +1856,33 @@ if (!hasMatch && accounts.length > 0) {
             updatePhantomUI();                // ⚑ restoring idle/connected state
         }
     }
-        function disconnectPhantom() {
+           async function disconnectPhantom() {
         const provider = getPhantomProvider();
-        if (provider && phantomConnected) provider.disconnect().catch(console.warn);
+
+        // ⚑ AWAIT the disconnect so Phantom's queue is fully flushed before
+        //   the next Connect. Previously fire-and-forget → next click hit a
+        //   pending request and waited 5s+ before the popup appeared.
+        isConnecting = true;
+        updatePhantomUI();
+
+        if (provider && phantomConnected) {
+            try {
+                await _withTimeout(provider.disconnect(), 2000, 'User disconnect');
+            } catch (e) {
+                console.warn('[wallet] disconnect timed out:', e && e.message);
+            }
+        }
+
         phantomWalletPublicKey = null;
         phantomConnected = false;
         hasTokenAccess = false;
+        _lastUserDisconnectAt = Date.now();
         // ⚑ ONLY explicit user disconnect clears the cached wallet.
         try { localStorage.removeItem('msn_cached_wallet'); } catch (e) {}
+
+        isConnecting = false;
         updatePhantomUI();
+
         const container = document.getElementById('walletTokenList');
         if (container) container.innerHTML = '';
         if (cooldownInterval) { clearInterval(cooldownInterval); cooldownInterval = null; }
