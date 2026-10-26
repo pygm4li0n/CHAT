@@ -1005,6 +1005,35 @@
     let cooldownInterval = null;
     let modWordFilter = [];
 
+    // ═══ Open-chat mode (token gate = 0) ═══
+function isOpenChatMode() {
+    // Literal hardcoded — TOKEN_MINT_ADDRESS se declara DESPUÉS con `const`,
+    // así que no la podemos referenciar sin riesgo de TDZ.
+    return Number(modTokenRequirement) <= 0 ||
+           !'EJjqCJRYs19QDtQRM7QD5vwbdf1XfEysyF5nL1kNpump';
+}
+
+let _guestNameCache = null;
+function getOrCreateGuestName() {
+    if (_guestNameCache) return _guestNameCache;
+    try {
+        var g = localStorage.getItem('msn_guest_name');
+        if (!g) {
+            g = 'Guest-' + Math.random().toString(36).substr(2, 5).toUpperCase();
+            localStorage.setItem('msn_guest_name', g);
+        }
+        _guestNameCache = g;
+        return g;
+    } catch (e) {
+        _guestNameCache = 'Guest';
+        return 'Guest';
+    }
+}
+
+function isGuestName(n) {
+    return typeof n === 'string' && /^Guest-/i.test(n);
+}
+
         function containsFilteredWord(text) {
         if (!text || !modWordFilter.length) return null;
         var lower = String(text).toLowerCase();
@@ -1589,46 +1618,71 @@ if (!hasMatch && accounts.length > 0) {
 }
 
          function updateChatAccessibility() {
-        // ⚑ Room tabs — gate on wallet connected + username
-        if (currentTab && currentTab.indexOf('room-') === 0) {
-            var canRoomChat = !!username && phantomConnected;
-            messageInput.disabled = !canRoomChat;
-            sendBtn.disabled = !canRoomChat;
-            messageInput.placeholder = canRoomChat
-                ? 'Message this room…'
-                : 'Connect wallet to chat';
-            document.querySelectorAll('.private-btn').forEach(function (b) { b.disabled = true; });
-            return;
-        }
-        // ⚑ Whale tab — gate solely on whale badge
-        if (currentTab === 'whale') {
-    const canChat = !!username;
-    messageInput.disabled = !canChat;
-    sendBtn.disabled      = !canChat;
-    document.querySelectorAll('.private-btn').forEach(b => b.disabled = true);
-    messageInput.placeholder = canChat
-        ? '🐋 Whale chat…'
-        : 'Set your username first';
-    return;
-}
+    // ── Room tabs ──
+    if (currentTab && currentTab.indexOf('room-') === 0) {
+        var canRoomChat = !!username && phantomConnected;
+        messageInput.disabled = !canRoomChat;
+        sendBtn.disabled = !canRoomChat;
+        messageInput.placeholder = canRoomChat
+            ? 'Message this room…'
+            : 'Connect wallet to chat';
+        document.querySelectorAll('.private-btn').forEach(function (b) { b.disabled = true; });
+        return;
+    }
 
-               let canChat = false;
-        if (username) {
-            if (!TOKEN_MINT_ADDRESS) canChat = true;         // ⚑ no CA = no gate
-            else if (modTokenRequirement <= 0) canChat = true;
-            else canChat = phantomConnected && hasTokenAccess;
-        }
+    // ── Whale tab ──
+    if (currentTab === 'whale') {
+        const canChat = !!username;
         messageInput.disabled = !canChat;
         sendBtn.disabled = !canChat;
-        document.querySelectorAll('.private-btn').forEach(btn => btn.disabled = !canChat);
-              if (canChat) {
-            messageInput.placeholder = 'Type a message...';
-        } else {
-            if (!username) messageInput.placeholder = '👤 Guest — Connect Phantom to chat';
-            else if (modTokenRequirement > 0 && !phantomConnected) messageInput.placeholder = `Connect Phantom & hold ${modTokenRequirement} tokens to chat`;
-            else if (modTokenRequirement > 0 && !hasTokenAccess) messageInput.placeholder = `Insufficient tokens – need ${modTokenRequirement}`;
-        }
+        document.querySelectorAll('.private-btn').forEach(b => b.disabled = true);
+        messageInput.placeholder = canChat
+            ? '🐋 Whale chat…'
+            : 'Set your username first';
+        return;
     }
+
+    // ── Open chat mode (token gate = 0) ──
+    if (isOpenChatMode()) {
+        const wallet    = getWalletAddress();
+        const isGuest   = !wallet && !username;
+        const isPending = !!wallet && !username;
+
+        if (isPending) {
+            messageInput.disabled = true;
+            sendBtn.disabled = true;
+            messageInput.placeholder = 'Pick a username to start chatting';
+        } else {
+            messageInput.disabled = false;
+            sendBtn.disabled = false;
+            messageInput.placeholder = isGuest
+                ? '👤 Chat as guest — connect Phantom to keep your identity'
+                : 'Type a message...';
+        }
+        document.querySelectorAll('.private-btn').forEach(btn => btn.disabled = !username);
+        return;
+    }
+
+    // ── Token-gated mode (modTokenRequirement > 0) ──
+    let canChat = false;
+    if (username) {
+        if (!TOKEN_MINT_ADDRESS) canChat = true;
+        else canChat = phantomConnected && hasTokenAccess;
+    }
+    messageInput.disabled = !canChat;
+    sendBtn.disabled = !canChat;
+    document.querySelectorAll('.private-btn').forEach(btn => btn.disabled = !canChat);
+
+    if (canChat) {
+        messageInput.placeholder = 'Type a message...';
+    } else if (!username) {
+        messageInput.placeholder = `Connect Phantom & hold ${Number(modTokenRequirement).toLocaleString()} tokens to chat`;
+    } else if (!phantomConnected) {
+        messageInput.placeholder = `Connect Phantom & hold ${Number(modTokenRequirement).toLocaleString()} tokens to chat`;
+    } else {
+        messageInput.placeholder = `Insufficient tokens – need ${Number(modTokenRequirement).toLocaleString()}`;
+    }
+}
 
         async function afterWalletConnect(walletAddr) {
     if (!walletAddr) return;
@@ -3010,23 +3064,24 @@ function showSuccess(msg) {
             }
         }
         // Legacy username fallback — only for messages with no wallet
-        if (!msgWallet && !getAvatarURL(user)) {
-            await fetchAvatars([user]);
-        }
-
+if (!msgWallet && !getAvatarURL(user) && !isGuestName(user)) {
+    await fetchAvatars([user]);
+}
                 // ⚑ Ensure the sender's token_balance is cached so the badge shows.
         //   Realtime inserts skip loadMessages' prewarm, so on the first
         //   message from a user we need to fetch their profile here.
         //   Guard prevents parallel duplicate fetches during message bursts.
         window.__msnBalanceFetch = window.__msnBalanceFetch || {};
-        if (user && !(user in userBalances) && !window.__msnBalanceFetch[user]) {
+      if (user && !isGuestName(user) && !(user in userBalances) && !window.__msnBalanceFetch[user]) {
             window.__msnBalanceFetch[user] = true;
             try { await fetchAvatars([user]); } catch (e) { /* ignore */ }
             if (!(user in userBalances)) userBalances[user] = null;
             delete window.__msnBalanceFetch[user];
         }
 
-        const isOwn      = user === username;
+       const isOwn = username
+    ? (user === username)
+    : (isOpenChatMode() && isGuestName(user) && user === getOrCreateGuestName());
         const disp       = resolveDisplay(user, msgWallet);
         const shownUser  = disp.name;
         const shownAvatar = disp.avatar;
@@ -4277,17 +4332,54 @@ function showSuccess(msg) {
     }
 
           async function sendMessage() {
-        if (currentTab.indexOf('room-') === 0) {
-            if (window.MSNRooms && window.MSNRooms.sendMessage) {
-                return window.MSNRooms.sendMessage();
+    if (currentTab.indexOf('room-') === 0) {
+        if (window.MSNRooms && window.MSNRooms.sendMessage) {
+            return window.MSNRooms.sendMessage();
+        }
+        return;
+    }
+
+    // ── Whale tab ──
+    if (currentTab === 'whale') {
+        const wtext = messageInput.value.trim();
+        if (!wtext && !pendingImageUrl) return;
+
+        if (modCooldownSeconds > 0) {
+            const now = Date.now();
+            if (now - lastMessageTimestamp < modCooldownSeconds * 1000) {
+                const remaining = Math.ceil(
+                    (modCooldownSeconds * 1000 - (now - lastMessageTimestamp)) / 1000
+                );
+                showCooldown(remaining);
+                return;
             }
+        }
+        sendBtn.disabled = true;
+        await sendWhaleMessage(wtext);
+        sendBtn.disabled = false;
+        return;
+    }
+
+    const wallet = getWalletAddress();
+    const open   = isOpenChatMode();
+
+    // ── Permission ──
+    if (open) {
+        if (wallet && !username) {
+            showError('Set your username first — click the ✎ icon.');
             return;
         }
-        // ⚑ Whale tab bypasses the generic token gate — has its own
-        if (currentTab === 'whale') {
-    const wtext = messageInput.value.trim();
-    if (!wtext && !pendingImageUrl) return;
+    } else {
+        const ok = !!username && phantomConnected && hasTokenAccess;
+        if (!ok) {
+            showError(username
+                ? `You need more than ${Number(modTokenRequirement).toLocaleString()} tokens to chat.`
+                : `Connect Phantom & hold ${Number(modTokenRequirement).toLocaleString()} tokens to chat.`);
+            return;
+        }
+    }
 
+    // ── Cooldown ──
     if (modCooldownSeconds > 0) {
         const now = Date.now();
         if (now - lastMessageTimestamp < modCooldownSeconds * 1000) {
@@ -4299,106 +4391,77 @@ function showSuccess(msg) {
         }
     }
 
+    const text = censorFilteredWords(messageInput.value.trim());
+    if (!text && !pendingImageUrl) return;
+
     sendBtn.disabled = true;
-    await sendWhaleMessage(wtext);
-    sendBtn.disabled = false;
-    return;
-}
 
-               let canSend = false;
-        if (username) {
-            if (!TOKEN_MINT_ADDRESS) canSend = true;         // ⚑ no CA = no gate
-            else if (modTokenRequirement <= 0) canSend = true;
-            else canSend = phantomConnected && hasTokenAccess;
-        }
-        if (!canSend) {
-            showError(modTokenRequirement <= 0 ? 'Set your username first' : `You need Phantom connected and more than ${modTokenRequirement} tokens to chat.`);
-            return;
-        }
-        if (modCooldownSeconds > 0) {
-            const now = Date.now();
-            if (now - lastMessageTimestamp < modCooldownSeconds * 1000) {
-                const remaining = Math.ceil((modCooldownSeconds * 1000 - (now - lastMessageTimestamp)) / 1000);
-                showCooldown(remaining);
-                return;
-            }
-        }
-                                     const text = censorFilteredWords(messageInput.value.trim());
-        if (!text && !pendingImageUrl) return;
+    const isPrivate = (currentTab === 'private' && activePrivateChat);
+    if (isPrivate && !activePrivateChat) {
+        showError('No private partner selected.');
+        sendBtn.disabled = false;
+        return;
+    }
+    if (isPrivate && !username) {
+        showError('Register with Phantom to use private chat.');
+        sendBtn.disabled = false;
+        return;
+    }
 
-        sendBtn.disabled = true;
+    const isGuest        = !wallet && !username;
+    const senderUsername = isGuest ? getOrCreateGuestName() : username;
 
-        const isPrivate = (currentTab === 'private' && activePrivateChat);
-        if (isPrivate && !activePrivateChat) {
-            showError('No private partner selected.');
-            sendBtn.disabled = false;
-            return;
-        }
-        let table = isPrivate ? 'private_messages' : 'messages';
-        let payload = {
-            message: text || null,
-            image_url: pendingImageUrl || null,
-            created_at: new Date().toISOString()
+      try {
+        let inserted, error;
+
+        // ⚑ Construir params una sola vez — incluye reply si existe
+        const rpcParams = {
+            p_wallet:    wallet,
+            p_username:  senderUsername,
+            p_message:   text || null,
+            p_image_url: pendingImageUrl || null
         };
         if (replyingTo?.id) {
-            payload.reply_to_id = replyingTo.id;
-            payload.reply_to_username = replyingTo.username;
-            payload.reply_to_message = replyingTo.message || null;
-            if (replyingTo.imageUrl) payload.reply_to_image_url = replyingTo.imageUrl;
+            rpcParams.p_reply_to_id         = replyingTo.id;
+            rpcParams.p_reply_to_username   = replyingTo.username;
+            rpcParams.p_reply_to_message    = replyingTo.message || null;
+            rpcParams.p_reply_to_image_url  = replyingTo.imageUrl || null;
         }
-        const senderWallet = getWalletAddress();
+
         if (isPrivate) {
-            payload.from_user = username;
-            payload.to_user = activePrivateChat;
-            if (senderWallet) payload.wallet_address = senderWallet;
+            rpcParams.p_to_user = activePrivateChat;
+            const r = await supabase.rpc('post_private_message', rpcParams);
+            inserted = Array.isArray(r.data) ? r.data[0] : r.data;
+            error = r.error;
         } else {
-            payload.username = username;
-            if (senderWallet) payload.wallet_address = senderWallet;
+            const r = await supabase.rpc('post_public_message', rpcParams);
+            inserted = Array.isArray(r.data) ? r.data[0] : r.data;
+            error = r.error;
         }
-               try {
-            let inserted, error;
-            if (isPrivate) {
-                const r = await supabase.rpc('post_private_message', {
-                    p_wallet:    senderWallet,
-                    p_username:  username,
-                    p_to_user:   activePrivateChat,
-                    p_message:   text || null,
-                    p_image_url: pendingImageUrl || null
-                });
-                inserted = Array.isArray(r.data) ? r.data[0] : r.data;
-                error = r.error;
-            } else {
-                const r = await supabase.rpc('post_public_message', {
-                    p_wallet:    senderWallet,
-                    p_username:  username,
-                    p_message:   text || null,
-                    p_image_url: pendingImageUrl || null
-                });
-                inserted = Array.isArray(r.data) ? r.data[0] : r.data;
-                error = r.error;
-            }
-                      if (error) throw error;
 
-            if (inserted && inserted.id) {
-                if (isPrivate) renderMessage(inserted, true, true);
-                else           renderMessage(inserted, false, true);
-            }
+        if (error) throw error;
 
-                                                     messageInput.value = '';
-                setReplyingTo(null);
-                clearAttachedImage();
-                startCooldown(modCooldownSeconds);
-                if (window.addXP && inserted?.id) window.addXP(inserted.id);
-            autoScroll = true;
-            if (!isPrivate) bumpMessagesCount();
-        } catch (err) {
-            showError('Send failed: ' + err.message);
-             } finally {
-                stopTyping();
-                sendBtn.disabled = false;
-                messageInput.focus();
-            }
+        if (inserted && inserted.id) {
+            if (isPrivate) renderMessage(inserted, true, true);
+            else           renderMessage(inserted, false, true);
         }
+
+        messageInput.value = '';
+        setReplyingTo(null);
+        clearAttachedImage();
+        startCooldown(modCooldownSeconds);
+        if (window.addXP && inserted?.id) window.addXP(inserted.id);
+        autoScroll = true;
+        if (!isPrivate && wallet) bumpMessagesCount();
+
+    } catch (err) {
+        showError('Send failed: ' + err.message);
+    } finally {
+        stopTyping();
+        sendBtn.disabled = false;
+        messageInput.focus();
+    }
+}
 
     function subscribeToRealtime() {
         if (realtimeChannel) supabase.removeChannel(realtimeChannel);
