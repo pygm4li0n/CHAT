@@ -2160,7 +2160,8 @@ let whaleMessageReactions = {};   // whale chat reuses the message_reactions tab
     let pendingImageUrl = null;
     let profilePicFile = null;
     const typingUsers = new Map();
-    let typingChannel = null;
+       let typingChannel = null;
+    let _typingThrottle = 0;
     let lastLoadedPrivatePartner = null;
 
      // ⚑ Public-chat pagination state (infinite scroll upward)
@@ -2368,9 +2369,9 @@ let whaleMessageReactions = {};   // whale chat reuses the message_reactions tab
         }
 
         try {
-            const { data, error } = await supabase
+                       const { data, error } = await supabase
                 .from('message_feed')
-                .select('*')
+                .select('id, username, wallet_address, message, image_url, created_at, reply_to_id, reply_to_username, reply_to_message, reply_to_image_url, sort_order, edited_at, is_deleted, avatar_url')
                 .lt('sort_order', oldestPublicSortOrder)
                 .order('sort_order', { ascending: false })
                 .limit(PUBLIC_PAGE_SIZE);
@@ -2857,7 +2858,7 @@ function showSuccess(msg) {
     }
 
     async function loadReactions(table, isPrivate, isWhale) {
-    const { data, error } = await supabase.from(table).select('*');
+    const { data, error } = await supabase.from(table).select('message_id, emoji, username');
     if (error) return;
 
     const target = isWhale
@@ -3127,8 +3128,8 @@ if (!msgWallet && !getAvatarURL(user) && !isGuestName(user)) {
         const badge = getBadgeForUser(user);
         const badgeHtml = badge ? `<span class="user-badge" title="${badge.name}">${badge.emoji}</span>` : '';
 
-                const avatarInner = shownAvatar
-            ? `<img src="${escapeHtml(shownAvatar)}" alt="${escapeHtml(shownUser)}" style="width:100%;height:100%;object-fit:cover;">`
+                        const avatarInner = shownAvatar
+            ? `<img src="${escapeHtml(shownAvatar)}" alt="${escapeHtml(shownUser)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;">`
             : (shownUser || '?')[0].toUpperCase();
 
         innerHTML += `<div class="msg-username"><span class="msg-avatar">${avatarInner}</span> ${escapeHtml(shownUser)} ${badgeHtml}${isPrivate?' <span style="font-size:0.6rem;opacity:0.6;">🔒</span>':''} <span class="msg-time">${formatTime(msg.created_at)}</span>`;
@@ -3158,16 +3159,7 @@ if (!msgWallet && !getAvatarURL(user) && !isGuestName(user)) {
         // ⚑ Bind reaction clicks once per message.
         //   Event delegation → the handler survives every
         //   innerHTML rebuild inside updateReactionUI().
-        const reactionsBarEl = bubble.querySelector('.reactions-bar');
-        if (reactionsBarEl) {
-            reactionsBarEl.addEventListener('click', (e) => {
-                const btn = e.target.closest('.reaction-btn');
-                if (!btn || !reactionsBarEl.contains(btn)) return;
-                e.preventDefault();
-                e.stopPropagation();
-                toggleReaction(msg.id, btn.dataset.emoji, isPrivate, isWhale, btn);
-            });
-        }
+               // ⚑ Reacciones manejadas por delegación global
 
         observeTweetsInWrapper(wrapper);
 
@@ -3347,8 +3339,13 @@ if (!msgWallet && !getAvatarURL(user) && !isGuestName(user)) {
         }
     }
 
-    function startTyping() {
+        function startTyping() {
         if (!username || !typingChannel) return;
+        
+        const now = Date.now();
+        if (now - _typingThrottle < 2000) return; // Solo envía 1 vez cada 2 segundos
+        _typingThrottle = now;
+        
         const tab = currentTab === 'private' && activePrivateChat ? 'private' : 'public';
         const partner = tab === 'private' ? activePrivateChat : null;
         typingChannel.send({ type: 'broadcast', event: 'typing', payload: { username, tab, partner } }).then(() => {}).catch(console.warn);
@@ -3688,10 +3685,10 @@ if (!msgWallet && !getAvatarURL(user) && !isGuestName(user)) {
         showMsgLoader(privateContainer, 'Loading conversation');
 
         try {
-            const [{ data: a, error: e1 }, { data: b, error: e2 }] = await Promise.all([
-                supabase.from('private_messages').select('*')
+                       const [{ data: a, error: e1 }, { data: b, error: e2 }] = await Promise.all([
+                supabase.from('private_messages').select('id, from_user, to_user, wallet_address, message, image_url, created_at, reply_to_id, reply_to_username, reply_to_message, reply_to_image_url, sort_order, edited_at, is_deleted')
                     .eq('from_user', username).eq('to_user', partner),
-                supabase.from('private_messages').select('*')
+                supabase.from('private_messages').select('id, from_user, to_user, wallet_address, message, image_url, created_at, reply_to_id, reply_to_username, reply_to_message, reply_to_image_url, sort_order, edited_at, is_deleted')
                     .eq('from_user', partner).eq('to_user', username)
             ]);
             if (e1 || e2) {
@@ -4247,9 +4244,9 @@ if (!msgWallet && !getAvatarURL(user) && !isGuestName(user)) {
         hasMoreOlderPublic    = true;
 
         try {
-            const { data, error } = await supabase
+                       const { data, error } = await supabase
                 .from('message_feed')
-                .select('*')
+                .select('id, username, wallet_address, message, image_url, created_at, reply_to_id, reply_to_username, reply_to_message, reply_to_image_url, sort_order, edited_at, is_deleted, avatar_url')
                 .order('sort_order', { ascending: false })
                 .range(0, PUBLIC_PAGE_SIZE - 1);
             if (error) throw error;
@@ -4817,7 +4814,24 @@ switchTab('public');
         }
     });
 
-        sendBtn.addEventListener('click', sendMessage);
+          // ⚑ Delegación Global de Reacciones (Reemplaza a los listeners individuales)
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.reaction-btn');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const wrapper = btn.closest('.msg-wrapper');
+        if (!wrapper) return;
+        
+        const msgId = wrapper.getAttribute('data-msg-id');
+        const isPrivate = wrapper.closest('#privateMessagesContainer') !== null || wrapper.classList.contains('private-msg');
+        const isWhale = wrapper.closest('#whaleMessagesContainer') !== null;
+        
+        toggleReaction(msgId, btn.dataset.emoji, !!isPrivate, !!isWhale, btn);
+    });
+
+    sendBtn.addEventListener('click', sendMessage);
     messageInput.addEventListener('keypress', (e) => { if(e.key==='Enter') sendMessage(); });
     cancelReplyBtn.addEventListener('click', () => setReplyingTo(null));
 
