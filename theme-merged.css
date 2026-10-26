@@ -3754,6 +3754,12 @@ html body .error-toast.visible,
 html body .streak-toast.visible {
     pointer-events: none !important;
 }
+
+/* ⚑ Optimización Extrema: El navegador ignorará el renderizado de mensajes fuera de pantalla */
+.msg-wrapper {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 120px;
+}
 /* ═══════════════════════════════════════════════════════════════════
    ███  END OF FILE  ███
    ═══════════════════════════════════════════════════════════════════ */
