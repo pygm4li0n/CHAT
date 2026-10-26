@@ -3339,28 +3339,36 @@ if (!msgWallet && !getAvatarURL(user) && !isGuestName(user)) {
         }
     }
 
-        function startTyping() {
-        if (!username || !typingChannel) return;
-        
+          function startTyping() {
+        if (!typingChannel) return;
+        const senderUsername = username || (isOpenChatMode() ? getOrCreateGuestName() : null);
+        if (!senderUsername) return;
+
         const now = Date.now();
-        if (now - _typingThrottle < 2000) return; // Solo envía 1 vez cada 2 segundos
+        if (now - _typingThrottle < 2000) return; // Throttle: 1 vez cada 2s
         _typingThrottle = now;
-        
+
         const tab = currentTab === 'private' && activePrivateChat ? 'private' : 'public';
         const partner = tab === 'private' ? activePrivateChat : null;
-        typingChannel.send({ type: 'broadcast', event: 'typing', payload: { username, tab, partner } }).then(() => {}).catch(console.warn);
+        typingChannel.send({ type: 'broadcast', event: 'typing', payload: { username: senderUsername, tab, partner } }).catch(console.warn);
     }
+    
     function stopTyping() {
-        if (!username || !typingChannel) return;
-        typingChannel.send({ type: 'broadcast', event: 'stop_typing', payload: { username } }).then(() => {}).catch(console.warn);
+        if (!typingChannel) return;
+        const senderUsername = username || (isOpenChatMode() ? getOrCreateGuestName() : null);
+        if (!senderUsername) return;
+        typingChannel.send({ type: 'broadcast', event: 'stop_typing', payload: { username: senderUsername } }).catch(console.warn);
     }
+    
     messageInput.addEventListener('input', () => {
         if (messageInput.value.length > 0) startTyping();
         else stopTyping();
     });
+    
     function handleTypingBroadcast(payload) {
         const { event, username: sender, tab, partner } = payload;
-        if (sender === username) return;
+        const myName = username || (isOpenChatMode() ? getOrCreateGuestName() : null);
+        if (sender === myName) return;
         if (event === 'typing') {
             if (typingUsers.has(sender)) clearTimeout(typingUsers.get(sender).timeoutId);
             const timeoutId = setTimeout(() => { typingUsers.delete(sender); updateTypingIndicator(); }, 3000);
@@ -4947,9 +4955,24 @@ subscribeToPrivateRequests();
         onlineUsers.clear();
         updateSidebarUI();
     });
-    if (mobileEditBtn) {
+      if (mobileEditBtn) {
         mobileEditBtn.addEventListener('click', () => { sidebarChangeNameBtn.click(); });
     }
+
+    // ⚑ Forzar la grilla de 6 iconos en móvil
+    function setupMobileActions() {
+        if (window.innerWidth > 768) return;
+        const grid = document.querySelector('.sidebar-profile-actions');
+        if (!grid) return;
+        
+        const roomsBtn = document.getElementById('roomsBtn');
+        const editBtn = document.getElementById('mobileEditBtn');
+        
+        if (roomsBtn && !grid.contains(roomsBtn)) grid.appendChild(roomsBtn);
+        if (editBtn && !grid.contains(editBtn)) grid.appendChild(editBtn);
+    }
+    setupMobileActions();
+    window.addEventListener('resize', setupMobileActions);
 
     sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
     document.getElementById('chatPanel').addEventListener('click', (e) => {
