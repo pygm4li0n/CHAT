@@ -1393,9 +1393,8 @@
         roomOnlineUsers.clear();
         activeRoomId = null;
 
-        // ⚑ Hide the room container so its error messages don't bleed
+              // ⚑ Hide the room container so its error messages don't bleed
         //   into Public / Private / Whale tabs
-        var rc = document.getElementById('roomMessagesContainer');
         if (rc) rc.classList.add('hidden');
 
         // ⚑ Restore the normal tab bar and hide the room header bar
