@@ -30,8 +30,8 @@
     //  TOKEN INFO — DexScreener lookup with 1h cache
     //  Powers card logos, symbol pills, room header, watermark.
     // ═══════════════════════════════════════════════════════
-    var tokenInfoCache = new Map();      // mint → { imageUrl, symbol, name, priceUsd, fetchedAt }
-    var TOKEN_INFO_TTL = 60 * 60 * 1000;
+       var tokenInfoCache = new Map();
+    var TOKEN_INFO_TTL = 30 * 1000;   // ⚑ prices move fast — 30s, not 1h
 
     async function fetchTokenInfo(mint) {
         if (!mint) return null;
@@ -40,14 +40,27 @@
         if (cached && (Date.now() - cached.fetchedAt) < TOKEN_INFO_TTL) return cached;
 
         try {
-            var res  = await fetch('https://api.dexscreener.com/latest/dex/tokens/' + mint);
+            var res  = await fetch(
+                'https://api.dexscreener.com/latest/dex/tokens/' + mint,
+                { cache: 'no-store' }
+            );
             var json = await res.json();
-            var pair = json && json.pairs && json.pairs[0];
+            var pairs = (json && json.pairs) || [];
+
+            // ⚑ Pick the pair with the HIGHEST LIQUIDITY — the correct price.
+            var pair = pairs.reduce(function (best, p) {
+                var liq     = (p.liquidity && p.liquidity.usd) || 0;
+                var bestLiq = (best && best.liquidity && best.liquidity.usd) || 0;
+                return liq > bestLiq ? p : best;
+            }, pairs[0] || null);
+
+            // ⚑ Preserve last-known image/symbol if this fetch returns nothing
+            var prev = cached || {};
 
             var info = {
-                imageUrl:  pair && ((pair.info && pair.info.imageUrl) || (pair.baseToken && pair.baseToken.imageUrl)) || null,
-                symbol:    (pair && pair.baseToken && pair.baseToken.symbol) || null,
-                name:      (pair && pair.baseToken && pair.baseToken.name)   || null,
+                imageUrl:  (pair && ((pair.info && pair.info.imageUrl) || (pair.baseToken && pair.baseToken.imageUrl))) || prev.imageUrl || null,
+                symbol:    (pair && pair.baseToken && pair.baseToken.symbol) || prev.symbol || null,
+                name:      (pair && pair.baseToken && pair.baseToken.name)   || prev.name || null,
                 priceUsd:  (pair && pair.priceUsd) || null,
                 change24h: (pair && pair.priceChange && pair.priceChange.h24) || null,
                 fetchedAt: Date.now()
@@ -56,15 +69,17 @@
             return info;
         } catch (e) {
             console.warn('[rooms] token info fetch failed:', mint, e);
-            tokenInfoCache.set(mint, { imageUrl: null, symbol: null, fetchedAt: Date.now() });
-            return null;
+            // ⚑ Transient error — return the last-known value, don't blank it
+            return cached || null;
         }
     }
 
-    async function prefetchTokenInfo(mints) {
+    async function prefetchTokenInfo(mints, force) {
         var toFetch = (mints || []).filter(function (m) {
+            if (!m) return false;
+            if (force) return true;
             var c = tokenInfoCache.get(m);
-            return m && (!c || (Date.now() - c.fetchedAt) >= TOKEN_INFO_TTL);
+            return !c || (Date.now() - c.fetchedAt) >= TOKEN_INFO_TTL;
         });
         if (!toFetch.length) return;
 
@@ -129,14 +144,15 @@
         unlockSm: '<svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true"><path d="M12 2a5 5 0 0 0-5 5h2a3 3 0 1 1 6 0v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5z"/></svg>'
     };
 
-    function formatPrice(p) {
+      function formatPrice(p) {
         if (p == null) return null;
         var n = parseFloat(p);
         if (!isFinite(n) || n <= 0) return null;
-        if (n >= 1000)   return '$' + n.toFixed(0);
-        if (n >= 1)      return '$' + n.toFixed(2);
-        if (n >= 0.01)   return '$' + n.toFixed(4);
-        if (n >= 0.0001) return '$' + n.toFixed(6);
+        if (n >= 1000)       return '$' + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+        if (n >= 1)          return '$' + n.toFixed(2);
+        if (n >= 0.01)       return '$' + n.toFixed(4);
+        if (n >= 0.0001)     return '$' + n.toFixed(6);
+        if (n >= 0.00000001) return '$' + n.toFixed(8);
         return '$' + n.toExponential(2);
     }
 
@@ -266,33 +282,48 @@
                     '</span>';
             }
 
-            fetchTokenInfo(room.token_mint).then(function (tinfo) {
-                if (!tinfo) return;
+                       // ── Header price: initial paint + 30s auto-refresh ──
+            function paintRoomHeaderPrice() {
+                return fetchTokenInfo(room.token_mint).then(function (tinfo) {
+                    if (!tinfo) return;
 
-                var logoEl = document.getElementById('roomHeaderTokenLogo');
-                if (logoEl && tinfo.imageUrl) {
-                    logoEl.src = tinfo.imageUrl;
-                    logoEl.style.display = 'block';
-                    logoEl.onerror = function () { logoEl.style.display = 'none'; };
-                }
-
-                var wrapEl   = document.getElementById('roomHeaderPriceWrap');
-                var priceEl  = document.getElementById('roomHeaderPrice');
-                var changeEl = document.getElementById('roomHeaderChange');
-
-                var priceStr  = formatPrice(tinfo.priceUsd);
-                var changeStr = formatChange(tinfo.change24h);
-
-                if (wrapEl && (priceStr || changeStr)) {
-                    wrapEl.style.display = 'inline-flex';
-                    if (priceEl && priceStr) priceEl.textContent = priceStr;
-                    if (changeEl && changeStr) {
-                        changeEl.textContent = changeStr;
-                        changeEl.className = 'room-header-change ' +
-                            (parseFloat(tinfo.change24h) >= 0 ? 'rh-change-pos' : 'rh-change-neg');
+                    var logoEl = document.getElementById('roomHeaderTokenLogo');
+                    if (logoEl && tinfo.imageUrl) {
+                        logoEl.src = tinfo.imageUrl;
+                        logoEl.style.display = 'block';
+                        logoEl.onerror = function () { logoEl.style.display = 'none'; };
                     }
+
+                    var wrapEl   = document.getElementById('roomHeaderPriceWrap');
+                    var priceEl  = document.getElementById('roomHeaderPrice');
+                    var changeEl = document.getElementById('roomHeaderChange');
+
+                    var priceStr  = formatPrice(tinfo.priceUsd);
+                    var changeStr = formatChange(tinfo.change24h);
+
+                    if (wrapEl && (priceStr || changeStr)) {
+                        wrapEl.style.display = 'inline-flex';
+                        if (priceEl && priceStr) priceEl.textContent = priceStr;
+                        if (changeEl && changeStr) {
+                            changeEl.textContent = changeStr;
+                            changeEl.className = 'room-header-change ' +
+                                (parseFloat(tinfo.change24h) >= 0 ? 'rh-change-pos' : 'rh-change-neg');
+                        }
+                    }
+                });
+            }
+            paintRoomHeaderPrice();
+
+            // Auto-refresh every 30s while this room stays active
+            if (window._roomHeaderPricePoll) clearInterval(window._roomHeaderPricePoll);
+            window._roomHeaderPricePoll = setInterval(function () {
+                if (activeRoomId !== roomId) {
+                    clearInterval(window._roomHeaderPricePoll);
+                    window._roomHeaderPricePoll = null;
+                    return;
                 }
-            });
+                paintRoomHeaderPrice();
+            }, 30000);
         }
 
         var container = document.getElementById('roomMessagesContainer');
@@ -803,15 +834,44 @@
     // ═══════════════════════════════════════════════════════
     //  UI — Modals
     // ═══════════════════════════════════════════════════════
-       var _roomsWalletPoll = null;
+         var _roomsWalletPoll = null;
+    var _roomsPricePoll  = null;
+
+    // ⚑ Update ONLY the price + change on every visible card — no full
+    //   re-render → zero flicker, no lost hover states, no lost copy state.
+    function refreshRoomCardPrices() {
+        var list = document.getElementById('roomsList');
+        if (!list) return;
+        roomsCache.forEach(function (room) {
+            var card = list.querySelector('.rooms-list-item[data-room-id="' + CSS.escape(room.id) + '"]');
+            if (!card) return;
+            var info = tokenInfoCache.get(room.token_mint);
+            if (!info) return;
+
+            var metaRow  = card.querySelector('.rl-meta-row');
+            if (!metaRow) return;
+            var priceEl  = metaRow.querySelector('.rl-price');
+            var changeEl = metaRow.querySelector('.rl-change');
+
+            var priceStr  = formatPrice(info.priceUsd);
+            var changeStr = formatChange(info.change24h);
+
+            if (priceEl && priceStr) priceEl.textContent = priceStr;
+            if (changeEl && changeStr) {
+                changeEl.textContent = changeStr;
+                changeEl.className = 'rl-change ' +
+                    (parseFloat(info.change24h) >= 0 ? 'rl-change-pos' : 'rl-change-neg');
+            }
+        });
+    }
+
     function openRoomsList() {
         var overlay = document.getElementById('roomsListOverlay');
         if (!overlay) return;
         overlay.classList.remove('hidden');
         renderRoomsList();
 
-        // Re-render while open if wallet connects/disconnects — so the
-        // creator-only buttons (delete/gate) appear or disappear correctly.
+        // ── Wallet watcher ──
         var lastWallet = getWallet();
         if (_roomsWalletPoll) clearInterval(_roomsWalletPoll);
         _roomsWalletPoll = setInterval(function () {
@@ -826,6 +886,19 @@
                 renderRoomsList();
             }
         }, 1500);
+
+        // ── Price refresher (30s) — silent, in-place ──
+        if (_roomsPricePoll) clearInterval(_roomsPricePoll);
+        _roomsPricePoll = setInterval(async function () {
+            if (!overlay || overlay.classList.contains('hidden')) {
+                clearInterval(_roomsPricePoll);
+                _roomsPricePoll = null;
+                return;
+            }
+            var mints = roomsCache.map(function (r) { return r.token_mint; });
+            await prefetchTokenInfo(mints, true);   // ⚑ force = ignore TTL
+            refreshRoomCardPrices();
+        }, 30000);
     }
 
     function closeRoomsList() {
@@ -1383,8 +1456,14 @@
        // ═══════════════════════════════════════════════════════
     //  DEACTIVATE — call when leaving a room tab
     // ═══════════════════════════════════════════════════════
-              function deactivateRoom() {
+                  function deactivateRoom() {
         var sb = getSB();
+
+        // ⚑ Stop the header price poll the moment the room closes
+        if (window._roomHeaderPricePoll) {
+            clearInterval(window._roomHeaderPricePoll);
+            window._roomHeaderPricePoll = null;
+        }
 
         // Clear the token watermark so it doesn't leak into Public chat
         var rc = document.getElementById('roomMessagesContainer');
