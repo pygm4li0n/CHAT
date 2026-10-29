@@ -364,221 +364,342 @@
             white-space: nowrap;
         }
 
-                       /* ═══ ROOMS LIST — epic token-hero cards ═══ */
-        #roomsListOverlay .overlay-card {
-            max-width: 560px;
-            overflow: hidden;
-            padding: 24px 22px;
+                              /* ═══ ROOMS PANEL — epic clean edition ═══ */
+        #roomsListOverlay {
+            padding: 20px !important;
         }
-        #roomsListOverlay h3 {
-            font-family: var(--font-mono, monospace);
-            font-size: 1.2rem;
-            font-weight: 900;
-            letter-spacing: 0.24em;
-            text-transform: uppercase;
-            margin-bottom: 18px;
+        #roomsListOverlay .rooms-panel {
+            width: 100%;
+            max-width: 620px;
+            max-height: 85vh;
+            background: linear-gradient(180deg, var(--bg-panel, #0e1218), var(--bg-deep, #050914));
+            border: 1px solid var(--border-default, rgba(255,255,255,0.10));
+            border-radius: 18px;
+            box-shadow:
+                0 24px 80px rgba(0,0,0,0.85),
+                0 0 60px color-mix(in srgb, var(--accent-cyan, #00f0ff) 12%, transparent);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            animation: roomsPanelIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes roomsPanelIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.96); }
+            to   { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+
+        .rooms-panel-header {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 14px;
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
+            flex-shrink: 0;
+            position: relative;
         }
-        #roomsListOverlay h3::after {
+        .rooms-panel-header::after {
             content: '';
-            flex: 1;
+            position: absolute;
+            left: 24px; right: 24px; bottom: -1px;
             height: 1px;
-            background: linear-gradient(90deg,
-                color-mix(in srgb, var(--accent-cyan, #00f0ff) 50%, transparent),
-                transparent);
+            background: linear-gradient(90deg, transparent, var(--accent-cyan, #00f0ff), transparent);
+            opacity: 0.45;
         }
+        .rooms-panel-icon {
+            width: 40px; height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 12%, transparent);
+            border: 1px solid color-mix(in srgb, var(--accent-cyan, #00f0ff) 35%, transparent);
+            color: var(--accent-cyan, #00f0ff);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.08),
+                0 0 16px color-mix(in srgb, var(--accent-cyan, #00f0ff) 25%, transparent);
+        }
+        .rooms-panel-title-wrap {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        .rooms-panel-title {
+            font-family: var(--font-mono, monospace);
+            font-size: 0.95rem;
+            font-weight: 900;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--text-primary, #fff);
+            margin: 0;
+            line-height: 1.1;
+            text-shadow: 0 0 12px color-mix(in srgb, var(--accent-cyan, #00f0ff) 40%, transparent);
+        }
+        .rooms-panel-subtitle {
+            font-family: var(--font-mono, monospace);
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--text-muted, #64748b);
+            margin: 4px 0 0;
+            line-height: 1;
+        }
+        .rooms-panel-count {
+            font-family: var(--font-mono, monospace);
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 5px 10px;
+            border-radius: 6px;
+            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 10%, transparent);
+            border: 1px solid color-mix(in srgb, var(--accent-cyan, #00f0ff) 35%, transparent);
+            color: var(--accent-cyan, #00f0ff);
+            flex-shrink: 0;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+        .rooms-panel-close {
+            width: 34px; height: 34px;
+            border-radius: 9px;
+            border: 1px solid var(--border-default, rgba(255,255,255,0.12));
+            background: transparent;
+            color: var(--text-secondary, #94a3b8);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: transform 0.3s ease, border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .rooms-panel-close:hover {
+            transform: rotate(90deg);
+            border-color: var(--accent-red, #ff5c7c);
+            color: var(--accent-red, #ff5c7c);
+            background: color-mix(in srgb, var(--accent-red, #ff5c7c) 10%, transparent);
+        }
+
+        .rooms-panel-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: color-mix(in srgb, var(--accent-cyan, #00f0ff) 30%, transparent) transparent;
+        }
+        .rooms-panel-body::-webkit-scrollbar { width: 6px; }
+        .rooms-panel-body::-webkit-scrollbar-track { background: transparent; }
+        .rooms-panel-body::-webkit-scrollbar-thumb {
+            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 30%, transparent);
+            border-radius: 3px;
+        }
+        .rooms-panel-body::-webkit-scrollbar-thumb:hover {
+            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 50%, transparent);
+        }
+
+        .rooms-panel-footer {
+            display: flex;
+            gap: 10px;
+            padding: 16px 20px 20px;
+            border-top: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
+            flex-shrink: 0;
+            background: linear-gradient(180deg, transparent, rgba(0,0,0,0.20));
+        }
+        .rooms-panel-btn {
+            flex: 1;
+            height: 44px;
+            padding: 0 20px;
+            border-radius: 10px;
+            font-family: var(--font-mono, monospace);
+            font-size: 0.72rem;
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            -webkit-tap-highlight-color: transparent;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        .rooms-panel-btn.primary {
+            background: linear-gradient(180deg,
+                color-mix(in srgb, var(--accent-cyan, #00f0ff) 92%, white 8%),
+                color-mix(in srgb, var(--accent-cyan, #00f0ff) 72%, black 8%));
+            color: #001018;
+            border: 1px solid var(--accent-cyan, #00f0ff);
+            box-shadow:
+                0 4px 14px color-mix(in srgb, var(--accent-cyan, #00f0ff) 40%, transparent),
+                inset 0 1px 0 rgba(255,255,255,0.35);
+            text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+        }
+        .rooms-panel-btn.primary:hover {
+            filter: brightness(1.12);
+            box-shadow:
+                0 6px 20px color-mix(in srgb, var(--accent-cyan, #00f0ff) 60%, transparent),
+                inset 0 1px 0 rgba(255,255,255,0.4);
+            transform: translateY(-1px);
+        }
+        .rooms-panel-btn.ghost {
+            background: transparent;
+            color: var(--text-secondary, #94a3b8);
+            border: 1px solid var(--border-default, rgba(255,255,255,0.15));
+        }
+        .rooms-panel-btn.ghost:hover {
+            border-color: var(--text-secondary, #94a3b8);
+            color: var(--text-primary, #fff);
+            background: rgba(255,255,255,0.04);
+        }
+        .rooms-panel-btn:active { transform: scale(0.97); }
 
         .rooms-list {
             display: flex;
             flex-direction: column;
-            gap: 14px;
-            max-height: 60vh;
-            overflow-y: auto;
-            overflow-x: hidden;
-            margin: 0 -6px 16px;
-            padding: 0 6px;
-            box-sizing: border-box;
-            scrollbar-width: thin;
-            scrollbar-color: color-mix(in srgb, var(--accent-cyan, #00f0ff) 40%, transparent) transparent;
+            gap: 10px;
         }
-        .rooms-list::-webkit-scrollbar { width: 6px; }
-        .rooms-list::-webkit-scrollbar-thumb {
-            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 40%, transparent);
-            border-radius: 3px;
-        }
-
-        /* Empty state */
-        .rooms-list-empty {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            padding: 40px 20px 44px;
-            text-align: center;
-            color: var(--text-muted, #64748b);
-            font-size: 0.82rem;
-            font-style: italic;
-            line-height: 1.5;
-            border: 1px dashed color-mix(in srgb, var(--accent-cyan, #00f0ff) 22%, transparent);
-            border-radius: 12px;
-            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 3%, transparent);
-        }
-        .rooms-list-empty::before {
-            content: '🏛️';
-            font-size: 2.4rem;
-            font-style: normal;
-            opacity: 0.55;
-            filter: drop-shadow(0 0 14px color-mix(in srgb, var(--accent-cyan, #00f0ff) 50%, transparent));
-        }
-        /* ── ROOM CARD — clean grid, single row ── */
         .rooms-list-item {
             display: grid;
-            grid-template-columns: 48px 1fr auto;
+            grid-template-columns: 60px minmax(0, 1fr) auto;
             grid-template-areas: "thumb info actions";
             align-items: center;
             gap: 14px;
             padding: 14px;
-            background: var(--bg-elevated, rgba(255,255,255,0.03));
-            border: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
-            border-radius: 12px;
+            background: color-mix(in srgb, var(--bg-elevated, #151b2d) 60%, transparent);
+            border: 1px solid var(--border-subtle, rgba(255,255,255,0.06));
+            border-radius: 14px;
             cursor: pointer;
-            transition: background .16s ease, border-color .16s ease;
+            transition: all 0.18s ease;
             min-width: 0;
             width: 100%;
             box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+        .rooms-list-item::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 3px;
+            background: transparent;
+            transition: background 0.2s ease;
         }
         .rooms-list-item:hover {
-            background: var(--bg-hover, rgba(255,255,255,0.055));
-            border-color: color-mix(in srgb, var(--accent-cyan, #00f0ff) 40%, transparent);
+            background: color-mix(in srgb, var(--bg-elevated, #151b2d) 80%, transparent);
+            border-color: color-mix(in srgb, var(--accent-cyan, #00f0ff) 35%, transparent);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 18px rgba(0,0,0,0.35);
         }
+        .rooms-list-item:hover::before { background: var(--accent-cyan, #00f0ff); }
         .rooms-list-item.is-active {
-            border-color: var(--accent-cyan, #00f0ff);
-            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 8%, var(--bg-elevated, #1e2221));
+            border-color: color-mix(in srgb, var(--accent-cyan, #00f0ff) 55%, transparent);
+            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 6%, var(--bg-elevated, #151b2d));
+        }
+        .rooms-list-item.is-active::before {
+            background: var(--accent-cyan, #00f0ff);
+            box-shadow: 0 0 10px var(--accent-cyan, #00f0ff);
         }
 
-              /* ── Token thumbnail + gate badge ── */
         .rl-thumb {
             grid-area: thumb;
             position: relative;
-            width: 48px;
-            height: 48px;
-            border-radius: 10px;
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 10%, transparent);
-            border: 1px solid color-mix(in srgb, var(--accent-cyan, #00f0ff) 25%, transparent);
+            background: linear-gradient(135deg,
+                color-mix(in srgb, var(--accent-cyan, #00f0ff) 12%, transparent),
+                color-mix(in srgb, var(--accent-cyan, #00f0ff) 4%, transparent));
+            border: 1px solid color-mix(in srgb, var(--accent-cyan, #00f0ff) 30%, transparent);
             font-family: var(--font-mono, monospace);
-            font-size: 1.1rem;
+            font-size: 1.4rem;
             font-weight: 900;
             color: var(--accent-cyan, #00f0ff);
             flex-shrink: 0;
+            overflow: visible;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.08),
+                0 0 14px color-mix(in srgb, var(--accent-cyan, #00f0ff) 15%, transparent);
         }
         .rl-thumb img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
-            border-radius: 9px;
+            border-radius: 11px;
         }
+
         .rl-gate-badge {
             position: absolute;
-            top: -5px;
-            right: -5px;
-            width: 18px;
-            height: 18px;
+            top: -6px;
+            right: -6px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             border: 2px solid var(--bg-panel, #0a0e14);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.6);
             z-index: 2;
             pointer-events: none;
         }
         .rl-gate-badge.rl-gate-on  { background: #fbbf24; color: #451a03; }
         .rl-gate-badge.rl-gate-off { background: #22c55e; color: #052e16; }
 
-        /* ── Info column ── */
         .rl-info {
             grid-area: info;
             min-width: 0;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 5px;
         }
         .rl-title-row {
             display: flex;
             align-items: center;
             gap: 8px;
             min-width: 0;
+            flex-wrap: wrap;
         }
         .rl-name {
             font-family: var(--font-mono, monospace);
-            font-weight: 800;
-            font-size: 0.9rem;
-            color: var(--text-primary, #fff);
-            letter-spacing: 0.02em;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            min-width: 0;
-            flex: 1 1 auto;
-        }
-        .rl-symbol {
-            flex-shrink: 0;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-family: var(--font-mono, monospace);
-            font-size: 0.6rem;
-            font-weight: 800;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            color: var(--accent-cyan, #00f0ff);
-            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 12%, transparent);
-            border: 1px solid color-mix(in srgb, var(--accent-cyan, #00f0ff) 30%, transparent);
-            line-height: 1;
-        }
-        .rl-symbol:empty { display: none; }
-
-                /* ── Title row (name + ticker tight) ── */
-        .rl-title-row {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            min-width: 0;
-        }
-        .rl-name {
-            font-family: var(--font-mono, monospace);
-            font-weight: 800;
+            font-weight: 900;
             font-size: 0.92rem;
             color: var(--text-primary, #fff);
-            letter-spacing: 0.02em;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
             min-width: 0;
+            max-width: 100%;
             flex: 0 1 auto;
         }
         .rl-symbol {
             flex-shrink: 0;
-            padding: 2px 8px;
-            border-radius: 4px;
+            padding: 3px 8px;
+            border-radius: 5px;
             font-family: var(--font-mono, monospace);
-            font-size: 0.6rem;
+            font-size: 0.62rem;
             font-weight: 800;
             letter-spacing: 0.05em;
             text-transform: uppercase;
             color: var(--accent-cyan, #00f0ff);
             background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 12%, transparent);
-            border: 1px solid color-mix(in srgb, var(--accent-cyan, #00f0ff) 30%, transparent);
+            border: 1px solid color-mix(in srgb, var(--accent-cyan, #00f0ff) 35%, transparent);
             line-height: 1;
         }
         .rl-symbol:empty { display: none; }
 
-        /* ── Price + change + time row ── */
         .rl-meta-row {
             display: flex;
             align-items: center;
@@ -621,15 +742,14 @@
             font-size: 0.64rem;
             margin-left: auto;
         }
-        .rl-sep  { opacity: 0.35; flex-shrink: 0; }
+        .rl-sep { opacity: 0.35; flex-shrink: 0; }
 
-        /* ── FULL CA — copyable chip, its own line ── */
         .rl-mint {
             display: block;
             width: 100%;
             max-width: 100%;
             font-family: var(--font-mono, monospace);
-            font-size: 0.6rem;
+            font-size: 0.62rem;
             font-weight: 500;
             color: var(--text-secondary, #94a3b8);
             letter-spacing: 0.01em;
@@ -638,13 +758,12 @@
             white-space: normal;
             background: rgba(255,255,255,0.025);
             border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 5px;
-            padding: 5px 8px;
+            border-radius: 6px;
+            padding: 6px 9px;
             margin-top: 2px;
             cursor: pointer;
             text-align: left;
-            transition: background .15s ease, border-color .15s ease,
-                        color .15s ease, transform .12s ease;
+            transition: all 0.15s ease;
             line-height: 1.5;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
@@ -659,30 +778,8 @@
             background: color-mix(in srgb, #4ade80 14%, transparent);
             border-color: color-mix(in srgb, #4ade80 50%, transparent);
             color: #4ade80;
-            animation: rl-copy-flash 0.35s ease-out;
-        }
-        @keyframes rl-copy-flash {
-            0%   { transform: scale(1); }
-            50%  { transform: scale(1.01); }
-            100% { transform: scale(1); }
         }
 
-        /* ── Mobile: CA truncates, time hidden ── */
-        @media (max-width: 520px) {
-            .rl-mint {
-                white-space: nowrap;
-                text-overflow: ellipsis;
-                word-break: normal;
-                font-size: 0.56rem;
-                padding: 4px 7px;
-            }
-            .rl-time { display: none !important; }
-            .rl-sep-time { display: none !important; }
-        }
-        .rl-gate-on  { color: #fbbf24; }
-        .rl-gate-off { color: #86efac; }
-
-        /* ── Actions ── */
         .rl-actions {
             grid-area: actions;
             display: flex;
@@ -693,8 +790,8 @@
         .rl-btn-primary,
         .rl-btn-ghost,
         .rl-btn-danger {
-            height: 32px;
-            border-radius: 7px;
+            height: 34px;
+            border-radius: 8px;
             border: 1px solid;
             cursor: pointer;
             font: inherit;
@@ -706,9 +803,8 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            transition: filter .15s ease, border-color .15s ease,
-                        color .15s ease, background .15s ease;
-            padding: 0 12px;
+            transition: all 0.15s ease;
+            padding: 0 14px;
             white-space: nowrap;
             line-height: 1;
         }
@@ -720,16 +816,19 @@
             border-color: var(--accent-cyan, #00f0ff);
             font-weight: 900;
             text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+            box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-cyan, #00f0ff) 35%, transparent);
         }
         .rl-btn-primary:hover {
             filter: brightness(1.12);
+            box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-cyan, #00f0ff) 55%, transparent);
+            transform: translateY(-1px);
         }
         .rl-btn-ghost {
             background: transparent;
             border-color: color-mix(in srgb, var(--border-default, #454B4B) 60%, transparent);
             color: var(--text-muted, #94a3b8);
-            padding: 0 9px;
-            min-width: 32px;
+            padding: 0 10px;
+            min-width: 34px;
         }
         .rl-btn-ghost:hover {
             border-color: var(--accent-cyan, #00f0ff);
@@ -745,8 +844,8 @@
             background: transparent;
             border-color: color-mix(in srgb, #ef4444 35%, transparent);
             color: #ef4444;
-            padding: 0 9px;
-            min-width: 32px;
+            padding: 0 10px;
+            min-width: 34px;
         }
         .rl-btn-danger:hover {
             border-color: #ef4444;
@@ -760,25 +859,108 @@
             cursor: not-allowed;
         }
 
-        /* ── Mobile: stack actions below ── */
+        .rooms-list-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 48px 20px 52px;
+            text-align: center;
+            color: var(--text-muted, #64748b);
+            font-family: var(--font-mono, monospace);
+            font-size: 0.82rem;
+            line-height: 1.6;
+            border: 1px dashed color-mix(in srgb, var(--accent-cyan, #00f0ff) 25%, transparent);
+            border-radius: 14px;
+            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 3%, transparent);
+        }
+        .rooms-list-empty .rle-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: color-mix(in srgb, var(--accent-cyan, #00f0ff) 10%, transparent);
+            border: 1px solid color-mix(in srgb, var(--accent-cyan, #00f0ff) 30%, transparent);
+            color: var(--accent-cyan, #00f0ff);
+            font-size: 1.8rem;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.06),
+                0 0 24px color-mix(in srgb, var(--accent-cyan, #00f0ff) 20%, transparent);
+        }
+        .rooms-list-empty .rle-title {
+            font-size: 0.92rem;
+            font-weight: 800;
+            color: var(--text-primary, #fff);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin: 0;
+        }
+        .rooms-list-empty .rle-sub {
+            font-size: 0.72rem;
+            color: var(--text-muted, #64748b);
+            margin: 0;
+            max-width: 280px;
+            line-height: 1.5;
+        }
+
         @media (max-width: 520px) {
+            #roomsListOverlay { padding: 10px !important; }
+            #roomsListOverlay .rooms-panel {
+                max-height: 92vh;
+                border-radius: 14px;
+            }
+            .rooms-panel-header {
+                padding: 14px 14px 12px;
+                gap: 10px;
+            }
+            .rooms-panel-icon { width: 34px; height: 34px; font-size: 1rem; }
+            .rooms-panel-title { font-size: 0.82rem; letter-spacing: 0.18em; }
+            .rooms-panel-subtitle { font-size: 0.58rem; }
+            .rooms-panel-count { font-size: 0.65rem; padding: 4px 8px; }
+
+            .rooms-panel-body {
+                padding: 12px 12px;
+                gap: 8px;
+            }
             .rooms-list-item {
-                grid-template-columns: 44px 1fr;
+                grid-template-columns: 48px minmax(0, 1fr);
                 grid-template-areas:
                     "thumb info"
                     "actions actions";
                 gap: 10px 12px;
                 padding: 12px;
+                border-radius: 12px;
             }
-            .rl-thumb { width: 44px; height: 44px; }
-            .rl-name { font-size: 0.82rem; }
+            .rl-thumb { width: 48px; height: 48px; font-size: 1.1rem; }
+            .rl-name { font-size: 0.84rem; }
+            .rl-symbol { font-size: 0.58rem; padding: 2px 6px; }
+            .rl-mint {
+                font-size: 0.58rem;
+                padding: 5px 7px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .rl-time { display: none !important; }
+            .rl-sep-time { display: none !important; }
+
             .rl-actions {
+                grid-column: 1 / -1;
                 padding-top: 10px;
                 border-top: 1px solid var(--border-subtle, rgba(255,255,255,0.06));
                 justify-content: flex-end;
-                width: 100%;
+                gap: 6px;
             }
-            .rl-btn-primary { flex: 1 1 auto; }
+            .rl-btn-primary { flex: 1 1 auto; min-width: 0; }
+
+            .rooms-panel-footer {
+                padding: 12px 14px 14px;
+                gap: 8px;
+            }
+            .rooms-panel-btn { height: 42px; font-size: 0.68rem; padding: 0 14px; }
         }
 
         /* ── ROOM HEADER — token logo + name + mint ── */
@@ -1312,12 +1494,24 @@
         </div>
     </div>
 
-        <div class="overlay-full hidden" id="roomsListOverlay">
-        <div class="overlay-card">
-            <h3>🏛️ COMMUNITIES</h3>
-            <div id="roomsList" class="rooms-list"></div>
-            <button id="roomCreateNewBtn">+ Create New Room</button>
-            <button id="roomsListCloseBtn">Close</button>
+           <div class="overlay-full hidden" id="roomsListOverlay">
+        <div class="rooms-panel">
+            <div class="rooms-panel-header">
+                <div class="rooms-panel-icon">🏛️</div>
+                <div class="rooms-panel-title-wrap">
+                    <h3 class="rooms-panel-title">Communities</h3>
+                    <p class="rooms-panel-subtitle">Token-gated chat rooms</p>
+                </div>
+                <span class="rooms-panel-count" id="roomsPanelCount">0</span>
+                <button class="rooms-panel-close" id="roomsListCloseBtn" type="button" aria-label="Close">✕</button>
+            </div>
+            <div class="rooms-panel-body">
+                <div id="roomsList" class="rooms-list"></div>
+            </div>
+            <div class="rooms-panel-footer">
+                <button class="rooms-panel-btn primary" id="roomCreateNewBtn" type="button">+ Create Room</button>
+                <button class="rooms-panel-btn ghost" id="roomsListCloseBtn2" type="button">Close</button>
+            </div>
         </div>
     </div>
 
@@ -1358,8 +1552,7 @@
     <script src="link-guard.js?v=3"></script>
     <script src="rooms.js?v=2"></script>
 
-    <script>
-        <script>
+       <script>
     (function wireMobileProfile() {
         'use strict';
 
