@@ -2184,36 +2184,86 @@ let whaleMessageReactions = {};   // whale chat reuses the message_reactions tab
         acceptedPrivateChats = new Set();
     }
 
-    const TOKEN_ADDRESS = 'EJjqCJRYs19QDtQRM7QD5vwbdf1XfEysyF5nL1kNpump';
+       const TOKEN_ADDRESS = 'EJjqCJRYs19QDtQRM7QD5vwbdf1XfEysyF5nL1kNpump';
+
+    /* ═══════════════════════════════════════════════════════
+       ⚑ PRICE FORMATTER — handles every magnitude
+       0.00000001  → $0.00000001
+       0.00001234  → $0.000012
+       0.00123     → $0.001234
+       0.1234      → $0.1234
+       1.5         → $1.50
+       1234.56     → $1,234.56
+    ═══════════════════════════════════════════════════════ */
+    function formatTokenPrice(p) {
+        var n = parseFloat(p);
+        if (!isFinite(n) || n <= 0) return '--';
+        if (n >= 1000)       return '$' + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+        if (n >= 1)          return '$' + n.toFixed(2);
+        if (n >= 0.01)       return '$' + n.toFixed(4);
+        if (n >= 0.0001)     return '$' + n.toFixed(6);
+        if (n >= 0.00000001) return '$' + n.toFixed(8);
+        return '$' + n.toExponential(2);
+    }
+
+    function formatTokenChange(c) {
+        var n = parseFloat(c);
+        if (!isFinite(n)) return '--';
+        return (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
+    }
+
+    let _tokenInfoInFlight = false;
     async function updateTokenInfo() {
+        if (_tokenInfoInFlight) return;
         const trackers = document.querySelectorAll('.token-tracker');
         if (!trackers.length) return;
+
+        _tokenInfoInFlight = true;
         try {
-            const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${TOKEN_ADDRESS}`);
+            const response = await fetch(
+                `https://api.dexscreener.com/latest/dex/tokens/${TOKEN_ADDRESS}`,
+                { cache: 'no-store' }
+            );
             const data = await response.json();
-            if (data.pairs && data.pairs.length > 0) {
-                const pair = data.pairs[0];
-                const price = parseFloat(pair.priceUsd);
-                const change = parseFloat(pair.priceChange.h24);
-                const tokenName = pair.baseToken.name || pair.baseToken.symbol || 'TOKEN';
-                const logoUrl = pair.info?.imageUrl || pair.baseToken?.imageUrl || '';
+            const pairs = (data && data.pairs) || [];
+
+            if (pairs.length > 0) {
+                // ⚑ Pick the pair with the HIGHEST LIQUIDITY — the correct price.
+                //   Blind pairs[0] could return a low-liquidity pool with a
+                //   wildly off price.
+                const pair = pairs.reduce(function (best, p) {
+                    var liq     = (p.liquidity && p.liquidity.usd) || 0;
+                    var bestLiq = (best && best.liquidity && best.liquidity.usd) || 0;
+                    return liq > bestLiq ? p : best;
+                }, pairs[0]);
+
+                const price     = parseFloat(pair.priceUsd);
+                const change    = parseFloat(pair.priceChange && pair.priceChange.h24);
+                const tokenName = (pair.baseToken && (pair.baseToken.name || pair.baseToken.symbol)) || 'TOKEN';
+                const logoUrl   = (pair.info && pair.info.imageUrl)
+                               || (pair.baseToken && pair.baseToken.imageUrl)
+                               || '';
+
                 trackers.forEach(tracker => {
-                    const logoEl = tracker.querySelector('.token-logo');
-                    const nameEl = tracker.querySelector('.token-name');
-                    const priceEl = tracker.querySelector('.token-price');
+                    const logoEl   = tracker.querySelector('.token-logo');
+                    const nameEl   = tracker.querySelector('.token-name');
+                    const priceEl  = tracker.querySelector('.token-price');
                     const changeEl = tracker.querySelector('.token-change');
+
                     if (nameEl) nameEl.textContent = tokenName;
                     if (logoEl) { logoEl.src = logoUrl; logoEl.style.display = logoUrl ? 'block' : 'none'; }
-                    if (priceEl) priceEl.textContent = price ? `$${price.toFixed(4)}` : '--';
+                    if (priceEl) priceEl.textContent = formatTokenPrice(price);
                     if (changeEl) {
-                        changeEl.textContent = change ? `${change.toFixed(2)}%` : '--';
-                        changeEl.className = 'token-change ' + (change >= 0 ? 'positive' : 'negative');
+                        changeEl.textContent = formatTokenChange(change);
+                        changeEl.className = 'token-change ' + (
+                            isFinite(change) ? (change >= 0 ? 'positive' : 'negative') : ''
+                        );
                     }
                 });
             } else {
                 trackers.forEach(tracker => {
-                    const logoEl = tracker.querySelector('.token-logo');
-                    const priceEl = tracker.querySelector('.token-price');
+                    const logoEl   = tracker.querySelector('.token-logo');
+                    const priceEl  = tracker.querySelector('.token-price');
                     const changeEl = tracker.querySelector('.token-change');
                     if (logoEl) logoEl.style.display = 'none';
                     if (priceEl) priceEl.textContent = '--';
@@ -2221,19 +2271,28 @@ let whaleMessageReactions = {};   // whale chat reuses the message_reactions tab
                 });
             }
         } catch (err) {
-            console.warn('Token fetch failed:', err);
+            console.warn('[token] fetch failed:', err);
+            // ⚑ Transient network error — keep last-known price visible.
+            //   Only blank trackers that never had a value.
             trackers.forEach(tracker => {
-                const logoEl = tracker.querySelector('.token-logo');
                 const priceEl = tracker.querySelector('.token-price');
-                const changeEl = tracker.querySelector('.token-change');
-                if (logoEl) logoEl.style.display = 'none';
-                if (priceEl) priceEl.textContent = '--';
-                if (changeEl) { changeEl.textContent = '--'; changeEl.className = 'token-change'; }
+                if (priceEl && (!priceEl.textContent || priceEl.textContent === '--')) {
+                    priceEl.textContent = '--';
+                }
             });
+        } finally {
+            _tokenInfoInFlight = false;
         }
     }
+
     updateTokenInfo();
-    setInterval(updateTokenInfo, 60000);
+    setInterval(updateTokenInfo, 30000);
+
+    // ⚑ Refresh immediately when the tab regains focus — background tabs
+    //   get throttled to ~1 req/min by the browser.
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') updateTokenInfo();
+    });
 
     function scrollContainerToBottom(container) { if (container) container.scrollTop = container.scrollHeight; }
 
