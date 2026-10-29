@@ -144,16 +144,25 @@
         unlockSm: '<svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true"><path d="M12 2a5 5 0 0 0-5 5h2a3 3 0 1 1 6 0v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5z"/></svg>'
     };
 
-      function formatPrice(p) {
+            function formatPrice(p) {
         if (p == null) return null;
         var n = parseFloat(p);
         if (!isFinite(n) || n <= 0) return null;
-        if (n >= 1000)       return '$' + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-        if (n >= 1)          return '$' + n.toFixed(2);
-        if (n >= 0.01)       return '$' + n.toFixed(4);
-        if (n >= 0.0001)     return '$' + n.toFixed(6);
-        if (n >= 0.00000001) return '$' + n.toFixed(8);
-        return '$' + n.toExponential(2);
+
+        if (n >= 1000) return '$' + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+        if (n >= 1)    return '$' + n.toFixed(2);
+        if (n >= 0.01) return '$' + n.toFixed(4);
+
+        // ⚑ Exact decimal for anything < $0.01 — no more exponential notation
+        var str = n.toFixed(20);
+        var match = str.match(/^0\.(0*)([1-9]\d{0,3})/);
+        if (match) {
+            var zeros = match[1].length;
+            var sig = match[2].replace(/0+$/, '');
+            if (!sig) sig = '1';
+            return '$0.' + '0'.repeat(zeros) + sig;
+        }
+        return '$' + n.toFixed(8);
     }
 
     function formatChange(c) {
