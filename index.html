@@ -1359,11 +1359,59 @@
     <script src="rooms.js?v=2"></script>
 
     <script>
+        <script>
     (function wireMobileProfile() {
         'use strict';
 
         function isMobile() {
             return window.matchMedia('(max-width: 768px)').matches;
+        }
+
+        function ensureModBtn(grid) {
+            if (document.getElementById('sidebarModBtn')) return;
+            const mb = document.createElement('button');
+            mb.id = 'sidebarModBtn';
+            mb.className = 'btn-icon hidden';
+            mb.type = 'button';
+            mb.title = 'Mod settings';
+            mb.textContent = '⚙️';
+            mb.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const h = document.getElementById('modSettingsBtn');
+                if (h) h.click();
+            });
+            grid.appendChild(mb);
+
+            const headerMod = document.getElementById('modSettingsBtn');
+            if (headerMod) {
+                const sync = function () {
+                    const hidden = headerMod.classList.contains('hidden')
+                                || headerMod.style.display === 'none';
+                    mb.classList.toggle('hidden', hidden);
+                };
+                sync();
+                new MutationObserver(sync).observe(headerMod, {
+                    attributes: true,
+                    attributeFilter: ['class', 'style']
+                });
+            }
+        }
+
+        function ensureRefreshBtn(grid) {
+            if (document.getElementById('sidebarRefreshBtn')) return;
+            if (document.getElementById('sidebarXBtn')) return;
+            const rb = document.createElement('button');
+            rb.id = 'sidebarRefreshBtn';
+            rb.className = 'btn-icon';
+            rb.type = 'button';
+            rb.title = 'Reconnect';
+            rb.textContent = '↻';
+            rb.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const h = document.getElementById('refreshBtn');
+                if (h) h.click();
+            });
+            grid.appendChild(rb);
         }
 
         function buildActionsGrid() {
@@ -1372,63 +1420,29 @@
             const profile = document.getElementById('sidebarUserProfileBig');
             if (!profile) return;
 
-            if (profile.querySelector('.sidebar-profile-actions')) return;
-
-            const grid = document.createElement('div');
-            grid.className = 'sidebar-profile-actions';
-            grid.setAttribute('aria-label', 'Profile actions');
-
-            const themeBtn    = document.getElementById('sidebarThemeBtn');
-            const rankingsBtn = document.getElementById('rankingsBtn');
-            if (themeBtn)    grid.appendChild(themeBtn);
-            if (rankingsBtn) grid.appendChild(rankingsBtn);
-
-            if (!document.getElementById('sidebarRefreshBtn') &&
-                !document.getElementById('sidebarXBtn')) {
-                const rb = document.createElement('button');
-                rb.id = 'sidebarRefreshBtn';
-                rb.className = 'btn-icon';
-                rb.type = 'button';
-                rb.title = 'Reconnect';
-                rb.textContent = '↻';
-                rb.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    const h = document.getElementById('refreshBtn');
-                    if (h) h.click();
-                });
-                grid.appendChild(rb);
+            let grid = profile.querySelector('.sidebar-profile-actions');
+            if (!grid) {
+                grid = document.createElement('div');
+                grid.className = 'sidebar-profile-actions';
+                grid.setAttribute('aria-label', 'Profile actions');
+                profile.appendChild(grid);
             }
 
-            if (!document.getElementById('sidebarModBtn')) {
-                const mb = document.createElement('button');
-                mb.id = 'sidebarModBtn';
-                mb.className = 'btn-icon hidden';
-                mb.type = 'button';
-                mb.title = 'Mod settings';
-                mb.textContent = '⚙️';
-                mb.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    const h = document.getElementById('modSettingsBtn');
-                    if (h) h.click();
-                });
-                grid.appendChild(mb);
+            ensureModBtn(grid);
+            ensureRefreshBtn(grid);
 
-                const headerMod = document.getElementById('modSettingsBtn');
-                if (headerMod) {
-                    const sync = function () {
-                        const hidden = headerMod.classList.contains('hidden')
-                                    || headerMod.style.display === 'none';
-                        mb.classList.toggle('hidden', hidden);
-                    };
-                    sync();
-                    new MutationObserver(sync).observe(headerMod, {
-                        attributes: true,
-                        attributeFilter: ['class', 'style']
-                    });
-                }
-            }
-
-            profile.appendChild(grid);
+            // Deterministic order: THEME · RANK · MOD · ROOMS · X/REFRESH · EDIT
+            const order = [
+                document.getElementById('sidebarThemeBtn'),
+                document.getElementById('rankingsBtn'),
+                document.getElementById('sidebarModBtn'),
+                document.getElementById('roomsBtn'),
+                document.getElementById('sidebarXBtn') || document.getElementById('sidebarRefreshBtn'),
+                document.getElementById('mobileEditBtn')
+            ];
+            order.forEach(function (btn) {
+                if (btn) grid.appendChild(btn);
+            });
         }
 
         function wireAvatarClick() {
@@ -1481,6 +1495,10 @@
         setTimeout(run, 600);
         setTimeout(run, 2000);
         setTimeout(run, 5000);
+
+        window.addEventListener('resize', function () {
+            if (isMobile()) run();
+        });
     })();
     </script>
 
