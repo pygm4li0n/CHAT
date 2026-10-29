@@ -4959,20 +4959,7 @@ subscribeToPrivateRequests();
         mobileEditBtn.addEventListener('click', () => { sidebarChangeNameBtn.click(); });
     }
 
-    // ⚑ Forzar la grilla de 6 iconos en móvil
-    function setupMobileActions() {
-        if (window.innerWidth > 768) return;
-        const grid = document.querySelector('.sidebar-profile-actions');
-        if (!grid) return;
-        
-        const roomsBtn = document.getElementById('roomsBtn');
-        const editBtn = document.getElementById('mobileEditBtn');
-        
-        if (roomsBtn && !grid.contains(roomsBtn)) grid.appendChild(roomsBtn);
-        if (editBtn && !grid.contains(editBtn)) grid.appendChild(editBtn);
-    }
-    setupMobileActions();
-    window.addEventListener('resize', setupMobileActions);
+     // Mobile grid build & ordering is handled in index.html (wireMobileProfile).
 
     sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
     document.getElementById('chatPanel').addEventListener('click', (e) => {
