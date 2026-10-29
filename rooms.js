@@ -1039,15 +1039,22 @@
         });
     }
 
-    async function renderRoomsList() {
+       async function renderRoomsList() {
         var list = document.getElementById('roomsList');
         if (!list) return;
 
+        var countEl = document.getElementById('roomsPanelCount');
+        if (countEl) countEl.textContent = roomsCache.length;
+
         if (!roomsCache.length) {
-            list.innerHTML = '<div class="rooms-list-empty">No rooms yet.<br>Tap <strong>+ Create New Room</strong> below to found one.</div>';
+            list.innerHTML =
+                '<div class="rooms-list-empty">' +
+                    '<div class="rle-icon">🏛️</div>' +
+                    '<p class="rle-title">No Communities Yet</p>' +
+                    '<p class="rle-sub">Be the first to found a token-gated room.</p>' +
+                '</div>';
             return;
         }
-
         var currentWallet = getWallet();
 
         // ── Pass 1 — instant render (logos show "?" until pass 2) ──
@@ -1337,9 +1344,11 @@
             });
         }
 
-        // Bind modal buttons
-        var closeList = document.getElementById('roomsListCloseBtn');
-        if (closeList) closeList.addEventListener('click', closeRoomsList);
+              // Bind modal close buttons (header ✕ + footer Close)
+        ['roomsListCloseBtn', 'roomsListCloseBtn2'].forEach(function (id) {
+            var btn = document.getElementById(id);
+            if (btn) btn.addEventListener('click', closeRoomsList);
+        });
 
         var createNew = document.getElementById('roomCreateNewBtn');
         if (createNew) createNew.addEventListener('click', function () {
