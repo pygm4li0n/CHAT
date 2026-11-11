@@ -63,7 +63,11 @@
         { key: 'RETAIL', url: 'https://i.postimg.cc/wTmr6m8p/RETAIL.png' },
         { key: 'KIMCHI', url: 'https://i.postimg.cc/RVHYMH5z/KIMCHI.png' },
         { key: 'GIGA', url: 'https://i.postimg.cc/jd71s70V/GIGACHAD3.png' },
-        { key: 'MIHAO', url: 'https://i.postimg.cc/k47KgDwq/Pegatinas-Pepe-PEPE-HODL-y-SOL-(2)-(2).png' }
+        { key: 'MIHAO', url: 'https://i.postimg.cc/k47KgDwq/Pegatinas-Pepe-PEPE-HODL-y-SOL-(2)-(2).png' },
+        { key: 'MAO1', url: 'https://i.postimg.cc/y606PBhV/Pegatinas-Pepe-PEPE-HODL-y-SOL-(2)-(6).png' },
+        { key: 'MAO2', url: 'https://i.postimg.cc/kMWMc9NJ/Pegatinas-Pepe-PEPE-HODL-y-SOL-(2)-(3).png' },
+        { key: 'MAO3', url: 'https://i.postimg.cc/9XyXpVPc/Pegatinas-Pepe-PEPE-HODL-y-SOL-(2)-(4).png' },
+        { key: 'MAO4', url: 'https://i.postimg.cc/8kLkHDdN/Pegatinas-Pepe-PEPE-HODL-y-SOL-(2)-(5).png' },
     ];
 
     var GRID_SLOTS = 16;   // base 4 × 4
