@@ -14,8 +14,15 @@
     var MAIN_TOKEN_MINT = 'EJjqCJRYs19QDtQRM7QD5vwbdf1XfEysyF5nL1kNpump';
     var WHALE_MIN       = 1000000;
 
+    // ⚑ Per-room sub-channel config
+    var ROOM_WHALE_THRESHOLD = 500000;
+    var ROOM_GENERAL_MIN     = 1;
+    var ROOM_WHALE_PREFIX    = '[ROOM-WHALE]';
+
     var roomsCache          = [];
     var activeRoomId        = null;
+    var activeRoomChannel   = 'general';
+    var _roomWalletBalCache = {};
     var roomPresenceChannel = null;
     var roomMsgChannel      = null;
     var roomMsgStore        = {};       // { msgId: { emoji: { count, users:Set } } }
@@ -130,6 +137,35 @@
     }
     function canModifyRoom(room, wallet) {
         return isRoomCreator(room, wallet) || isModWallet(wallet);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  SUB-CHANNEL HELPERS (general / whale)
+    // ═══════════════════════════════════════════════════════
+    function msgChannel(text) {
+        return String(text || '').indexOf(ROOM_WHALE_PREFIX) === 0 ? 'whale' : 'general';
+    }
+    function stripChannelPrefix(text) {
+        var t = String(text || '');
+        return t.indexOf(ROOM_WHALE_PREFIX) === 0
+            ? t.slice(ROOM_WHALE_PREFIX.length)
+            : t;
+    }
+    function withChannelPrefix(text, channel) {
+        if (channel === 'whale' && text && text.indexOf(ROOM_WHALE_PREFIX) !== 0) {
+            return ROOM_WHALE_PREFIX + text;
+        }
+        return text;
+    }
+
+    // ⚑ Cached per-room balance lookup (avoids double RPC on tab switch)
+    async function getRoomBalance(wallet, roomId, mint) {
+        if (!wallet || !roomId || !mint) return null;
+        var key = wallet + ':' + roomId;
+        if (_roomWalletBalCache[key] != null) return _roomWalletBalCache[key];
+        var bal = await fetchTokenBalance(wallet, mint);
+        if (bal != null) _roomWalletBalCache[key] = bal;
+        return bal;
     }
 
         // ── SVG icon set — crisp, no emoji ──
@@ -261,22 +297,25 @@
         return null;
     }
 
-    // ═══════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════
     //  ACTIVATE ROOM (called by script.js switchTab)
     // ═══════════════════════════════════════════════════════
-                async function activateRoom(roomId) {
+    async function activateRoom(roomId) {
         var room = findRoomById(roomId);
         if (!room) { showError('Room not found'); return; }
         activeRoomId = roomId;
+        activeRoomChannel = 'general';
+        _roomWalletBalCache = {};
 
-                // ── Show room header, hide main tabs ──
+        var isMod = isModWallet(getWallet());
+
+        // ── Show room header, hide main tabs ──
         var tabsBar = document.getElementById('chatTabs');
         if (tabsBar) tabsBar.classList.add('hidden');
         var hdrBar = document.getElementById('roomHeaderBar');
         if (hdrBar) {
             hdrBar.classList.remove('hidden');
 
-            // Epic one-line: [logo] Name · CA · $price Δ%
             var info = hdrBar.querySelector('.room-header-info');
             if (info) {
                 var mintShort = room.token_mint.slice(0, 4) + '…' + room.token_mint.slice(-4);
@@ -291,25 +330,41 @@
                     '</span>';
             }
 
-                       // ── Header price: initial paint + 30s auto-refresh ──
+            // ⚑ Sub-channel tabs (General / Whale) — only for token-gated rooms
+            var oldTabs = hdrBar.querySelector('.room-channel-tabs');
+            if (oldTabs) oldTabs.remove();
+
+            if (room.require_token_gate !== false) {
+                var tabsEl = document.createElement('div');
+                tabsEl.className = 'room-channel-tabs';
+                tabsEl.id = 'roomChannelTabs';
+                tabsEl.innerHTML =
+                    '<button type="button" class="room-channel-tab active" data-channel="general" title="General — 1+ token">💬 GEN</button>' +
+                    '<button type="button" class="room-channel-tab" data-channel="whale" title="Whale — 500K+ tokens">🐋 500K</button>';
+                hdrBar.appendChild(tabsEl);
+
+                tabsEl.querySelectorAll('.room-channel-tab').forEach(function (btn) {
+                    btn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        switchRoomChannel(btn.getAttribute('data-channel'));
+                    });
+                });
+            }
+
             function paintRoomHeaderPrice() {
                 return fetchTokenInfo(room.token_mint).then(function (tinfo) {
                     if (!tinfo) return;
-
                     var logoEl = document.getElementById('roomHeaderTokenLogo');
                     if (logoEl && tinfo.imageUrl) {
                         logoEl.src = tinfo.imageUrl;
                         logoEl.style.display = 'block';
                         logoEl.onerror = function () { logoEl.style.display = 'none'; };
                     }
-
                     var wrapEl   = document.getElementById('roomHeaderPriceWrap');
                     var priceEl  = document.getElementById('roomHeaderPrice');
                     var changeEl = document.getElementById('roomHeaderChange');
-
                     var priceStr  = formatPrice(tinfo.priceUsd);
                     var changeStr = formatChange(tinfo.change24h);
-
                     if (wrapEl && (priceStr || changeStr)) {
                         wrapEl.style.display = 'inline-flex';
                         if (priceEl && priceStr) priceEl.textContent = priceStr;
@@ -323,7 +378,6 @@
             }
             paintRoomHeaderPrice();
 
-            // Auto-refresh every 30s while this room stays active
             if (window._roomHeaderPricePoll) clearInterval(window._roomHeaderPricePoll);
             window._roomHeaderPricePoll = setInterval(function () {
                 if (activeRoomId !== roomId) {
@@ -340,7 +394,17 @@
 
         var wallet = getWallet();
         if (!wallet) {
-            container.innerHTML = '<div class="empty-chat-hint">Connect your Phantom wallet to enter this room.</div>';
+            container.innerHTML =
+                '<div class="empty-chat-hint">' +
+                    '🔒 Connect your Phantom wallet to enter this room.' +
+                    '<br><br>' +
+                    '<button type="button" class="room-connect-wallet-cta" id="roomConnectWalletCta">Connect Phantom</button>' +
+                '</div>';
+            var cta = document.getElementById('roomConnectWalletCta');
+            if (cta) cta.addEventListener('click', function () {
+                var btn = document.getElementById('phantomConnectBtn');
+                if (btn) btn.click();
+            });
             return;
         }
 
@@ -349,21 +413,25 @@
             window.MSNChat.showMsgLoader(container, 'Checking token balance');
         }
 
-        // ── Token gate ──
-        if (room.require_token_gate !== false) {
-            var bal = await fetchTokenBalance(wallet, room.token_mint);
+        // ── Token gate — MOD BYPASS ──
+        if (room.require_token_gate !== false && !isMod) {
+            var bal = await getRoomBalance(wallet, roomId, room.token_mint);
             if (bal == null) {
                 container.innerHTML = '<div class="empty-chat-hint">Could not verify token balance — try again.</div>';
                 return;
             }
-            if (bal <= 0) {
-                container.innerHTML = '<div class="empty-chat-hint">🚫 You need to hold this room\'s token to enter.<br><br><span style="font-size:0.7em;opacity:0.6">Mint: ' + esc(room.token_mint.slice(0, 8)) + '…' + esc(room.token_mint.slice(-8)) + '</span></div>';
+            if (bal < ROOM_GENERAL_MIN) {
+                container.innerHTML =
+                    '<div class="empty-chat-hint">🚫 You need to hold at least ' + ROOM_GENERAL_MIN +
+                    ' of this room\'s token to enter.<br><br>' +
+                    '<span style="font-size:0.7em;opacity:0.6">Mint: ' +
+                    esc(room.token_mint.slice(0, 8)) + '…' + esc(room.token_mint.slice(-8)) + '</span></div>';
                 showError('You don\'t hold this room\'s token');
                 return;
             }
         }
 
-        // ── Token watermark inside the chat container ──
+        // ── Token watermark ──
         try {
             var tinfo = await fetchTokenInfo(room.token_mint);
             if (tinfo && tinfo.imageUrl) {
@@ -379,22 +447,64 @@
             await sb.rpc('join_room', { p_wallet: wallet, p_room_id: roomId });
         } catch (e) { /* non-fatal */ }
 
-        await loadRoomMessages(roomId);
+        await loadRoomMessages(roomId, null, activeRoomChannel);
         setupRoomPresence(roomId);
         setupRoomRealtime(roomId);
         loadRoomXp(roomId);
     }
+
     // ═══════════════════════════════════════════════════════
-    //  MESSAGE LOADING
+    //  SWITCH SUB-CHANNEL (general ⇄ whale)
     // ═══════════════════════════════════════════════════════
-    async function loadRoomMessages(roomId, beforeSort) {
+    async function switchRoomChannel(channel) {
+        if (!activeRoomId) return;
+        if (channel === activeRoomChannel) return;
+
+        var room = findRoomById(activeRoomId);
+        if (!room) return;
+
+        var wallet = getWallet();
+        var isMod = isModWallet(wallet);
+
+        if (channel === 'whale' && !isMod && room.require_token_gate !== false) {
+            var bal = await getRoomBalance(wallet, activeRoomId, room.token_mint);
+            if (bal == null) { showError('Could not verify balance'); return; }
+            if (bal < ROOM_WHALE_THRESHOLD) {
+                showError('🐋 Whale channel requires ' + ROOM_WHALE_THRESHOLD.toLocaleString() +
+                          '+ of this room\'s token. You hold ' + Math.floor(bal).toLocaleString() + '.');
+                return;
+            }
+        }
+
+        activeRoomChannel = channel;
+
+        var tabsEl = document.getElementById('roomChannelTabs');
+        if (tabsEl) {
+            tabsEl.querySelectorAll('.room-channel-tab').forEach(function (btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-channel') === channel);
+            });
+        }
+
+        var container = document.getElementById('roomMessagesContainer');
+        if (container) {
+            container.innerHTML = '';
+            if (window.MSNChat && window.MSNChat.showMsgLoader) {
+                window.MSNChat.showMsgLoader(container, channel === 'whale' ? 'Loading whale channel' : 'Loading');
+            }
+        }
+        await loadRoomMessages(activeRoomId, null, channel);
+        if (container) container.scrollTop = container.scrollHeight;
+    }
+    async function loadRoomMessages(roomId, beforeSort, channel) {
         var sb = getSB();
         var wallet = getWallet();
         var container = document.getElementById('roomMessagesContainer');
         if (!sb || !wallet || !container) return;
 
+        channel = channel || 'general';
+
         try {
-            var params = { p_wallet: wallet, p_room_id: roomId, p_limit: 50 };
+            var params = { p_wallet: wallet, p_room_id: roomId, p_limit: 100 };
             if (beforeSort) params.p_before_sort = beforeSort;
 
             var { data, error } = await sb.rpc('get_room_messages', params);
@@ -409,8 +519,19 @@
                 return (a.sort_order || 0) - (b.sort_order || 0);
             });
 
+            // ⚑ Filter by channel + strip the prefix before render
+            rows = rows.filter(function (m) {
+                return msgChannel(m.message) === channel;
+            }).map(function (m) {
+                return Object.assign({}, m, { message: stripChannelPrefix(m.message) });
+            });
+
             if (rows.length === 0 && !beforeSort) {
-                container.innerHTML = '<div class="empty-chat-hint">No messages yet — be the first to speak.</div>';
+                container.innerHTML = '<div class="empty-chat-hint">' +
+                    (channel === 'whale'
+                        ? '🐋 No whale messages yet — be the first.'
+                        : 'No messages yet — be the first to speak.') +
+                    '</div>';
                 return;
             }
 
@@ -431,8 +552,7 @@
                 container.innerHTML = '';
                 while (holder.firstChild) container.appendChild(holder.firstChild);
                 container.scrollTop = container.scrollHeight;
-                        } else {
-                // Prepend older messages — capture scroll BEFORE insert
+            } else {
                 var firstChild = container.firstChild;
                 var prevScrollHeight = container.scrollHeight;
                 var prevScrollTop    = container.scrollTop;
@@ -440,7 +560,6 @@
                 container.scrollTop = container.scrollHeight - prevScrollHeight + prevScrollTop;
             }
 
-            // Reactions
             loadRoomReactions(roomId);
         } catch (err) {
             console.error('[rooms] load failed:', err);
@@ -455,14 +574,13 @@
     // ═══════════════════════════════════════════════════════
     //  SENDING
     // ═══════════════════════════════════════════════════════
-        async function sendMessage() {
+         async function sendMessage() {
         if (!activeRoomId) return;
         var wallet = getWallet();
         var username = getUsername();
         if (!wallet) { showError('Connect Phantom first'); return; }
         if (!username) { showError('Set your username first'); return; }
 
-        // ⚑ Enforce shared cooldown — same timer as public/whale chat
         if (window.MSNChat && window.MSNChat.isCooldownActive && window.MSNChat.isCooldownActive()) {
             showError('Cooldown active — wait a moment');
             return;
@@ -471,12 +589,25 @@
         var room = findRoomById(activeRoomId);
         if (!room) return;
 
-                // Chain check before send — only if the room requires a token
-        if (room.require_token_gate !== false) {
-            var bal = await fetchTokenBalance(wallet, room.token_mint);
-            if (bal == null || bal <= 0) {
-                showError('You no longer hold this room\'s token');
-                return;
+        var isMod = isModWallet(wallet);
+        var channel = activeRoomChannel;
+
+        // ⚑ Token check before send — MOD BYPASS
+        if (room.require_token_gate !== false && !isMod) {
+            var bal = await getRoomBalance(wallet, activeRoomId, room.token_mint);
+            if (bal == null) { showError('Could not verify balance'); return; }
+
+            if (channel === 'whale') {
+                if (bal < ROOM_WHALE_THRESHOLD) {
+                    showError('🐋 Whale channel requires ' + ROOM_WHALE_THRESHOLD.toLocaleString() +
+                              '+ tokens (you have ' + Math.floor(bal).toLocaleString() + ')');
+                    return;
+                }
+            } else {
+                if (bal < ROOM_GENERAL_MIN) {
+                    showError('You no longer hold this room\'s token');
+                    return;
+                }
             }
         }
 
@@ -492,7 +623,7 @@
             p_wallet: wallet,
             p_username: username,
             p_room_id: activeRoomId,
-            p_message: text || null,
+            p_message: withChannelPrefix(text, channel),
             p_image_url: null
         };
         if (reply && reply.id) {
@@ -510,12 +641,10 @@
             if (error) throw error;
             if (data && data.error) throw new Error(data.error);
 
-            // Clear input + reply state
             inp.value = '';
             if (window.MSNChat.clearReplyingTo) window.MSNChat.clearReplyingTo();
             if (window.MSNChat.startCooldown) window.MSNChat.startCooldown();
 
-            // Optimistic render — API returned the inserted message
             if (data && data.message) {
                 var inserted = typeof data.message === 'string'
                     ? JSON.parse(data.message)
@@ -523,9 +652,11 @@
                 if (!knownRoomMsgIds.has(inserted.id)) {
                     knownRoomMsgIds.add(inserted.id);
                     var container = document.getElementById('roomMessagesContainer');
-                    var node = await window.MSNChat.buildMessageNode(inserted, false, false, true);
+                    var clean = Object.assign({}, inserted, {
+                        message: stripChannelPrefix(inserted.message)
+                    });
+                    var node = await window.MSNChat.buildMessageNode(clean, false, false, true);
                     if (container) {
-                        // Remove empty hint if present
                         var hint = container.querySelector('.empty-chat-hint');
                         if (hint) hint.remove();
                         container.appendChild(node);
@@ -534,7 +665,6 @@
                 }
             }
 
-            // Refresh room XP display
             loadRoomXp(activeRoomId);
         } catch (err) {
             console.error('[rooms] send failed:', err);
@@ -657,7 +787,7 @@
     // ═══════════════════════════════════════════════════════
     //  REALTIME
     // ═══════════════════════════════════════════════════════
-    function setupRoomRealtime(roomId) {
+        function setupRoomRealtime(roomId) {
         var sb = getSB();
         if (!sb) return;
 
@@ -674,22 +804,29 @@
                 var msg = payload.new;
                 if (!msg || !msg.id) return;
                 if (knownRoomMsgIds.has(msg.id)) return;
-                // Skip own messages — we already rendered optimistically
                 if (msg.wallet_address === getWallet()) return;
+
+                // ⚑ Only render if it belongs to the currently-active sub-channel
+                if (msgChannel(msg.message) !== activeRoomChannel) return;
+                if (activeRoomId !== roomId) return;
 
                 knownRoomMsgIds.add(msg.id);
                 var container = document.getElementById('roomMessagesContainer');
-                if (!container || activeRoomId !== roomId) return;
+                if (!container) return;
                 var hint = container.querySelector('.empty-chat-hint');
                 if (hint) hint.remove();
-                var node = await window.MSNChat.buildMessageNode(msg, false, false, true);
+                var clean = Object.assign({}, msg, { message: stripChannelPrefix(msg.message) });
+                var node = await window.MSNChat.buildMessageNode(clean, false, false, true);
                 container.appendChild(node);
                 container.scrollTop = container.scrollHeight;
-            })
+                       })
             .subscribe();
     }
 
-       function subscribeToRoomList() {
+    // ═══════════════════════════════════════════════════════
+    //  REALTIME — subscribe to the rooms table for new rooms
+    // ═══════════════════════════════════════════════════════
+    function subscribeToRoomList() {
         var sb = getSB();
         if (!sb) return;
         if (roomListChannel) sb.removeChannel(roomListChannel);
@@ -699,7 +836,6 @@
             }, async function () {
                 await loadRooms();
                 renderRoomTabs();
-                // Refresh the open overlay so new rooms appear immediately
                 var overlay = document.getElementById('roomsListOverlay');
                 if (overlay && !overlay.classList.contains('hidden')) {
                     renderRoomsList();
@@ -1350,14 +1486,25 @@
         }
     }
 
-    async function tryActivatePendingRoom() {
+        async function tryActivatePendingRoom() {
         if (!pendingSharedRoomId) return;
-        if (window._pendingRoomActivating) return;   // debounce overlapping attempts
+        if (window._pendingRoomActivating) return;
 
         window._pendingRoomActivating = true;
         try {
             var wallet = getWallet();
-            if (!wallet) return;                     // poll will retry once wallet connects
+            if (!wallet) {
+                // ⚑ Prompt the user to connect wallet when they land on a shared link
+                if (window.MSNChat && window.MSNChat.showError) {
+                    window.MSNChat.showError('Connect your Phantom wallet to join this room');
+                }
+                var pbtn = document.getElementById('phantomConnectBtn');
+                if (pbtn) pbtn.classList.add('is-error');
+                setTimeout(function () {
+                    if (pbtn) pbtn.classList.remove('is-error');
+                }, 1400);
+                return;   // poll keeps retrying once wallet connects
+            }
 
             var rooms = await loadRooms();
             renderRoomTabs();
@@ -1369,14 +1516,12 @@
 
             if (!room) {
                 console.log('[rooms] pending room not found yet, will retry:', pendingSharedRoomId);
-                return;                              // poll will retry
+                return;
             }
 
-            // Found it — activate
             var roomId = pendingSharedRoomId;
             pendingSharedRoomId = null;
 
-            // Clean the URL so a refresh doesn't re-trigger
             try {
                 var url = new URL(window.location.href);
                 url.searchParams.delete('room');
@@ -1387,12 +1532,15 @@
             if (window.MSNChat && window.MSNChat.switchTab) {
                 window.MSNChat.switchTab('room-' + roomId);
             }
-        } finally {
+                } finally {
             window._pendingRoomActivating = false;
         }
     }
 
-        var _hasBoundListeners = false;
+    // ═══════════════════════════════════════════════════════
+    //  BOOT — bind every listener ONCE + load initial data
+    // ═══════════════════════════════════════════════════════
+    var _hasBoundListeners = false;
 
     async function boot() {
         if (_isBootingRooms) return;
@@ -1406,75 +1554,74 @@
         if (!_hasBoundListeners) {
             _hasBoundListeners = true;
 
-        // Bind "Communities" button (desktop right sidebar)
-        var roomBtn = document.getElementById('roomsBtn');
-        if (roomBtn) {
-            roomBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                openRoomsList();
+            // Bind "Communities" button (desktop right sidebar)
+            var roomBtn = document.getElementById('roomsBtn');
+            if (roomBtn) {
+                roomBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openRoomsList();
+                });
+            }
+
+            // Bind room header "Back" button
+            var backBtn = document.getElementById('roomBackBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', function () {
+                    if (window.MSNChat && window.MSNChat.switchTab) {
+                        window.MSNChat.switchTab('public');
+                    }
+                });
+            }
+
+            // Bind modal close buttons (header ✕ + footer Close)
+            ['roomsListCloseBtn', 'roomsListCloseBtn2'].forEach(function (id) {
+                var btn = document.getElementById(id);
+                if (btn) btn.addEventListener('click', closeRoomsList);
             });
-        }
 
-                // Bind room header "Back" button
-        var backBtn = document.getElementById('roomBackBtn');
-        if (backBtn) {
-            backBtn.addEventListener('click', function () {
-                if (window.MSNChat && window.MSNChat.switchTab) {
-                    window.MSNChat.switchTab('public');
-                }
+            var createNew = document.getElementById('roomCreateNewBtn');
+            if (createNew) createNew.addEventListener('click', function () {
+                closeRoomsList();
+                openCreateRoom();
             });
-        }
 
-              // Bind modal close buttons (header ✕ + footer Close)
-        ['roomsListCloseBtn', 'roomsListCloseBtn2'].forEach(function (id) {
-            var btn = document.getElementById(id);
-            if (btn) btn.addEventListener('click', closeRoomsList);
-        });
+            var createCancel = document.getElementById('roomCancelBtn');
+            if (createCancel) createCancel.addEventListener('click', closeCreateRoom);
 
-        var createNew = document.getElementById('roomCreateNewBtn');
-        if (createNew) createNew.addEventListener('click', function () {
-            closeRoomsList();
-            openCreateRoom();
-        });
+            var createSubmit = document.getElementById('roomCreateBtn');
+            if (createSubmit) createSubmit.addEventListener('click', handleCreateSubmit);
 
-        var createCancel = document.getElementById('roomCancelBtn');
-        if (createCancel) createCancel.addEventListener('click', closeCreateRoom);
+            // Escape closes modals
+            document.addEventListener('keydown', function (e) {
+                if (e.key !== 'Escape') return;
+                closeRoomsList();
+                closeCreateRoom();
+            });
 
-        var createSubmit = document.getElementById('roomCreateBtn');
-        if (createSubmit) createSubmit.addEventListener('click', handleCreateSubmit);
+            // ⚑ Check for a shared room link (?room=<uuid>) in the URL
+            checkSharedRoomLink();
 
-        // Escape closes modals
-        document.addEventListener('keydown', function (e) {
-            if (e.key !== 'Escape') return;
-            closeRoomsList();
-            closeCreateRoom();
-        });
-
-                             // ⚑ Check for a shared room link (?room=<uuid>) in the URL
-        checkSharedRoomLink();
-
-        // ⚑ Retry pending activation when wallet becomes available
-        window.addEventListener('msn:wallet-connected', tryActivatePendingRoom);
-        document.addEventListener('msn:app-ready', tryActivatePendingRoom);
+            // ⚑ Retry pending activation when wallet becomes available
+            window.addEventListener('msn:wallet-connected', tryActivatePendingRoom);
+            document.addEventListener('msn:app-ready', tryActivatePendingRoom);
 
         } // end _hasBoundListeners block
 
         _isBootingRooms = false;
     }
-       // ═══════════════════════════════════════════════════════
+
+    // ═══════════════════════════════════════════════════════
     //  DEACTIVATE — call when leaving a room tab
     // ═══════════════════════════════════════════════════════
-                  function deactivateRoom() {
+                      function deactivateRoom() {
         var sb = getSB();
 
-        // ⚑ Stop the header price poll the moment the room closes
         if (window._roomHeaderPricePoll) {
             clearInterval(window._roomHeaderPricePoll);
             window._roomHeaderPricePoll = null;
         }
 
-        // Clear the token watermark so it doesn't leak into Public chat
         var rc = document.getElementById('roomMessagesContainer');
         if (rc) rc.style.removeProperty('--room-watermark');
 
@@ -1489,16 +1636,19 @@
         }
         roomOnlineUsers.clear();
         activeRoomId = null;
+        activeRoomChannel = 'general';
+        _roomWalletBalCache = {};
 
-              // ⚑ Hide the room container so its error messages don't bleed
-        //   into Public / Private / Whale tabs
         if (rc) rc.classList.add('hidden');
 
-        // ⚑ Restore the normal tab bar and hide the room header bar
         var tabs = document.getElementById('chatTabs');
         if (tabs) tabs.classList.remove('hidden');
         var hdr = document.getElementById('roomHeaderBar');
-        if (hdr) hdr.classList.add('hidden');
+        if (hdr) {
+            hdr.classList.add('hidden');
+            var chTabs = hdr.querySelector('.room-channel-tabs');
+            if (chTabs) chTabs.remove();
+        }
     }
 
     // ═══════════════════════════════════════════════════════
