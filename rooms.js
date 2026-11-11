@@ -307,6 +307,13 @@
         activeRoomChannel = 'general';
         _roomWalletBalCache = {};
 
+        // ⚑ Make the room a shareable URL section
+        try {
+            var shareUrl = new URL(window.location.href);
+            shareUrl.searchParams.set('room', roomId);
+            history.replaceState(null, '', shareUrl.toString());
+        } catch (e) {}
+
         var isMod = isModWallet(getWallet());
 
         // ── Show room header, hide main tabs ──
@@ -404,6 +411,15 @@
             if (cta) cta.addEventListener('click', function () {
                 var btn = document.getElementById('phantomConnectBtn');
                 if (btn) btn.click();
+
+                // ⚑ Re-run activation once the wallet connects
+                var retryHandler = function () {
+                    window.removeEventListener('msn:wallet-connected', retryHandler);
+                    if (activeRoomId === roomId) {
+                        activateRoom(roomId);
+                    }
+                };
+                window.addEventListener('msn:wallet-connected', retryHandler);
             });
             return;
         }
@@ -678,6 +694,97 @@
         } finally {
             if (sendBtn) sendBtn.disabled = false;
             inp.focus();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  STICKERS — route sticker markers through the room RPC
+    // ═══════════════════════════════════════════════════════
+    async function sendStickerMarker(key) {
+        if (!key) return;
+        if (!activeRoomId) { showError('No active room'); return; }
+
+        var wallet = getWallet();
+        var username = getUsername();
+        if (!wallet) { showError('Connect Phantom first'); return; }
+        if (!username) { showError('Set your username first'); return; }
+
+        if (window.MSNChat && window.MSNChat.isCooldownActive && window.MSNChat.isCooldownActive()) {
+            showError('Cooldown active — wait a moment');
+            return;
+        }
+
+        var room = findRoomById(activeRoomId);
+        if (!room) return;
+
+        var isMod = isModWallet(wallet);
+        var channel = activeRoomChannel;
+
+        // Token gate — mod bypass
+        if (room.require_token_gate !== false && !isMod) {
+            var bal = await getRoomBalance(wallet, activeRoomId, room.token_mint);
+            if (bal == null) { showError('Could not verify balance'); return; }
+            if (channel === 'whale') {
+                if (bal < ROOM_WHALE_THRESHOLD) {
+                    showError('🐋 Whale channel requires ' + ROOM_WHALE_THRESHOLD.toLocaleString() + '+ tokens');
+                    return;
+                }
+            } else {
+                if (bal < ROOM_GENERAL_MIN) {
+                    showError('You no longer hold this room\'s token');
+                    return;
+                }
+            }
+        }
+
+        var sb = getSB();
+        if (!sb) { showError('No connection'); return; }
+
+        var reply = window.MSNChat.getReplyingTo ? window.MSNChat.getReplyingTo() : null;
+        var params = {
+            p_wallet: wallet,
+            p_username: username,
+            p_room_id: activeRoomId,
+            p_message: withChannelPrefix('__sticker:' + key + '__', channel),
+            p_image_url: null
+        };
+        if (reply && reply.id) {
+            params.p_reply_to_id = reply.id;
+            params.p_reply_to_username = reply.username;
+            params.p_reply_to_message = reply.message || null;
+            params.p_reply_to_image_url = reply.imageUrl || null;
+        }
+
+        try {
+            var { data, error } = await sb.rpc('post_room_message', params);
+            if (error) throw error;
+            if (data && data.error) throw new Error(data.error);
+
+            if (window.MSNChat.clearReplyingTo) window.MSNChat.clearReplyingTo();
+            if (window.MSNChat.startCooldown) window.MSNChat.startCooldown();
+
+            if (data && data.message) {
+                var inserted = typeof data.message === 'string'
+                    ? JSON.parse(data.message)
+                    : data.message;
+                if (!knownRoomMsgIds.has(inserted.id)) {
+                    knownRoomMsgIds.add(inserted.id);
+                    var container = document.getElementById('roomMessagesContainer');
+                    var clean = Object.assign({}, inserted, {
+                        message: stripChannelPrefix(inserted.message)
+                    });
+                    var node = await window.MSNChat.buildMessageNode(clean, false, false, true);
+                    if (container) {
+                        var hint = container.querySelector('.empty-chat-hint');
+                        if (hint) hint.remove();
+                        container.appendChild(node);
+                        container.scrollTop = container.scrollHeight;
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('[rooms] sticker failed:', err);
+            showError('Sticker failed: ' + (err.message || 'unknown'));
         }
     }
 
@@ -1452,7 +1559,7 @@
         }
     }
 
-       function checkSharedRoomLink() {
+       async function checkSharedRoomLink() {
         try {
             var params = new URLSearchParams(window.location.search);
             var roomId = params.get('room');
@@ -1464,12 +1571,28 @@
             pendingSharedRoomId = roomId;
             console.log('[rooms] shared room link detected:', roomId);
 
-            // ── Aggressive retry — trusted reconnect can take up to ~16s ──
+            // ⚑ Immediate activation attempt — shows room view right away
+            //    (even without wallet → shows "Connect Phantom" CTA inside the room)
+            try {
+                var rooms = await loadRooms();
+                var room = null;
+                for (var i = 0; i < rooms.length; i++) {
+                    if (rooms[i].id === roomId) { room = rooms[i]; break; }
+                }
+                if (room && window.MSNChat && window.MSNChat.switchTab) {
+                    window.MSNChat.switchTab('room-' + roomId);
+                    pendingSharedRoomId = null;
+                    return;  // Activated — no retry loop needed
+                }
+            } catch (e) {
+                console.warn('[rooms] immediate activate failed:', e);
+            }
+
+            // ── Fallback: retry loop (room wasn't loaded yet) ──
             [500, 1500, 3000, 5000, 8000, 12000, 18000, 25000].forEach(function (ms) {
                 setTimeout(tryActivatePendingRoom, ms);
             });
 
-            // ── Polling fallback — 1.5s interval, up to 45s total ──
             var pollStart = Date.now();
             var pollInterval = setInterval(function () {
                 if (!pendingSharedRoomId) { clearInterval(pollInterval); return; }
@@ -1522,17 +1645,13 @@
             var roomId = pendingSharedRoomId;
             pendingSharedRoomId = null;
 
-            try {
-                var url = new URL(window.location.href);
-                url.searchParams.delete('room');
-                history.replaceState(null, '', url.toString());
-            } catch (e) {}
-
+            // ⚑ Do NOT delete the ?room= param — activateRoom will re-set it.
+            //    This keeps the URL shareable and refresh-safe.
             console.log('[rooms] activating shared room:', roomId);
             if (window.MSNChat && window.MSNChat.switchTab) {
                 window.MSNChat.switchTab('room-' + roomId);
             }
-                } finally {
+        } finally {
             window._pendingRoomActivating = false;
         }
     }
@@ -1639,6 +1758,13 @@
         activeRoomChannel = 'general';
         _roomWalletBalCache = {};
 
+        // ⚑ Remove the room from the URL — back to main app
+        try {
+            var shareUrl = new URL(window.location.href);
+            shareUrl.searchParams.delete('room');
+            history.replaceState(null, '', shareUrl.toString());
+        } catch (e) {}
+
         if (rc) rc.classList.add('hidden');
 
         var tabs = document.getElementById('chatTabs');
@@ -1660,8 +1786,10 @@
         onActivate: activateRoom,
         onDeactivate: deactivateRoom,
         sendMessage: sendMessage,
+        sendStickerMarker: sendStickerMarker,
         renderSidebar: renderRoomSidebar,
         getActiveRoom: function () { return activeRoomId; },
+        getActiveChannel: function () { return activeRoomChannel; },
         openList: openRoomsList,
         openCreate: openCreateRoom
     };
