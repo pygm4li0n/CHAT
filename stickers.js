@@ -570,8 +570,19 @@
               var tab = currentTab();
 var isPrivate = (tab === 'private');
 var isWhale   = (tab === 'whale');
+var isRoom    = (tab.indexOf('room-') === 0);
 var partner = isPrivate ? activePrivatePartner() : null;
 if (isPrivate && !partner) { toast('No private partner selected.'); return; }
+
+// ⚑ Room tab — route through MSNRooms.sendStickerMarker
+if (isRoom) {
+    if (window.MSNRooms && window.MSNRooms.sendStickerMarker) {
+        closePicker();
+        return window.MSNRooms.sendStickerMarker(key);
+    }
+    toast('Room chat not ready');
+    return;
+}
 
 // Whale chat enforces its own chain gate (post_whale_message RPC).
 // Don't pre-block with the general token gate — the whale path handles
