@@ -94,6 +94,15 @@
         try { return localStorage.getItem('msn_cached_wallet') || null; } catch (e) { return null; }
     }
     function currentTab() {
+        // ⚑ Room takes priority — when in a room, the tab bar has NO
+        //   .chat-tab.active (rooms don't create tab buttons), so the
+        //   query below would fall back to 'public'. Check rooms first.
+        if (window.MSNRooms && typeof window.MSNRooms.getActiveRoom === 'function') {
+            try {
+                var rid = window.MSNRooms.getActiveRoom();
+                if (rid) return 'room-' + rid;
+            } catch (e) { /* fall through */ }
+        }
         var active = document.querySelector('.chat-tab.active');
         return (active && active.getAttribute('data-tab')) || 'public';
     }
@@ -568,22 +577,63 @@
                var me = getSelfUsername();
         if (!me) { toast('Set your username first'); return; }
 
-              var tab = currentTab();
-var isPrivate = (tab === 'private');
-var isWhale   = (tab === 'whale');
-var isRoom    = (tab.indexOf('room-') === 0);
-var partner = isPrivate ? activePrivatePartner() : null;
-if (isPrivate && !partner) { toast('No private partner selected.'); return; }
+// ═══════════════════════════════════════════════════════════
+// ⚑ ROOM DETECTION — 3 fallbacks, checked BEFORE tab routing
+//   Because currentTab() falls back to 'public' when the tab
+//   bar has no .chat-tab.active (rooms don't create tabs).
+//   1. MSNRooms.getActiveRoom() — authoritative when set
+//   2. URL ?room=<uuid> — survives activateRoom failures
+//   3. DOM #roomMessagesContainer visible — last resort
+// ═══════════════════════════════════════════════════════════
+var roomId = null;
 
-// ⚑ Room tab — route through MSNRooms.sendStickerMarker
-if (isRoom) {
+// Fallback 1: MSNRooms API
+if (window.MSNRooms && typeof window.MSNRooms.getActiveRoom === 'function') {
+    try { roomId = window.MSNRooms.getActiveRoom(); } catch (e) {}
+}
+
+// Fallback 2: URL parameter
+if (!roomId) {
+    try {
+        var params = new URLSearchParams(window.location.search);
+        var urlRoom = params.get('room');
+        if (urlRoom && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(urlRoom)) {
+            roomId = urlRoom;
+        }
+    } catch (e) {}
+}
+
+// Fallback 3: DOM visibility
+if (!roomId) {
+    var roomContainer = document.getElementById('roomMessagesContainer');
+    if (roomContainer && !roomContainer.classList.contains('hidden')) {
+        // Room UI is visible but we have no ID — try one more URL check
+        try {
+            var params2 = new URLSearchParams(window.location.search);
+            var urlRoom2 = params2.get('room');
+            if (urlRoom2) roomId = urlRoom2;
+        } catch (e) {}
+    }
+}
+
+// ⚑ If ANY of the three fallbacks found a room, route to room.
+//   This runs BEFORE the public/private/whale routing — a room
+//   always wins, because rooms don't create .chat-tab elements.
+if (roomId) {
     if (window.MSNRooms && window.MSNRooms.sendStickerMarker) {
         closePicker();
         return window.MSNRooms.sendStickerMarker(key);
     }
-    toast('Room chat not ready');
+    toast('Room chat not ready — refresh the page');
     return;
 }
+
+// ── Not in a room — continue with tab-based routing ──
+              var tab = currentTab();
+var isPrivate = (tab === 'private');
+var isWhale   = (tab === 'whale');
+var partner = isPrivate ? activePrivatePartner() : null;
+if (isPrivate && !partner) { toast('No private partner selected.'); return; }
 
 // Whale chat enforces its own chain gate (post_whale_message RPC).
 // Don't pre-block with the general token gate — the whale path handles
