@@ -1216,7 +1216,7 @@
     var _CHAIN_CACHE_MS = 60000;
     var _solConn = null;
 
-    var SOLANA_RPC   = 'https://mainnet.helius-rpc.com/?api-key=fa7e6515-19de-45de-a7d1-35a64a0d9a1a';
+    var SOLANA_RPC   = 'https://mainnet.helius-rpc.com/?api-key=564ede48-7fc2-4660-a04f-ab738db17d35';
     var TOKEN_MINT   = 'EJjqCJRYs19QDtQRM7QD5vwbdf1XfEysyF5nL1kNpump';
     var SPL_PROGRAM  = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
     var T22_PROGRAM  = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
