@@ -3761,43 +3761,44 @@ html body .streak-toast.visible {
     contain-intrinsic-size: auto 120px;
 }
 
-/* ═══ Referral button — flash on copy ═══ */
+/* ═══ Referral Bar — full width ═══ */
 .referral-btn {
-    margin: 8px 12px 4px !important;
-    align-self: center !important;
-    width: 40px !important;
-    height: 40px !important;
-    border-radius: 50% !important;
-    font-size: 1.15rem !important;
-    background: var(--bg-elevated, #1e2221) !important;
-    border: 1px solid var(--border-default, #454B4B) !important;
-    color: var(--text-primary, #fff) !important;
-    cursor: pointer !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    transition: transform .15s ease,
-                border-color .18s ease,
-                box-shadow .18s ease !important;
+    gap: 10px !important;
+    width: calc(100% - 24px) !important;
+    margin: 12px auto 4px auto !important;
+    padding: 12px 14px !important;
+    height: auto !important;
+    min-height: 48px !important;
+    border-radius: 10px !important;
+    background: var(--bg-elevated, #1e2221) !important;
+    border: 1px solid var(--accent-cyan, #01E1EA) !important;
+    color: var(--accent-cyan, #01E1EA) !important;
+    font-family: var(--font-mono, monospace) !important;
+    font-size: 0.8rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
     -webkit-tap-highlight-color: transparent !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1) !important;
 }
 .referral-btn:hover {
-    border-color: var(--accent-cyan, #01E1EA) !important;
-    box-shadow: 0 0 12px var(--border-glow, rgba(1,225,234,0.45)) !important;
+    box-shadow: 0 0 16px var(--border-glow, rgba(1,225,234,0.45)) !important;
+    background: var(--bg-hover, #1d2b4d) !important;
     transform: translateY(-1px) !important;
 }
-.referral-btn:active { transform: scale(0.92) !important; }
-.referral-btn.copied {
-    border-color: #4ade80 !important;
-    color: #4ade80 !important;
-    box-shadow: 0 0 16px rgba(74,222,128,0.6) !important;
-}
+.referral-btn:active { transform: scale(0.97) !important; }
+.referral-btn .ref-icon { font-size: 1.2rem; }
+.referral-btn .ref-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 @media (max-width: 768px) {
     .referral-btn {
-        margin: 8px 0 4px !important;
-        align-self: flex-start !important;
-        margin-left: calc(16px + 9px) !important;
+        width: calc(100% - 32px) !important;
+        margin: 12px auto 4px auto !important;
     }
 }
 
