@@ -41,6 +41,9 @@
     function isValidWallet(s) {
         return typeof s === 'string' && s.length >= 32 && s.length <= 48 && !/\s/.test(s);
     }
+    function isValidCode(s) {
+        return typeof s === 'string' && /^[A-Z0-9]{6}$/i.test(String(s).trim());
+    }
     function toast(msg) {
         var el = document.getElementById('errorToast');
         if (!el) { console.log('[referrals]', msg); return; }
@@ -57,7 +60,9 @@
         try {
             var params = new URLSearchParams(window.location.search);
             var ref = params.get('ref');
-            if (!ref || !isValidWallet(ref)) return;
+            if (!ref) return;
+            ref = String(ref).trim();
+            if (!isValidWallet(ref) && !isValidCode(ref)) return;
 
             var me = getWallet();
             if (me && me === ref) return;   // self — skip
@@ -107,10 +112,28 @@
         if (!ref) return;
         if (ref === wallet) { clearStoredReferrer(); return; }
 
+        // ⚑ Resolve code to wallet
+        var refWallet = ref;
+        if (!isValidWallet(ref) && isValidCode(ref)) {
+            try {
+                var r = await sb.rpc('resolve_referral_code', { p_code: ref });
+                if (r.error) throw r.error;
+                refWallet = r.data || null;
+            } catch (e) {
+                console.warn('[referrals] code resolve failed:', e);
+                return;
+            }
+            if (!refWallet) {
+                clearStoredReferrer();
+                toast('❌ Referral code not found');
+                return;
+            }
+        }
+
         try {
             var res = await sb.rpc('claim_referral', {
                 p_wallet:     wallet,
-                p_ref_wallet: ref
+                p_ref_wallet: refWallet
             });
             if (res.error) throw res.error;
 
@@ -146,10 +169,10 @@
 
         var btn = document.createElement('button');
         btn.id = 'referralBtn';
-        btn.className = 'btn-icon referral-btn';
+        btn.className = 'referral-btn';
         btn.type = 'button';
-        btn.title = 'Copy your referral link';
-        btn.textContent = '🎁';
+        btn.title = 'Referral Code';
+        btn.innerHTML = '<span class="ref-icon">🎁</span><span class="ref-text" id="refBtnText">REFERRAL CODE</span>';
         btn.addEventListener('click', openReferralModal);
 
         // Place above the sidebar footer (bottom-anchored, always visible)
@@ -161,47 +184,48 @@
         }
     }
 
-    async function copyReferralLink(e) {
+        async function copyReferralCode(e) {
         if (e) e.stopPropagation();
 
-        var wallet = getWallet();
-        if (!wallet) { toast('Connect your Phantom wallet first'); return; }
+        var el = document.getElementById('referralCodeDisplay');
+        var code = el ? el.textContent.trim() : '';
+        if (!code || code === '······') {
+            toast('Code loading...');
+            return;
+        }
 
-        var url = window.location.origin + window.location.pathname + '?ref=' + wallet;
-        var self = document.getElementById('referralBtn');
+        var self = document.getElementById('referralCopyBtn');
 
         var flash = function () {
             if (!self) return;
-            self.classList.add('copied');
-            self.textContent = '✓';
+            var orig = self.textContent;
+            self.textContent = '✓ Copied!';
             setTimeout(function () {
-                self.classList.remove('copied');
-                self.textContent = '🎁';
+                self.textContent = orig;
             }, 1500);
         };
 
-        try {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(url);
-                flash();
-                toast('🔗 Referral link copied — share it to earn XP');
-                return;
-            }
-            throw new Error('clipboard unavailable');
-        } catch (err) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
             try {
-                var ta = document.createElement('textarea');
-                ta.value = url;
-                ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
+                await navigator.clipboard.writeText(code);
                 flash();
-                toast('🔗 Referral link copied — share it to earn XP');
-            } catch (e2) {
-                window.prompt('Copy your referral link:', url);
-            }
+                toast('🎁 Code copied: ' + code);
+                return;
+            } catch (err) {}
+        }
+        
+        try {
+            var ta = document.createElement('textarea');
+            ta.value = code;
+            ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            flash();
+            toast('🎁 Code copied: ' + code);
+        } catch (e2) {
+            window.prompt('Copy your referral code:', code);
         }
     }
 
@@ -238,15 +262,22 @@
                         '<span class="referral-stat-label">Per Signup</span>' +
                     '</div>' +
                 '</div>' +
-                '<label class="referral-link-label">Your referral link</label>' +
-                '<div class="referral-link-box">' +
-                    '<input type="text" class="referral-link-input" id="referralLinkInput" readonly>' +
+                '<label class="referral-link-label">Your code</label>' +
+                '<div class="referral-code-box">' +
+                    '<span class="referral-code-display" id="referralCodeDisplay">······</span>' +
                 '</div>' +
                 '<div class="referral-actions">' +
-                    '<button class="referral-action-btn primary" id="referralCopyBtn">📋 Copy Link</button>' +
+                    '<button class="referral-action-btn primary" id="referralCopyBtn">📋 Copy Code</button>' +
                     '<button class="referral-action-btn ghost" id="referralDownloadBtn">🖼 Download Card</button>' +
                 '</div>' +
-                '<p class="referral-hint">Share the link on X. The card below is ready to attach to your tweet.</p>' +
+                '<div class="referral-redeem">' +
+                    '<label class="referral-link-label" for="referralRedeemInput">Have a code?</label>' +
+                    '<div class="referral-redeem-row">' +
+                        '<input type="text" class="referral-redeem-input" id="referralRedeemInput" placeholder="ABC123" maxlength="6" autocomplete="off" autocapitalize="characters">' +
+                        '<button class="referral-redeem-btn" id="referralRedeemBtn">Claim</button>' +
+                    '</div>' +
+                '</div>' +
+                '<p class="referral-hint">Share the code — it\'s easier!</p>' +
             '</div>';
 
         document.body.appendChild(modal);
@@ -262,7 +293,17 @@
 
         document.getElementById('referralCopyBtn').addEventListener('click', function (e) {
             e.stopPropagation();
-            copyReferralLink(e);
+            copyReferralCode(e);
+        });
+        document.getElementById('referralRedeemBtn').addEventListener('click', function (e) {
+            e.stopPropagation();
+            redeemReferralCode();
+        });
+        document.getElementById('referralRedeemInput').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                redeemReferralCode();
+            }
         });
 
         document.getElementById('referralDownloadBtn').addEventListener('click', function (e) {
@@ -280,13 +321,37 @@
         var modal = document.getElementById('referralModal');
         if (!modal) return;
 
-        var url = window.location.origin + window.location.pathname + '?ref=' + wallet;
-        document.getElementById('referralLinkInput').value = url;
         document.getElementById('referralCount').textContent = '—';
         document.getElementById('referralXP').textContent = '—';
 
         modal.classList.remove('hidden');
         loadReferralStats();
+        loadMyCode();
+    }
+
+    async function loadMyCode() {
+        var sb = getSB();
+        var wallet = getWallet();
+        if (!sb || !wallet) return;
+
+        var el = document.getElementById('referralCodeDisplay');
+        if (!el) return;
+
+        try {
+            var r = await sb.rpc('get_my_referral_code', { p_wallet: wallet });
+            if (r.error) throw r.error;
+            var code = r.data;
+            if (code) {
+                el.textContent = code;
+                var btnText = document.getElementById('refBtnText');
+                if (btnText) btnText.textContent = 'CODE: ' + code;
+            } else {
+                el.textContent = '······';
+            }
+        } catch (err) {
+            console.warn('[referrals] code load failed:', err);
+            el.textContent = '······';
+        }
     }
 
     function closeReferralModal() {
@@ -316,6 +381,55 @@
         }
     }
 
+       async function redeemReferralCode() {
+        var wallet = getWallet();
+        if (!wallet) { toast('Connect your Phantom wallet first'); return; }
+
+        var inp = document.getElementById('referralRedeemInput');
+        var btn = document.getElementById('referralRedeemBtn');
+        if (!inp) return;
+
+        var code = String(inp.value || '').trim().toUpperCase();
+        if (!code) { toast('Enter a code'); return; }
+        if (!isValidCode(code)) { toast('Codes are 6 characters (A-Z, 0-9)'); return; }
+
+        var sb = getSB();
+        if (!sb) { toast('No connection'); return; }
+
+        if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
+        try {
+            var r = await sb.rpc('resolve_referral_code', { p_code: code });
+            if (r.error) throw r.error;
+            var refWallet = r.data;
+            if (!refWallet) { toast('❌ Code not found'); return; }
+            if (refWallet === wallet) { toast('You can\'t refer yourself'); return; }
+
+            var c = await sb.rpc('claim_referral', { p_wallet: wallet, p_ref_wallet: refWallet });
+            if (c.error) throw c.error;
+
+            var d = c.data || {};
+            if (d.ok) {
+                toast('🎁 Referral claimed — inviter earned +' + (d.bonus || 50) + ' XP');
+                inp.value = '';
+                clearStoredReferrer();
+                loadReferralStats();
+                return;
+            }
+
+            if (d.reason === 'already_referred')       toast('You were already referred');
+            else if (d.reason === 'self_referral')     toast('You can\'t refer yourself');
+            else if (d.reason === 'referrer_not_found') toast('❌ Code not found');
+            else if (d.reason === 'wallet_not_profiled') toast('Create your profile first');
+            else                                        toast('Claim failed: ' + (d.reason || 'unknown'));
+
+        } catch (err) {
+            console.warn('[referrals] redeem failed:', err);
+            toast('Claim failed — try again');
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = 'Claim'; }
+        }
+    }
     /* ═══════════════════════════════════════════════════════
        CANVAS CARD — 1200×630 PNG, ready for X
        ═══════════════════════════════════════════════════════ */
@@ -419,10 +533,28 @@
             ctx.font = '500 22px "Segoe UI", "Inter", system-ui, sans-serif';
             ctx.fillText('Click the link in the post to join ↓', 600, 490);
 
-            // ── Wallet short ──
-            ctx.fillStyle = '#00f0ff';
-            ctx.font = 'bold 26px "Courier New", monospace';
-            ctx.fillText('REF: ' + wallet.slice(0, 6) + '…' + wallet.slice(-6), 600, 545);
+            // ── Code ──
+            try {
+                var sb = getSB();
+                var codeRes = await sb.rpc('get_my_referral_code', { p_wallet: wallet });
+                var myCode = (!codeRes.error && codeRes.data) ? codeRes.data : null;
+                if (myCode) {
+                    ctx.fillStyle = '#00f0ff';
+                    ctx.font = 'bold 42px "Courier New", monospace';
+                    ctx.fillText('CODE: ' + myCode, 600, 540);
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                    ctx.font = '500 16px "Courier New", monospace';
+                    ctx.fillText('or visit ' + window.location.origin + '?ref=' + myCode, 600, 578);
+                } else {
+                    ctx.fillStyle = '#00f0ff';
+                    ctx.font = 'bold 26px "Courier New", monospace';
+                    ctx.fillText('REF: ' + wallet.slice(0, 6) + '…' + wallet.slice(-6), 600, 545);
+                }
+            } catch (e) {
+                ctx.fillStyle = '#00f0ff';
+                ctx.font = 'bold 26px "Courier New", monospace';
+                ctx.fillText('REF: ' + wallet.slice(0, 6) + '…' + wallet.slice(-6), 600, 545);
+            }
 
             // ── Download ──
             var dataUrl = canvas.toDataURL('image/png');
@@ -475,12 +607,14 @@
     window.MSNReferrals = {
         getReferrer:   getStoredReferrer,
         clearReferrer: clearStoredReferrer,
-        copyLink:      copyReferralLink,
+        copyCode:      copyReferralCode,
         tryClaim:      tryClaim,
         open:          openReferralModal,
         close:         closeReferralModal,
         stats:         loadReferralStats,
-        downloadCard:  downloadReferralCard
+        downloadCard:  downloadReferralCard,
+        redeemCode:    redeemReferralCode,
+        loadMyCode:    loadMyCode
     };
 
     console.log('[referrals] loaded — bonus:', BONUS_XP, 'XP per referral');
