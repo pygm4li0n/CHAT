@@ -6,7 +6,7 @@
     'use strict';
     if (window.MSNRooms) return;
 
-    var RPC_ENDPOINT = 'https://mainnet.helius-rpc.com/?api-key=fa7e6515-19de-45de-a7d1-35a64a0d9a1a';
+    var RPC_ENDPOINT = 'https://mainnet.helius-rpc.com/?api-key=564ede48-7fc2-4660-a04f-ab738db17d35';
         var SPL_TOKEN_PROGRAM   = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
     var TOKEN_2022_PROGRAM  = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
 
