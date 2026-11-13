@@ -4028,6 +4028,118 @@ html body .streak-toast.visible {
     .referral-stat-value { font-size: 1.3rem; }
     .referral-actions { grid-template-columns: 1fr; }
 }
+
+/* ═══ REFERRAL CODE — display + redeem ═══ */
+.referral-code-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--accent-cyan, #00f0ff) 14%, transparent),
+        color-mix(in srgb, var(--accent-cyan, #00f0ff) 4%, transparent));
+    border: 1.5px solid color-mix(in srgb, var(--accent-cyan, #00f0ff) 45%, transparent);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.06),
+        0 0 16px color-mix(in srgb, var(--accent-cyan, #00f0ff) 18%, transparent);
+}
+.referral-code-display {
+    flex: 1 1 auto;
+    font-family: var(--font-mono, monospace);
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-indent: 0.18em;
+    text-align: center;
+    color: var(--accent-cyan, #00f0ff);
+    text-shadow:
+        0 0 12px color-mix(in srgb, var(--accent-cyan, #00f0ff) 70%, transparent),
+        0 0 24px color-mix(in srgb, var(--accent-cyan, #00f0ff) 40%, transparent);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Redeem code section ── */
+.referral-redeem {
+    margin-top: 4px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--border-default, rgba(255,255,255,0.12));
+}
+.referral-redeem-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+.referral-redeem-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 11px 14px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border-default, rgba(255,255,255,0.15));
+    background: var(--bg-input, #111827);
+    color: var(--text-primary, #fff);
+    font-family: var(--font-mono, monospace);
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 0.22em;
+    text-indent: 0.22em;
+    text-align: center;
+    text-transform: uppercase;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.referral-redeem-input::placeholder {
+    color: var(--text-muted, #64748b);
+    letter-spacing: 0.15em;
+    text-indent: 0.15em;
+    font-weight: 700;
+}
+.referral-redeem-input:focus {
+    border-color: var(--accent-cyan, #00f0ff);
+    box-shadow:
+        0 0 0 1px var(--accent-cyan, #00f0ff),
+        0 0 14px color-mix(in srgb, var(--accent-cyan, #00f0ff) 35%, transparent);
+}
+.referral-redeem-btn {
+    flex-shrink: 0;
+    padding: 0 20px;
+    border-radius: 8px;
+    border: 1px solid var(--accent-cyan, #00f0ff);
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--accent-cyan, #00f0ff) 92%, white 8%),
+        color-mix(in srgb, var(--accent-cyan, #00f0ff) 72%, black 8%));
+    color: #001018;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-cyan, #00f0ff) 40%, transparent);
+    text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+    line-height: 1;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+}
+.referral-redeem-btn:hover {
+    filter: brightness(1.12);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--accent-cyan, #00f0ff) 60%, transparent);
+}
+.referral-redeem-btn:active { transform: scale(0.97); }
+.referral-redeem-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+}
 /* ═══════════════════════════════════════════════════════════════════
    ███  END OF FILE  ███
    ═══════════════════════════════════════════════════════════════════ */
